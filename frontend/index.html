@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WartoolC2</title>
+
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/milsymbol@2.2.0/dist/milsymbol.js"></script>
+
+  <style>
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body {
+      font-family:'Segoe UI',Arial,sans-serif;
+      background:#1a1f2e; color:#e8eaf0;
+      height:100vh; display:flex; flex-direction:column;
+    }
+
+    /* ── Topbar ─────────────────────────────────────────────── */
+    #topbar {
+      background:#0d1b2a; border-bottom:2px solid #2a4a6b;
+      padding:8px 16px; display:flex; align-items:center;
+      justify-content:space-between; flex-shrink:0; gap:12px; z-index:1001;
+    }
+    #topbar h1 {
+      font-size:15px; font-weight:600; letter-spacing:.08em;
+      color:#a8c8e8; text-transform:uppercase; white-space:nowrap;
+    }
+    #status-bar { display:flex; align-items:center; gap:16px; font-size:12px; flex-wrap:wrap; }
+    #last-update { color:#7a9ab8; display:flex; align-items:center; gap:5px; }
+    #update-dot {
+      width:8px; height:8px; border-radius:50%; background:#4caf50;
+      display:inline-block; animation:pulse 2s infinite;
+    }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
+    #contadores { display:flex; gap:6px; }
+    .cnt { padding:2px 10px; border-radius:4px; font-size:12px; font-weight:500; }
+    .cnt-f { background:#1a3a5c; color:#7ab8f5; border:1px solid #2a5a8c; }
+    .cnt-i { background:#5c1a1a; color:#f57a7a; border:1px solid #8c2a2a; }
+    .cnt-n { background:#1a3a1a; color:#7af57a; border:1px solid #2a6c2a; }
+    .cnt-d { background:#3a3a1a; color:#f5e07a; border:1px solid #6c5a2a; }
+
+    /* ── Mapa ───────────────────────────────────────────────── */
+    #map { flex:1; width:100%; }
+
+    /* ── Painel lateral ─────────────────────────────────────── */
+    #side-panel {
+      position:absolute; top:58px; right:10px; z-index:1000;
+      display:flex; flex-direction:column; gap:8px;
+    }
+    .panel-card {
+      background:rgba(13,27,42,.92); border:1px solid #2a4a6b;
+      border-radius:6px; padding:10px 14px; font-size:12px; min-width:170px;
+    }
+    .panel-card h3 {
+      font-size:11px; letter-spacing:.06em; text-transform:uppercase;
+      color:#7a9ab8; margin-bottom:8px;
+    }
+    .layer-row {
+      display:flex; align-items:center; gap:8px;
+      margin-bottom:6px; cursor:pointer;
+    }
+    .layer-dot { width:10px; height:10px; border-radius:2px; }
+
+    /* Seletor de mapa base */
+    .basemap-row {
+      display:flex; align-items:center; gap:8px;
+      margin-bottom:6px; cursor:pointer;
+    }
+    .basemap-row input[type=radio] { cursor:pointer; }
+    .basemap-thumb {
+      width:20px; height:14px; border-radius:2px;
+      border:1px solid #3a5a7a; flex-shrink:0;
+    }
+    .basemap-label { font-size:12px; color:#c8d8e8; }
+
+    /* ── Popup ──────────────────────────────────────────────── */
+    .popup-content { font-size:13px; min-width:200px; }
+    .popup-title {
+      font-size:14px; font-weight:600; margin-bottom:6px;
+      padding-bottom:6px; border-bottom:1px solid #ddd;
+    }
+    .popup-row { display:flex; gap:6px; margin-bottom:3px; }
+    .popup-label { color:#666; min-width:80px; font-size:12px; }
+    .popup-value { font-size:12px; }
+    .badge-host {
+      display:inline-block; padding:1px 8px;
+      border-radius:3px; font-size:11px; font-weight:500;
+    }
+
+    /* ── Rodapé ─────────────────────────────────────────────── */
+    #footer {
+      background:#0d1b2a; border-top:1px solid #2a4a6b;
+      padding:4px 16px; font-size:11px; color:#4a6a8a;
+      text-align:center; flex-shrink:0;
+    }
+  </style>
+</head>
+<body>
+
+<div id="topbar">
+  <h1>🗺 WartoolC2</h1>
+  <div id="status-bar">
+    <div id="contadores">
+      <span class="cnt cnt-f" id="cnt-f">F: 0</span>
+      <span class="cnt cnt-i" id="cnt-i">I: 0</span>
+      <span class="cnt cnt-n" id="cnt-n">N: 0</span>
+      <span class="cnt cnt-d" id="cnt-d">D: 0</span>
+    </div>
+    <span id="last-update">
+      <span id="update-dot"></span>Aguardando dados...
+    </span>
+  </div>
+</div>
+
+<div id="map"></div>
+
+<div id="side-panel">
+
+  <!-- Seletor de mapa base -->
+  <div class="panel-card">
+    <h3>Mapa Base</h3>
+
+    <label class="basemap-row">
+      <input type="radio" name="basemap" value="osm" checked>
+      <span class="basemap-thumb" style="background:linear-gradient(135deg,#a8d5a2,#7ab4e8)"></span>
+      <span class="basemap-label">OpenStreetMap</span>
+    </label>
+
+    <label class="basemap-row">
+      <input type="radio" name="basemap" value="topo">
+      <span class="basemap-thumb" style="background:linear-gradient(135deg,#c8b87a,#a8c88a)"></span>
+      <span class="basemap-label">Topográfico (Esri)</span>
+    </label>
+
+    <label class="basemap-row">
+      <input type="radio" name="basemap" value="otopo">
+      <span class="basemap-thumb" style="background:linear-gradient(135deg,#b8d8a8,#d8c890)"></span>
+      <span class="basemap-label">OpenTopoMap</span>
+    </label>
+
+    <label class="basemap-row">
+      <input type="radio" name="basemap" value="satellite">
+      <span class="basemap-thumb" style="background:linear-gradient(135deg,#2a4a2a,#1a3a5a)"></span>
+      <span class="basemap-label">Satélite (Esri)</span>
+    </label>
+
+    <label class="basemap-row">
+      <input type="radio" name="basemap" value="google_sat">
+      <span class="basemap-thumb" style="background:linear-gradient(135deg,#1a3a1a,#2a5a2a)"></span>
+      <span class="basemap-label">Google Satélite</span>
+    </label>
+
+    <label class="basemap-row">
+      <input type="radio" name="basemap" value="google_hybrid">
+      <span class="basemap-thumb" style="background:linear-gradient(135deg,#1a3a1a,#4a8af5)"></span>
+      <span class="basemap-label">Google Híbrido</span>
+    </label>
+
+    <label class="basemap-row">
+      <input type="radio" name="basemap" value="bdgex">
+      <span class="basemap-thumb" style="background:linear-gradient(135deg,#c8b87a,#8ac890)"></span>
+      <span class="basemap-label">BDGEx 1:50.000 (EB)</span>
+    </label>
+
+    <label class="basemap-row">
+      <input type="radio" name="basemap" value="hybrid">
+      <span class="basemap-thumb" style="background:linear-gradient(135deg,#1a2a1a,#7ab8f5)"></span>
+      <span class="basemap-label">Híbrido (Sat+Labels)</span>
+    </label>
+
+    <label class="basemap-row">
+      <input type="radio" name="basemap" value="dark">
+      <span class="basemap-thumb" style="background:linear-gradient(135deg,#1a1a2a,#2a3a4a)"></span>
+      <span class="basemap-label">Escuro (CartoDB)</span>
+    </label>
+
+    <label class="basemap-row">
+      <input type="radio" name="basemap" value="light">
+      <span class="basemap-thumb" style="background:linear-gradient(135deg,#f0f0f0,#d8d8d8)"></span>
+      <span class="basemap-label">Claro (CartoDB)</span>
+    </label>
+
+    <label class="basemap-row">
+      <input type="radio" name="basemap" value="none">
+      <span class="basemap-thumb" style="background:#111"></span>
+      <span class="basemap-label">Sem mapa base</span>
+    </label>
+  </div>
+
+  <!-- Camadas COP -->
+  <div class="panel-card">
+    <h3>Forças</h3>
+    <label class="layer-row">
+      <input type="checkbox" id="chk-f" checked>
+      <span class="layer-dot" style="background:#4a90d9"></span>Amigo
+    </label>
+    <label class="layer-row">
+      <input type="checkbox" id="chk-i" checked>
+      <span class="layer-dot" style="background:#e05252"></span>Hostil
+    </label>
+    <label class="layer-row">
+      <input type="checkbox" id="chk-n" checked>
+      <span class="layer-dot" style="background:#4caf50"></span>Neutro
+    </label>
+    <label class="layer-row">
+      <input type="checkbox" id="chk-d" checked>
+      <span class="layer-dot" style="background:#f5c842"></span>Desconhecido
+    </label>
+  </div>
+
+  <!-- Camadas extras (alimentadas pelo QGIS via GeoJSON separados) -->
+  <div class="panel-card" id="extra-layers-panel" style="display:none">
+    <h3>Camadas</h3>
+    <div id="extra-layers-list"></div>
+  </div>
+
+</div>
+
+<div id="footer">
+  Atualização automática a cada 2 minutos &nbsp;|&nbsp; Simbologia APP-6D / MD33-C-01
+</div>
+
+<script>
+// ── Mapas base ────────────────────────────────────────────────────────────
+const BASEMAPS = {
+  osm: L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution:'© OpenStreetMap', maxZoom:19
+  }),
+  topo: L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}', {
+    attribution:'© Esri', maxZoom:18
+  }),
+  otopo: L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', {
+    attribution:'© OpenTopoMap', maxZoom:17
+  }),
+  satellite: L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+    attribution:'© Esri', maxZoom:18
+  }),
+  google_sat: L.tileLayer('https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', {
+    attribution:'© Google', maxZoom:20
+  }),
+  google_hybrid: L.tileLayer('https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', {
+    attribution:'© Google', maxZoom:20
+  }),
+  bdgex: L.tileLayer.wms('http://bdgex.eb.mil.br/mapcache', {
+    layers:      'ctm50',
+    format:      'image/png',
+    transparent: true,
+    attribution: '© BDGEx / Exército Brasileiro',
+    crs:         L.CRS.EPSG4326,
+    maxZoom:     18,
+  }),
+  hybrid: L.layerGroup([
+    L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+      attribution:'© Esri', maxZoom:18
+    }),
+    L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}', {
+      maxZoom:18, opacity:0.8
+    }),
+  ]),
+  dark: L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+    attribution:'© CartoDB', maxZoom:19
+  }),
+  light: L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+    attribution:'© CartoDB', maxZoom:19
+  }),
+  none: L.tileLayer('', { maxZoom:19 }),
+};
+
+// ── Inicializa o mapa ────────────────────────────────────────────────────
+const map = L.map('map', { center:[-22,-47], zoom:10 });
+let basemapAtual = BASEMAPS.osm;
+basemapAtual.addTo(map);
+
+// Troca de mapa base
+document.querySelectorAll('input[name=basemap]').forEach(radio => {
+  radio.addEventListener('change', () => {
+    map.removeLayer(basemapAtual);
+    basemapAtual = BASEMAPS[radio.value];
+    basemapAtual.addTo(map);
+  });
+});
+
+// ── Tabelas de conversão ─────────────────────────────────────────────────
+const HOSTILIDADE = {
+  AMIGO:'03', PRESUMIDO:'02', HOSTIL:'06', SUSPEITO:'05',
+  NEUTRO:'04', DESCONHECIDO:'01',
+};
+const DIMENSAO = {
+  UNIDADE:'10', EQUIPAMENTO:'15', INSTALACAO:'20',
+  AEREO:'05', INDIVIDUO:'27',
+};
+const SITUACAO = {
+  CONFIRMADA:'0', ESTIMADA:'1', PLANEJADA:'1', SUSPEITA:'1',
+};
+const ESCALAO = {
+  NONE:'00', SQD:'11', SEC:'12', PEL:'13', CIA:'14',
+  BIA:'14', ESC:'14', BN:'15', GRU:'16', BDA:'17',
+  DIV:'18', CRP:'19', EX:'20', '':'00',
+};
+const HQTF = {
+  '':'0','Nenhum':'0','Simulacro / Feint':'1',
+  'HQ / Posto de Comando':'2','HQ + Simulacro':'3',
+  'Força-Tarefa':'4','Força-Tarefa + Simulacro':'5',
+  'Força-Tarefa + HQ':'6','Força-Tarefa + HQ + Simul':'7',
+};
+
+function getSIDC(props) {
+  if (props.sidc && props.sidc.length === 20) return props.sidc;
+  const h  = HOSTILIDADE[(props.hostilidade||'').toUpperCase()] || '01';
+  const d  = DIMENSAO[(props.dimensao||'').toUpperCase()] || '10';
+  const s  = SITUACAO[(props.situacao||'').toUpperCase()] || '0';
+  const hq = HQTF[props.hqtf||''] || '0';
+  const e  = ESCALAO[(props.escalao||'').toUpperCase()] || '00';
+  const nat = (props.natureza_code||'000000').padEnd(10,'0');
+  return `10${h}${d}${s}${hq}${e}${nat}`;
+}
+
+// ── Ícone milsymbol ──────────────────────────────────────────────────────
+function criarIcone(feature) {
+  const props = feature.properties;
+  const sidc  = getSIDC(props);
+  try {
+    const sym = new ms.Symbol(sidc, {
+      size:              32,
+      uniqueDesignation: props.designacao  || '',
+      higherFormation:   props.escalao_sup || '',
+    });
+    const anchor = sym.getAnchor();
+    const size   = sym.getSize();
+    return L.divIcon({
+      html:       sym.asSVG(),
+      className:  '',
+      iconSize:   [size.width, size.height],
+      iconAnchor: [anchor.x,   anchor.y],
+      popupAnchor:[0, -anchor.y],
+    });
+  } catch(e) {
+    // Fallback se SIDC inválido
+    return L.divIcon({
+      html: `<div style="background:#888;width:20px;height:20px;border-radius:50%;border:2px solid #fff"></div>`,
+      className:'', iconSize:[20,20], iconAnchor:[10,10],
+    });
+  }
+}
+
+// ── Grupos de camadas ────────────────────────────────────────────────────
+const GRUPOS = {
+  F: L.layerGroup().addTo(map),
+  I: L.layerGroup().addTo(map),
+  N: L.layerGroup().addTo(map),
+  D: L.layerGroup().addTo(map),
+};
+
+function grupoHost(host) {
+  const h = (host||'').toUpperCase();
+  if (['AMIGO','PRESUMIDO'].includes(h))  return 'F';
+  if (['HOSTIL','SUSPEITO'].includes(h))  return 'I';
+  if (h === 'NEUTRO')                     return 'N';
+  return 'D';
+}
+
+['f','i','n','d'].forEach(k => {
+  document.getElementById(`chk-${k}`).addEventListener('change', ev => {
+    ev.target.checked
+      ? map.addLayer(GRUPOS[k.toUpperCase()])
+      : map.removeLayer(GRUPOS[k.toUpperCase()]);
+  });
+});
+
+// ── Popup ────────────────────────────────────────────────────────────────
+const BADGE_STYLE = {
+  AMIGO:        'color:#1a5296;background:#c8dcff',
+  HOSTIL:       'color:#c0392b;background:#ffd0d0',
+  NEUTRO:       'color:#27ae60;background:#d0f0d0',
+  DESCONHECIDO: 'color:#d4a017;background:#fff3c0',
+};
+
+function criarPopup(props) {
+  const host   = (props.hostilidade||'DESCONHECIDO').toUpperCase();
+  const estilo = BADGE_STYLE[host] || BADGE_STYLE.DESCONHECIDO;
+  const badge  = `<span class="badge-host" style="${estilo}">${props.hostilidade||'—'}</span>`;
+
+  const campos = [
+    ['Hostilidade',   badge],
+    ['Natureza',      props.natureza],
+    ['Escalão',       props.escalao],
+    ['Esc. Superior', props.escalao_sup],
+    ['Situação',      props.situacao],
+    ['HQ/TF',         props.hqtf],
+    ['Mobilidade',    props.mobilidade],
+    ['Cond. Op.',     props.cond_operac],
+    ['Fonte',         props.fonte],
+    ['Timestamp',     props.timestamp_edicao],
+    ['Obs',           props.obs],
+  ].filter(([,v]) => v && String(v).trim() !== '');
+
+  return `
+    <div class="popup-content">
+      <div class="popup-title">${props.id||'—'} &nbsp;·&nbsp; ${props.designacao||'—'}</div>
+      ${campos.map(([l,v]) =>
+        `<div class="popup-row">
+          <span class="popup-label">${l}</span>
+          <span class="popup-value">${v}</span>
+        </div>`
+      ).join('')}
+    </div>`;
+}
+
+// ── Camadas extras (GeoJSON adicionais) ──────────────────────────────────
+// Para adicionar uma camada extra:
+//   1. Exporte do QGIS como GeoJSON e commite no repositório
+//   2. Adicione uma entrada neste array:
+const EXTRA_LAYERS = [
+  {
+    nome: 'Limites e Eixos',
+    arquivo: 'data/man5bdacbld.geojson',
+    cor: '#4a90d9',
+    tipo: 'line',
+  },
+];
+
+const REPO_RAW = 'https://raw.githubusercontent.com/joaopaulo1008/cop-tatico/main/';
+const extraGrupos = {};
+
+function carregarExtraLayers() {
+  if (EXTRA_LAYERS.length === 0) return;
+
+  const painel = document.getElementById('extra-layers-panel');
+  const lista  = document.getElementById('extra-layers-list');
+  painel.style.display = 'block';
+
+  EXTRA_LAYERS.forEach(cfg => {
+    const grupo = L.layerGroup().addTo(map);
+    extraGrupos[cfg.nome] = grupo;
+
+    // Adiciona checkbox no painel
+    const label = document.createElement('label');
+    label.className = 'layer-row';
+    label.innerHTML = `
+      <input type="checkbox" checked>
+      <span class="layer-dot" style="background:${cfg.cor}"></span>
+      ${cfg.nome}`;
+    label.querySelector('input').addEventListener('change', ev => {
+      ev.target.checked ? map.addLayer(grupo) : map.removeLayer(grupo);
+    });
+    lista.appendChild(label);
+
+    // Carrega o GeoJSON
+    fetch(`${REPO_RAW}${cfg.arquivo}?t=${Date.now()}`)
+      .then(r => r.json())
+      .then(geojson => {
+        L.geoJSON(geojson, {
+          style: {
+            color:       cfg.cor,
+            weight:      2,
+            fillOpacity: cfg.tipo === 'polygon' ? 0.15 : 0,
+          },
+          onEachFeature: (feature, layer) => {
+            if (feature.properties) {
+              const nome = feature.properties.nome || feature.properties.name || '';
+              if (nome) layer.bindPopup(`<b>${nome}</b>`);
+            }
+          },
+        }).addTo(grupo);
+      })
+      .catch(err => console.warn(`Erro ao carregar ${cfg.arquivo}:`, err));
+  });
+}
+
+// ── Carrega dados COP ────────────────────────────────────────────────────
+let primeiraVez = true;
+const GEOJSON_URL =
+  `${REPO_RAW}data/cop_tatico.geojson`;
+
+function contadores(features) {
+  const c = {F:0,I:0,N:0,D:0};
+  features.forEach(f => c[grupoHost(f.properties.hostilidade)]++);
+  document.getElementById('cnt-f').textContent = `F: ${c.F}`;
+  document.getElementById('cnt-i').textContent = `I: ${c.I}`;
+  document.getElementById('cnt-n').textContent = `N: ${c.N}`;
+  document.getElementById('cnt-d').textContent = `D: ${c.D}`;
+}
+
+function carregarDados() {
+  fetch(`${GEOJSON_URL}?t=${Date.now()}`)
+    .then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); })
+    .then(geojson => {
+      Object.values(GRUPOS).forEach(g => g.clearLayers());
+
+      const features = geojson.features || [];
+      contadores(features);
+
+      features.forEach(feature => {
+        const props    = feature.properties;
+        const chave    = grupoHost(props.hostilidade);
+        const marcador = L.marker(
+          [feature.geometry.coordinates[1], feature.geometry.coordinates[0]],
+          { icon: criarIcone(feature) }
+        ).bindPopup(criarPopup(props), { maxWidth:300 });
+        GRUPOS[chave].addLayer(marcador);
+      });
+
+      if (primeiraVez && features.length > 0) {
+        const coords = features.map(f => [
+          f.geometry.coordinates[1], f.geometry.coordinates[0],
+        ]);
+        map.fitBounds(coords, { padding:[50,50] });
+        primeiraVez = false;
+      }
+
+      const agora = new Date().toLocaleTimeString('pt-BR');
+      document.getElementById('last-update').innerHTML =
+        `<span id="update-dot"></span>Atualizado: ${agora} · ${features.length} elementos`;
+    })
+    .catch(err => {
+      document.getElementById('last-update').innerHTML =
+        `<span id="update-dot" style="background:#e05252"></span>Erro: ${err.message}`;
+    });
+}
+
+carregarDados();
+carregarExtraLayers();
+setInterval(carregarDados, 120_000);
+</script>
+</body>
+</html>

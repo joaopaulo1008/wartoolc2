@@ -1,0 +1,436 @@
+{
+  "type": "FeatureCollection",
+  "generated": "2026-06-18 09:36:56",
+  "total": 13,
+  "features": [
+    {
+      "geometry": {
+        "coordinates": [
+          -50.539361,
+          -26.254948
+        ],
+        "type": "Point"
+      },
+      "id": 1,
+      "properties": {
+        "cond_operac": "",
+        "designacao": "2/520",
+        "dimensao": "UNIDADE",
+        "escalao": "CIA",
+        "escalao_sup": "",
+        "fid": 1,
+        "fonte": "FT520",
+        "hostilidade": "AMIGO",
+        "hqtf": "",
+        "id": "F-001",
+        "mobilidade": "",
+        "natureza": "Cavalaria Blindada",
+        "obs": "",
+        "segue_ativo": "Sim",
+        "sidc": "10031000141213010000",
+        "situacao": "CONFIRMADA",
+        "timestamp_edicao": "2026-06-18 07:45:20",
+        "utm_e": 546000.0,
+        "utm_n": 7096000.0,
+        "natureza_code": "121301"
+      },
+      "type": "Feature"
+    },
+    {
+      "geometry": {
+        "coordinates": [
+          -50.527156,
+          -26.25201
+        ],
+        "type": "Point"
+      },
+      "id": 2,
+      "properties": {
+        "cond_operac": "",
+        "designacao": "Pel/520",
+        "dimensao": "UNIDADE",
+        "escalao": "PEL",
+        "escalao_sup": "",
+        "fid": 2,
+        "fonte": "FT520",
+        "hostilidade": "AMIGO",
+        "hqtf": "",
+        "id": "F-002",
+        "mobilidade": "",
+        "natureza": "Cavalaria Blindada",
+        "obs": "",
+        "segue_ativo": "Sim",
+        "sidc": "10031000131213010000",
+        "situacao": "CONFIRMADA",
+        "timestamp_edicao": "2026-06-18 07:44:55",
+        "utm_e": 547220.0,
+        "utm_n": 7096321.0,
+        "natureza_code": "121301"
+      },
+      "type": "Feature"
+    },
+    {
+      "geometry": {
+        "coordinates": [
+          -50.533158,
+          -26.253546
+        ],
+        "type": "Point"
+      },
+      "id": 3,
+      "properties": {
+        "cond_operac": "",
+        "designacao": "4/520",
+        "dimensao": "UNIDADE",
+        "escalao": "CIA",
+        "escalao_sup": "",
+        "fid": 3,
+        "fonte": "FT520",
+        "hostilidade": "AMIGO",
+        "hqtf": "",
+        "id": "F-003",
+        "mobilidade": "",
+        "natureza": "Infantaria",
+        "obs": "",
+        "segue_ativo": "Sim",
+        "sidc": "10031000141211000000",
+        "situacao": "CONFIRMADA",
+        "timestamp_edicao": "2026-06-18 07:45:57",
+        "utm_e": 546620.0,
+        "utm_n": 7096153.0,
+        "natureza_code": "121100"
+      },
+      "type": "Feature"
+    },
+    {
+      "geometry": {
+        "coordinates": [
+          -50.518326,
+          -26.219953
+        ],
+        "type": "Point"
+      },
+      "id": 1,
+      "properties": {
+        "cond_operac": "",
+        "designacao": "FT U",
+        "dimensao": "UNIDADE",
+        "escalao": "BN",
+        "escalao_sup": "",
+        "fid": 1,
+        "fonte": "E2/5ª DE",
+        "hostilidade": "HOSTIL",
+        "hqtf": "Força-Tarefa",
+        "id": "I-002",
+        "mobilidade": "",
+        "natureza": "",
+        "obs": "",
+        "segue_ativo": "Sim",
+        "sidc": "10061004150000000000",
+        "situacao": "CONFIRMADA",
+        "timestamp_edicao": "2026-06-17 10:57:53",
+        "utm_e": 548115.0,
+        "utm_n": 7099868.0,
+        "natureza_code": "000000"
+      },
+      "type": "Feature"
+    },
+    {
+      "geometry": {
+        "coordinates": [
+          -50.376207,
+          -26.189502
+        ],
+        "type": "Point"
+      },
+      "id": 2,
+      "properties": {
+        "cond_operac": "",
+        "designacao": "MMT",
+        "dimensao": "UNIDADE",
+        "escalao": "",
+        "escalao_sup": "",
+        "fid": 2,
+        "fonte": "E2/5ª DE",
+        "hostilidade": "HOSTIL",
+        "hqtf": "",
+        "id": "I-003",
+        "mobilidade": "",
+        "natureza": "",
+        "obs": "MMT",
+        "segue_ativo": "Sim",
+        "sidc": "10061000000000000000",
+        "situacao": "CONFIRMADA",
+        "timestamp_edicao": "2026-06-17 11:04:21",
+        "utm_e": 562328.0,
+        "utm_n": 7103180.0,
+        "natureza_code": "000000"
+      },
+      "type": "Feature"
+    },
+    {
+      "geometry": {
+        "coordinates": [
+          -50.365975,
+          -26.26589
+        ],
+        "type": "Point"
+      },
+      "id": 3,
+      "properties": {
+        "cond_operac": "",
+        "designacao": "1 Pel C Mec",
+        "dimensao": "UNIDADE",
+        "escalao": "PEL",
+        "escalao_sup": "",
+        "fid": 3,
+        "fonte": "5º Esqd C Mec",
+        "hostilidade": "HOSTIL",
+        "hqtf": "",
+        "id": "I-014",
+        "mobilidade": "",
+        "natureza": "Cavalaria",
+        "obs": "1 Pel C Mec",
+        "segue_ativo": "Sim",
+        "sidc": "10061000131213000000",
+        "situacao": "",
+        "timestamp_edicao": "2026-06-17 13:21:57",
+        "utm_e": 563309.0,
+        "utm_n": 7094715.0,
+        "natureza_code": "121300"
+      },
+      "type": "Feature"
+    },
+    {
+      "geometry": {
+        "coordinates": [
+          -50.3932,
+          -26.268698
+        ],
+        "type": "Point"
+      },
+      "id": 4,
+      "properties": {
+        "cond_operac": "",
+        "designacao": "1 Pel C Mec",
+        "dimensao": "UNIDADE",
+        "escalao": "PEL",
+        "escalao_sup": "",
+        "fid": 4,
+        "fonte": "5º Esqd C Mec",
+        "hostilidade": "HOSTIL",
+        "hqtf": "",
+        "id": "I-015",
+        "mobilidade": "",
+        "natureza": "Cavalaria",
+        "obs": "1 Pel C Mec",
+        "segue_ativo": "Sim",
+        "sidc": "10061000131213000000",
+        "situacao": "",
+        "timestamp_edicao": "2026-06-17 13:22:00",
+        "utm_e": 560589.0,
+        "utm_n": 7094417.0,
+        "natureza_code": "121300"
+      },
+      "type": "Feature"
+    },
+    {
+      "geometry": {
+        "coordinates": [
+          -50.334898,
+          -26.253948
+        ],
+        "type": "Point"
+      },
+      "id": 5,
+      "properties": {
+        "cond_operac": "",
+        "designacao": "7 Elm Cav + Pel CC",
+        "dimensao": "UNIDADE",
+        "escalao": "NONE",
+        "escalao_sup": "",
+        "fid": 5,
+        "fonte": "5º Esqd C Mec",
+        "hostilidade": "HOSTIL",
+        "hqtf": "",
+        "id": "I-016",
+        "mobilidade": "",
+        "natureza": "Cavalaria",
+        "obs": "7 Elm Cav + Pel CC",
+        "segue_ativo": "Sim",
+        "sidc": "10061000001213000000",
+        "situacao": "",
+        "timestamp_edicao": "2026-06-17 13:29:17",
+        "utm_e": 566419.0,
+        "utm_n": 7096022.0,
+        "natureza_code": "121300"
+      },
+      "type": "Feature"
+    },
+    {
+      "geometry": {
+        "coordinates": [
+          -50.348281,
+          -26.24042
+        ],
+        "type": "Point"
+      },
+      "id": 6,
+      "properties": {
+        "cond_operac": "",
+        "designacao": "2 Pel C Mec",
+        "dimensao": "UNIDADE",
+        "escalao": "CIA",
+        "escalao_sup": "",
+        "fid": 6,
+        "fonte": "5º Esqd C Mec",
+        "hostilidade": "HOSTIL",
+        "hqtf": "",
+        "id": "I-017",
+        "mobilidade": "",
+        "natureza": "Cavalaria",
+        "obs": "2 Pel C Mec",
+        "segue_ativo": "Sim",
+        "sidc": "10061000141213000000",
+        "situacao": "CONFIRMADA",
+        "timestamp_edicao": "2026-06-17 13:20:29",
+        "utm_e": 565090.0,
+        "utm_n": 7097527.0,
+        "natureza_code": "121300"
+      },
+      "type": "Feature"
+    },
+    {
+      "geometry": {
+        "coordinates": [
+          -50.596151,
+          -26.266035
+        ],
+        "type": "Point"
+      },
+      "id": 7,
+      "properties": {
+        "cond_operac": "",
+        "designacao": "Roubo Explosivos",
+        "dimensao": "",
+        "escalao": "",
+        "escalao_sup": "",
+        "fid": 7,
+        "fonte": "E2/5ª DE",
+        "hostilidade": "HOSTIL",
+        "hqtf": "",
+        "id": "I-018",
+        "mobilidade": "",
+        "natureza": "Desconhecido / Não identificado",
+        "obs": "Roubo explosivos",
+        "segue_ativo": "Sim",
+        "sidc": "10061000000000000000",
+        "situacao": "",
+        "timestamp_edicao": "2026-06-17 15:19:25",
+        "utm_e": 540325.0,
+        "utm_n": 7094791.0,
+        "natureza_code": "000000"
+      },
+      "type": "Feature"
+    },
+    {
+      "geometry": {
+        "coordinates": [
+          -50.172801,
+          -26.22294
+        ],
+        "type": "Point"
+      },
+      "id": 8,
+      "properties": {
+        "cond_operac": "",
+        "designacao": "Reunião MMT",
+        "dimensao": "",
+        "escalao": "",
+        "escalao_sup": "",
+        "fid": 8,
+        "fonte": "E2/5ª DE",
+        "hostilidade": "HOSTIL",
+        "hqtf": "",
+        "id": "I-019",
+        "mobilidade": "",
+        "natureza": "",
+        "obs": "15 1700 JUN",
+        "segue_ativo": "Sim",
+        "sidc": "10061000000000000000",
+        "situacao": "CONFIRMADA",
+        "timestamp_edicao": "2026-06-17 15:41:22",
+        "utm_e": 582629.0,
+        "utm_n": 7099363.0,
+        "natureza_code": "000000"
+      },
+      "type": "Feature"
+    },
+    {
+      "geometry": {
+        "coordinates": [
+          -50.89589,
+          -26.294494
+        ],
+        "type": "Point"
+      },
+      "id": 9,
+      "properties": {
+        "cond_operac": "",
+        "designacao": "Ponte Armadilhada",
+        "dimensao": "",
+        "escalao": "",
+        "escalao_sup": "",
+        "fid": 9,
+        "fonte": "E2/5ª DE",
+        "hostilidade": "HOSTIL",
+        "hqtf": "",
+        "id": "I-020",
+        "mobilidade": "",
+        "natureza": "",
+        "obs": "Ponte Armadilhada",
+        "segue_ativo": "Sim",
+        "sidc": "10061010000000000000",
+        "situacao": "SUSPEITA",
+        "timestamp_edicao": "2026-06-17 15:41:34",
+        "utm_e": 510393.0,
+        "utm_n": 7091698.0,
+        "natureza_code": "000000"
+      },
+      "type": "Feature"
+    },
+    {
+      "geometry": {
+        "coordinates": [
+          -50.880576,
+          -26.291538
+        ],
+        "type": "Point"
+      },
+      "id": 1,
+      "properties": {
+        "cond_operac": "",
+        "designacao": "Manifestação",
+        "dimensao": "",
+        "escalao": "",
+        "escalao_sup": "",
+        "fid": 1,
+        "fonte": "E2/5ª DE",
+        "hostilidade": "NEUTRO",
+        "hqtf": "",
+        "id": "N-001",
+        "mobilidade": "",
+        "natureza": "Desconhecido / Não identificado",
+        "obs": "Manifestação",
+        "segue_ativo": "Sim",
+        "sidc": "10041000000000000000",
+        "situacao": "CONFIRMADA",
+        "timestamp_edicao": "2026-06-17 11:48:18",
+        "utm_e": 511922.0,
+        "utm_n": 7092024.0,
+        "natureza_code": "000000"
+      },
+      "type": "Feature"
+    }
+  ]
+}

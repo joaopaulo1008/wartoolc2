@@ -1,0 +1,21 @@
+# Node
+node_modules/
+dist/
+.env
+.env.local
+
+# Python (legado QGIS)
+__pycache__/
+*.pyc
+
+# QGIS
+*.gpkg
+*.gpkg-*
+
+# SO
+.DS_Store
+Thumbs.db
+
+# Editores
+.vscode/
+.idea/
