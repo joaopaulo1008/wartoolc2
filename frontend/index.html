@@ -9,6 +9,12 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/milsymbol@2.2.0/dist/milsymbol.js"></script>
 
+  <!-- Fonte única das tabelas APP-6D e da hostilidade relativa (Etapa 4.5).
+       Carregado como module aqui só para publicar window.WartoolSimbolos, que
+       é o que o <script> clássico lá embaixo consegue enxergar; colegas.js e
+       a marcação da Etapa 5 importam o mesmo arquivo por `import`. -->
+  <script type="module" src="./simbolos.js"></script>
+
   <style>
     * { margin:0; padding:0; box-sizing:border-box; }
     body {
@@ -29,6 +35,11 @@
     }
     #status-bar { display:flex; align-items:center; gap:16px; font-size:12px; flex-wrap:wrap; }
     #last-update { color:#7a9ab8; display:flex; align-items:center; gap:5px; }
+    #gps-status { color:#7a9ab8; white-space:nowrap; } /* Etapa 3: status do GPS próprio, atualizado por gps.js */
+    #colegas-status { color:#7a9ab8; white-space:nowrap; } /* Etapa 4: status dos colegas em tempo real, atualizado por colegas.js */
+    #marcacoes-status { color:#7a9ab8; white-space:nowrap; } /* Etapa 5: status das marcações no mapa, atualizado por marcacoes.js */
+    #permissoes-status { color:#7a9ab8; white-space:nowrap; } /* Etapa 6a: o que o instrutor liberou, atualizado por permissoes.js */
+    #camadas-status { color:#7a9ab8; white-space:nowrap; } /* Etapa 7: camadas de arquivo (calcos + KML próprio), atualizado por camadas.js */
     #update-dot {
       width:8px; height:8px; border-radius:50%; background:#4caf50;
       display:inline-block; animation:pulse 2s infinite;
@@ -95,9 +106,77 @@
       padding:4px 16px; font-size:11px; color:#4a6a8a;
       text-align:center; flex-shrink:0;
     }
+
+    /* ── Sessão (Etapa 2b) ──────────────────────────────────── */
+    #user-bar { display:flex; align-items:center; gap:10px; color:#c8d8e8; }
+    .btn-sair {
+      background:#5c1a1a; color:#f57a7a; border:1px solid #8c2a2a;
+      border-radius:4px; padding:3px 10px; font-size:12px; cursor:pointer;
+    }
+    .btn-sair:hover { background:#6c2020; }
+
+    #turma-banner {
+      display:none; align-items:center; gap:10px;
+      background:#3a3a1a; border-bottom:1px solid #6c5a2a; color:#f5e07a;
+      padding:8px 16px; font-size:12px; flex-shrink:0;
+    }
+    #turma-banner input {
+      padding:4px 8px; border-radius:4px; border:1px solid #6c5a2a;
+      background:#0d1b2a; color:#e8eaf0; font-size:12px;
+    }
+    #turma-banner button {
+      background:#1a3a5c; color:#7ab8f5; border:1px solid #2a5a8c;
+      border-radius:4px; padding:4px 10px; font-size:12px; cursor:pointer;
+    }
+
+    /* ── Permissões (Etapa 6a) ──────────────────────────────── */
+    /* Cobertura de `ver_mapa` desabilitado. Fica só sobre a área do mapa, de
+       propósito: a topbar continua visível para o aluno ver o motivo, o nome
+       da turma e o botão Sair — uma tela inteiramente preta pareceria um bug
+       do app, não uma decisão do instrutor. */
+    #mapa-bloqueado {
+      display:none; position:absolute; inset:0; z-index:1200;
+      background:rgba(10,14,22,.96);
+      align-items:center; justify-content:center; text-align:center; padding:24px;
+    }
+    #mapa-bloqueado div { max-width:420px; }
+    #mapa-bloqueado h2 {
+      font-size:15px; letter-spacing:.05em; text-transform:uppercase;
+      color:#f5c842; margin-bottom:10px;
+    }
+    #mapa-bloqueado p { font-size:13px; color:#a8c8e8; line-height:1.6; }
+    #mapa-wrap { flex:1; position:relative; display:flex; min-height:0; }
+
+    /* Controle desativado por permissão: continua visível (para o aluno saber
+       que existe) mas não responde. */
+    .bloqueado-por-permissao { opacity:.35; pointer-events:none; }
+
+    /* ── Opacidade das camadas do repositório (Etapa 7) ─────── */
+    /* O painel das camadas de ARQUIVO (calcos do instrutor e arquivo do
+       aluno) é montado inteiro por frontend/camadas.js, com CSS próprio —
+       o que está aqui vale só para as camadas de EXTRA_LAYERS, que moram
+       neste arquivo. */
+    .extra-linha { margin-bottom:8px; }
+    .extra-linha .layer-row { margin-bottom:2px; }
+    .extra-opacidade { display:flex; align-items:center; gap:6px; padding-left:18px; }
+    .extra-opacidade input[type=range] { flex:1; height:14px; cursor:pointer; }
+    .extra-pct { font-size:10px; color:#5a7a98; min-width:30px; text-align:right; }
+    /* Seletor de cor: três bolinhas. Fica no fim da linha, empurrado pelo
+       nome, para a coluna de nomes continuar alinhada. */
+    .extra-cores { display:flex; gap:3px; margin-left:auto; flex-shrink:0; }
+    .extra-cor {
+      width:13px; height:13px; border-radius:50%; padding:0; cursor:pointer;
+      border:1px solid #4a6a8a;
+    }
+    .extra-cor.ativa { border-color:#e8eaf0; box-shadow:0 0 0 1px #e8eaf0; }
+    .extra-detalhe {
+      background:transparent; border:none; color:#5a7a98; cursor:pointer;
+      font-size:12px; line-height:1; padding:0 2px; flex-shrink:0;
+    }
+    .extra-detalhe:hover { color:#c8d8e8; }
   </style>
 </head>
-<body>
+<body style="visibility:hidden">
 
 <div id="topbar">
   <h1>🗺 WartoolC2</h1>
@@ -111,39 +190,60 @@
     <span id="last-update">
       <span id="update-dot"></span>Aguardando dados...
     </span>
+    <span id="gps-status">GPS: —</span>
+    <span id="colegas-status">Colegas: —</span>
+    <span id="marcacoes-status">Marcações: —</span>
+    <span id="permissoes-status">Permissões: —</span>
+    <span id="camadas-status">Camadas: —</span>
+    <div id="user-bar">
+      <span id="turma-info"></span>
+      <span id="user-nome"></span>
+      <button id="btn-sair" class="btn-sair">Sair</button>
+    </div>
   </div>
 </div>
 
-<div id="map"></div>
+<div id="turma-banner">
+  <span>Você ainda não está em nenhuma turma.</span>
+  <input type="text" id="turma-codigo" placeholder="Código de acesso (ex.: TESTE)">
+  <button type="button" id="turma-entrar">Entrar na turma</button>
+</div>
+
+<div id="mapa-wrap">
+  <div id="map"></div>
+  <!-- Cobertura de `ver_mapa` desabilitado (Etapa 6a). Some sozinha quando o
+       instrutor reabilita, sem o aluno recarregar nada. -->
+  <div id="mapa-bloqueado">
+    <div>
+      <h2>Mapa desabilitado</h2>
+      <p>
+        O instrutor desativou o acesso ao mapa tático para você. Assim que ele
+        liberar de novo, esta tela sai sozinha — não precisa recarregar a página.
+      </p>
+    </div>
+  </div>
+</div>
 
 <div id="side-panel">
 
   <!-- Seletor de mapa base -->
-  <div class="panel-card">
+  <div class="panel-card" id="card-mapa-base">
     <h3>Mapa Base</h3>
 
+    <!-- Seis opções, na ordem de importância para a instrução. A lista
+         completa do protótipo (onze) foi cortada a pedido de quem usa: ver o
+         comentário de BASEMAPS no <script> abaixo. O BDGEx vem primeiro e
+         nasce marcado — é a carta do Exército. -->
     <label class="basemap-row">
-      <input type="radio" name="basemap" value="osm" checked>
-      <span class="basemap-thumb" style="background:linear-gradient(135deg,#a8d5a2,#7ab4e8)"></span>
-      <span class="basemap-label">OpenStreetMap</span>
-    </label>
-
-    <label class="basemap-row">
-      <input type="radio" name="basemap" value="topo">
-      <span class="basemap-thumb" style="background:linear-gradient(135deg,#c8b87a,#a8c88a)"></span>
-      <span class="basemap-label">Topográfico (Esri)</span>
+      <input type="radio" name="basemap" value="bdgex" checked>
+      <span class="basemap-thumb" style="background:linear-gradient(135deg,#c8b87a,#8ac890)"></span>
+      <span class="basemap-label">BDGEx 1:50.000 (EB)</span>
     </label>
 
     <label class="basemap-row">
       <input type="radio" name="basemap" value="otopo">
       <span class="basemap-thumb" style="background:linear-gradient(135deg,#b8d8a8,#d8c890)"></span>
       <span class="basemap-label">OpenTopoMap</span>
-    </label>
-
-    <label class="basemap-row">
-      <input type="radio" name="basemap" value="satellite">
-      <span class="basemap-thumb" style="background:linear-gradient(135deg,#2a4a2a,#1a3a5a)"></span>
-      <span class="basemap-label">Satélite (Esri)</span>
     </label>
 
     <label class="basemap-row">
@@ -159,21 +259,9 @@
     </label>
 
     <label class="basemap-row">
-      <input type="radio" name="basemap" value="bdgex">
-      <span class="basemap-thumb" style="background:linear-gradient(135deg,#c8b87a,#8ac890)"></span>
-      <span class="basemap-label">BDGEx 1:50.000 (EB)</span>
-    </label>
-
-    <label class="basemap-row">
       <input type="radio" name="basemap" value="hybrid">
       <span class="basemap-thumb" style="background:linear-gradient(135deg,#1a2a1a,#7ab8f5)"></span>
       <span class="basemap-label">Híbrido (Sat+Labels)</span>
-    </label>
-
-    <label class="basemap-row">
-      <input type="radio" name="basemap" value="dark">
-      <span class="basemap-thumb" style="background:linear-gradient(135deg,#1a1a2a,#2a3a4a)"></span>
-      <span class="basemap-label">Escuro (CartoDB)</span>
     </label>
 
     <label class="basemap-row">
@@ -181,16 +269,10 @@
       <span class="basemap-thumb" style="background:linear-gradient(135deg,#f0f0f0,#d8d8d8)"></span>
       <span class="basemap-label">Claro (CartoDB)</span>
     </label>
-
-    <label class="basemap-row">
-      <input type="radio" name="basemap" value="none">
-      <span class="basemap-thumb" style="background:#111"></span>
-      <span class="basemap-label">Sem mapa base</span>
-    </label>
   </div>
 
   <!-- Camadas COP -->
-  <div class="panel-card">
+  <div class="panel-card" id="card-forcas">
     <h3>Forças</h3>
     <label class="layer-row">
       <input type="checkbox" id="chk-f" checked>
@@ -224,32 +306,54 @@
 
 <script>
 // ── Mapas base ────────────────────────────────────────────────────────────
+// SEIS opções, não as onze do protótipo. A lista foi cortada a pedido de quem
+// usa: escolher carta é coisa que se faz uma vez no começo do exercício, e um
+// seletor com onze linhas custava mais tela do que valia — ainda mais no
+// celular, que é o uso real. Saíram OSM, Esri topográfico, Esri satélite,
+// CartoDB escuro e "sem mapa base"; ficaram as seis abaixo.
+//
+// A ORDEM É INTENCIONAL: BDGEx primeiro porque é a carta do Exército e a mais
+// importante para a instrução — é ela que a tropa lê no papel.
+//
+// FALLBACK_BASEMAP existe porque a permissão `camada_bdgex` precisa de um
+// lugar para onde voltar quando o instrutor a desliga com o aluno já no BDGEx.
+// Antes esse lugar era o `osm`, que acabou de sair da lista — sem esta
+// constante, desligar a permissão deixaria o aluno sem mapa nenhum.
+const FALLBACK_BASEMAP = 'otopo';
+
 const BASEMAPS = {
-  osm: L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    attribution:'© OpenStreetMap', maxZoom:19
-  }),
-  topo: L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}', {
-    attribution:'© Esri', maxZoom:18
-  }),
-  otopo: L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', {
-    attribution:'© OpenTopoMap', maxZoom:17
-  }),
-  satellite: L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-    attribution:'© Esri', maxZoom:18
-  }),
-  google_sat: L.tileLayer('https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', {
-    attribution:'© Google', maxZoom:20
-  }),
-  google_hybrid: L.tileLayer('https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', {
-    attribution:'© Google', maxZoom:20
-  }),
-  bdgex: L.tileLayer.wms('http://bdgex.eb.mil.br/mapcache', {
+  // Protocolo herdado da página em vez de fixo em http.
+  //
+  // O BDGEx é servido em http, e uma página em https bloqueia conteúdo misto —
+  // ou seja, no dia do deploy (Etapa 11) o hardcoded `http://` faria a carta
+  // mais importante do projeto simplesmente não desenhar, sem erro visível
+  // além do mapa vazio. Herdando o protocolo, em `http://localhost` continua
+  // http (funciona como hoje) e em produção vai https, que é a única forma que
+  // pode funcionar lá.
+  //
+  // PENDENTE DE TESTE AO VIVO: se o bdgex.eb.mil.br não atender em https, a
+  // saída é um proxy reverso próprio — não dá para "voltar para http" numa
+  // página https. Está na lista de pendências do ROADMAP.
+  bdgex: L.tileLayer.wms(`${location.protocol}//bdgex.eb.mil.br/mapcache`, {
     layers:      'ctm50',
     format:      'image/png',
     transparent: true,
     attribution: '© BDGEx / Exército Brasileiro',
     crs:         L.CRS.EPSG4326,
     maxZoom:     18,
+  }),
+  otopo: L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', {
+    attribution:'© OpenTopoMap', maxZoom:17
+  }),
+  // ATENÇÃO, decisão já registrada em CLAUDE.md: os termos padrão do Google
+  // Maps proíbem uso militar/de defesa. As duas opções abaixo ficam por
+  // escolha explícita de quem usa, e continuam sendo risco jurídico, não
+  // padrão — por isso o BDGEx é que abre o app.
+  google_sat: L.tileLayer('https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', {
+    attribution:'© Google', maxZoom:20
+  }),
+  google_hybrid: L.tileLayer('https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', {
+    attribution:'© Google', maxZoom:20
   }),
   hybrid: L.layerGroup([
     L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
@@ -259,18 +363,14 @@ const BASEMAPS = {
       maxZoom:18, opacity:0.8
     }),
   ]),
-  dark: L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-    attribution:'© CartoDB', maxZoom:19
-  }),
   light: L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
     attribution:'© CartoDB', maxZoom:19
   }),
-  none: L.tileLayer('', { maxZoom:19 }),
 };
 
 // ── Inicializa o mapa ────────────────────────────────────────────────────
 const map = L.map('map', { center:[-22,-47], zoom:10 });
-let basemapAtual = BASEMAPS.osm;
+let basemapAtual = BASEMAPS.bdgex;
 basemapAtual.addTo(map);
 
 // Troca de mapa base
@@ -283,44 +383,22 @@ document.querySelectorAll('input[name=basemap]').forEach(radio => {
 });
 
 // ── Tabelas de conversão ─────────────────────────────────────────────────
-const HOSTILIDADE = {
-  AMIGO:'03', PRESUMIDO:'02', HOSTIL:'06', SUSPEITO:'05',
-  NEUTRO:'04', DESCONHECIDO:'01',
-};
-const DIMENSAO = {
-  UNIDADE:'10', EQUIPAMENTO:'15', INSTALACAO:'20',
-  AEREO:'05', INDIVIDUO:'27',
-};
-const SITUACAO = {
-  CONFIRMADA:'0', ESTIMADA:'1', PLANEJADA:'1', SUSPEITA:'1',
-};
-const ESCALAO = {
-  NONE:'00', SQD:'11', SEC:'12', PEL:'13', CIA:'14',
-  BIA:'14', ESC:'14', BN:'15', GRU:'16', BDA:'17',
-  DIV:'18', CRP:'19', EX:'20', '':'00',
-};
-const HQTF = {
-  '':'0','Nenhum':'0','Simulacro / Feint':'1',
-  'HQ / Posto de Comando':'2','HQ + Simulacro':'3',
-  'Força-Tarefa':'4','Força-Tarefa + Simulacro':'5',
-  'Força-Tarefa + HQ':'6','Força-Tarefa + HQ + Simul':'7',
-};
-
-function getSIDC(props) {
-  if (props.sidc && props.sidc.length === 20) return props.sidc;
-  const h  = HOSTILIDADE[(props.hostilidade||'').toUpperCase()] || '01';
-  const d  = DIMENSAO[(props.dimensao||'').toUpperCase()] || '10';
-  const s  = SITUACAO[(props.situacao||'').toUpperCase()] || '0';
-  const hq = HQTF[props.hqtf||''] || '0';
-  const e  = ESCALAO[(props.escalao||'').toUpperCase()] || '00';
-  const nat = (props.natureza_code||'000000').padEnd(10,'0');
-  return `10${h}${d}${s}${hq}${e}${nat}`;
-}
+// MUDARAM DE CASA na Etapa 4.5: HOSTILIDADE, DIMENSAO, SITUACAO, ESCALAO,
+// HQTF e getSIDC() agora vivem em frontend/simbolos.js, que é fonte única
+// para este arquivo, para colegas.js e para a marcação da Etapa 5 — a
+// hostilidade virou relativa ao observador e não podia ter duas cópias
+// divergindo em silêncio.
+//
+// Este <script> não é module e portanto não pode fazer `import`; simbolos.js
+// se publica em window.WartoolSimbolos (ver a "ponte" no fim daquele
+// arquivo). Como módulos são deferred, WartoolSimbolos só existe DEPOIS do
+// parsing do HTML — por isso a carga inicial lá embaixo espera o
+// DOMContentLoaded em vez de rodar na hora.
 
 // ── Ícone milsymbol ──────────────────────────────────────────────────────
 function criarIcone(feature) {
   const props = feature.properties;
-  const sidc  = getSIDC(props);
+  const sidc  = WartoolSimbolos.getSIDC(props);
   try {
     const sym = new ms.Symbol(sidc, {
       size:              32,
@@ -421,8 +499,56 @@ const EXTRA_LAYERS = [
   },
 ];
 
-const REPO_RAW = 'https://raw.githubusercontent.com/joaopaulo1008/cop-tatico/main/';
+const REPO_RAW = 'https://raw.githubusercontent.com/joaopaulo1008/wartoolc2/main/';
 const extraGrupos = {};
+// Etapa 6a: guarda o <input> de cada camada extra para a permissão
+// `camada_manobra` conseguir devolver a camada ao estado que o próprio aluno
+// tinha escolhido, em vez de forçar tudo ligado ao reabilitar.
+const extraChecks = {};
+// Etapa 7: o pane de cada camada extra. Opacidade = opacidade CSS do pane;
+// ordem = z-index dele. Mesmo mecanismo que frontend/camadas.js usa para os
+// calcos do instrutor e para o arquivo do aluno — um jeito só de fazer as
+// duas coisas, que também vai servir para a imagem georreferenciada da
+// Etapa 8. Ver FAIXAS_PANE em frontend/kml.js.
+const extraPanes = {};
+
+// FAIXA DE Z-INDEX DESTAS CAMADAS. Tem cópia em FAIXAS_PANE.repositorio
+// (frontend/kml.js), e a cópia existe porque este <script> não é module e
+// não pode importar — mesma limitação que criou window.WartoolSimbolos e
+// window.WartoolCamadas, e com o mesmo prazo de validade (Etapa 9).
+// As faixas: 410 aqui (GeoJSON do repositório), 440 calcos do instrutor,
+// 470 arquivo do aluno, teto em 500 (shadowPane) para nenhuma camada de
+// arquivo conseguir tapar um símbolo militar (markerPane é 600). O teste em
+// frontend/kml.teste.mjs trava essas invariantes.
+const FAIXA_PANE_REPOSITORIO = 410;
+
+// Cores de camada. Cópia de CORES_CAMADA em frontend/kml.js pelo mesmo motivo
+// da faixa acima: este script não é module e não pode importar (some na
+// Etapa 9). Azul e vermelho são os MESMOS tons da legenda de forças logo
+// acima nesta tela — a mesma cor querendo dizer a mesma coisa nos dois
+// lugares. Preto não é #000: sobre a carta BDGEx e sobre satélite escuro,
+// preto puro some no traço fino.
+const CORES_CAMADA = [
+  { nome: 'Azul',     valor: '#4a90d9' },
+  { nome: 'Preta',    valor: '#1a1a1a' },
+  { nome: 'Vermelha', valor: '#e05252' },
+];
+
+// Etapa 7: escapa o que vier de dentro de um arquivo de dados. Mesmo corpo de
+// esc() em instrutor-permissoes.js/debriefing.js e de escaparHtml() em
+// kml.js — repetido aqui porque este script clássico não pode importar.
+//
+// Até a Etapa 6b isto não existia e o popup fazia `<b>${nome}</b>` direto.
+// Era defensável enquanto o único GeoJSON desenhado era um arquivo que nós
+// mesmos exportávamos do QGIS e commitávamos; deixou de ser no momento em que
+// esta etapa abriu a porta para arquivo de fora. Ainda que EXTRA_LAYERS
+// continue vindo do repositório, um erro destes é do tipo que se copia para o
+// próximo lugar — melhor não deixar o exemplo errado no arquivo.
+function escTexto(texto) {
+  return String(texto ?? '').replace(/[&<>"']/g, c => (
+    { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]
+  ));
+}
 
 function carregarExtraLayers() {
   if (EXTRA_LAYERS.length === 0) return;
@@ -431,43 +557,255 @@ function carregarExtraLayers() {
   const lista  = document.getElementById('extra-layers-list');
   painel.style.display = 'block';
 
-  EXTRA_LAYERS.forEach(cfg => {
+  EXTRA_LAYERS.forEach((cfg, indice) => {
+    const nomePane = `wt-extra-${indice}`;
+    map.createPane(nomePane);
+    map.getPane(nomePane).style.zIndex = String(FAIXA_PANE_REPOSITORIO + indice);
+    extraPanes[cfg.nome] = nomePane;
+
     const grupo = L.layerGroup().addTo(map);
     extraGrupos[cfg.nome] = grupo;
 
-    // Adiciona checkbox no painel
+    // Linha do painel: caixa de visibilidade + controle de opacidade.
+    const linha = document.createElement('div');
+    linha.className = 'extra-linha';
+
     const label = document.createElement('label');
     label.className = 'layer-row';
-    label.innerHTML = `
-      <input type="checkbox" checked>
-      <span class="layer-dot" style="background:${cfg.cor}"></span>
-      ${cfg.nome}`;
-    label.querySelector('input').addEventListener('change', ev => {
+    const check = document.createElement('input');
+    check.type = 'checkbox';
+    check.checked = true;
+    const dot = document.createElement('span');
+    dot.className = 'layer-dot';
+    dot.style.background = cfg.cor;
+    const rotulo = document.createElement('span');
+    rotulo.textContent = cfg.nome;
+    label.append(check, dot, rotulo);
+
+    extraChecks[cfg.nome] = check;
+    check.addEventListener('change', ev => {
       ev.target.checked ? map.addLayer(grupo) : map.removeLayer(grupo);
     });
-    lista.appendChild(label);
+
+    // Seletor de cor. As três opções (azul, preta, vermelha) vêm de
+    // CORES_CAMADA em frontend/kml.js, publicado aqui por
+    // window.WartoolCamadas.cores — este <script> não é module e não pode
+    // importar, mesma limitação de sempre (some na Etapa 9).
+    //
+    // Cor foi pedida no lugar de opacidade porque é o que muda a leitura de um
+    // calco: azul e vermelho são as cores da própria legenda de forças logo
+    // acima, e preto é o traço de obstáculo/limite sobre a carta. A opacidade
+    // continua existindo, agora atrás do botão de detalhe — deixou de ser o
+    // controle principal.
+    const cores = document.createElement('div');
+    cores.className = 'extra-cores';
+    let corAtual = cfg.cor;
+    const grupoGeo = { layer: null };  // preenchido quando o fetch volta
+    CORES_CAMADA.forEach(opcao => {
+      const bolinha = document.createElement('button');
+      bolinha.type = 'button';
+      bolinha.className = 'extra-cor';
+      bolinha.style.background = opcao.valor;
+      bolinha.title = opcao.nome;
+      bolinha.setAttribute('aria-label', `Cor ${opcao.nome}`);
+      bolinha.addEventListener('click', () => {
+        corAtual = opcao.valor;
+        dot.style.background = corAtual;
+        cores.querySelectorAll('.extra-cor').forEach(b =>
+          b.classList.toggle('ativa', b === bolinha));
+        if (grupoGeo.layer) {
+          grupoGeo.layer.setStyle({
+            color: corAtual,
+            fillColor: corAtual,
+          });
+        }
+      });
+      cores.appendChild(bolinha);
+    });
+
+    const detalhe = document.createElement('button');
+    detalhe.type = 'button';
+    detalhe.className = 'extra-detalhe';
+    detalhe.textContent = '⋯';
+    detalhe.title = 'Opacidade';
+
+    const faixa = document.createElement('div');
+    faixa.className = 'extra-opacidade';
+    faixa.hidden = true;
+    const range = document.createElement('input');
+    range.type = 'range';
+    range.min = '0'; range.max = '100'; range.step = '5'; range.value = '100';
+    range.title = 'Opacidade';
+    const pct = document.createElement('span');
+    pct.className = 'extra-pct';
+    pct.textContent = '100%';
+    range.addEventListener('input', () => {
+      map.getPane(nomePane).style.opacity = String(Number(range.value) / 100);
+      pct.textContent = `${range.value}%`;
+    });
+    faixa.append(range, pct);
+    detalhe.addEventListener('click', () => { faixa.hidden = !faixa.hidden; });
+
+    label.append(cores, detalhe);
+    linha.append(label, faixa);
+    lista.appendChild(linha);
 
     // Carrega o GeoJSON
     fetch(`${REPO_RAW}${cfg.arquivo}?t=${Date.now()}`)
       .then(r => r.json())
       .then(geojson => {
-        L.geoJSON(geojson, {
+        grupoGeo.layer = L.geoJSON(geojson, {
+          pane: nomePane,
           style: {
-            color:       cfg.cor,
+            color:       corAtual,
+            fillColor:   corAtual,
             weight:      2,
             fillOpacity: cfg.tipo === 'polygon' ? 0.15 : 0,
           },
           onEachFeature: (feature, layer) => {
             if (feature.properties) {
               const nome = feature.properties.nome || feature.properties.name || '';
-              if (nome) layer.bindPopup(`<b>${nome}</b>`);
+              if (nome) layer.bindPopup(`<b>${escTexto(nome)}</b>`);
             }
           },
-        }).addTo(grupo);
+        });
+        grupoGeo.layer.addTo(grupo);
       })
       .catch(err => console.warn(`Erro ao carregar ${cfg.arquivo}:`, err));
   });
+
+  // As camadas extras nascem visíveis; se a permissão `camada_manobra` já
+  // estiver desligada quando elas terminarem de ser montadas, isto as
+  // esconde na hora (sem esta linha elas apareceriam até a próxima mudança
+  // de permissão).
+  window.WartoolCamadas?.reaplicar();
 }
+
+// ── Ponte de camadas para as permissões (Etapa 6a) ───────────────────────
+// Mesma ideia (e mesmo prazo de validade) da ponte window.WartoolSimbolos:
+// este script não é module, e o módulo que lê as permissões
+// (frontend/permissoes.js, importado pelo bloco de sessão no fim do arquivo)
+// não enxerga `map`, `BASEMAPS`, `GRUPOS` nem `extraGrupos`, que só existem aqui.
+// Em vez de deixar um módulo mexer em variáveis do escopo de outro arquivo,
+// este arquivo publica um punhado de comandos com nome de intenção e o módulo
+// só diz "pode" / "não pode". Some na Etapa 9, quando tudo virar `import`.
+//
+// O mapeamento chave -> o que existe hoje na tela:
+//   camada_manobra  -> EXTRA_LAYERS (o GeoJSON "Limites e Eixos")
+//   camada_inimigo  -> grupo I (hostis) do painel COP legado
+//   camada_bdgex    -> a opção BDGEx 1:50.000 do seletor de mapa base
+//   trocar_mapa_base-> o seletor de mapa base inteiro
+//   ver_mapa        -> a cobertura #mapa-bloqueado
+// camada_logistica e camada_obstaculos NÃO aparecem aqui, e desde a Etapa 7
+// isso não quer mais dizer "sem efeito": elas passaram a valer em
+// frontend/camadas.js, que é outro caminho. A diferença é o que a chave
+// governa em cada lugar:
+//
+//   * AQUI a chave liga/desliga uma camada FIXA, escrita neste arquivo —
+//     `camada_manobra` é o GeoJSON commitado em EXTRA_LAYERS, `camada_inimigo`
+//     é o grupo I do painel COP legado. São camadas que existem por estarem
+//     escritas no código.
+//   * EM camadas.js a chave liga/desliga os CALCOS que o instrutor publicou e
+//     que declarou serem daquela categoria (`calcos.categoria`, migration
+//     0006). Não há camada fixa de logística: existe o calco de logística que
+//     alguém publicou — por isso essas duas chaves nunca teriam efeito por
+//     aqui, e não é aqui que elas deveriam ser registradas.
+//
+// Uma chave pode valer nos dois caminhos ao mesmo tempo, e vale: desligar
+// `camada_manobra` esconde tanto o GeoJSON do repositório quanto os calcos de
+// manobra publicados. É o comportamento certo — para o aluno, é "a camada de
+// manobra", não dois mecanismos.
+//
+// Regra geral de todas as funções abaixo: a permissão do instrutor e a
+// escolha do aluno são coisas diferentes e as duas são respeitadas — a camada
+// só aparece quando o instrutor PERMITE e o aluno MARCOU a caixa. Por isso
+// nenhuma delas desmarca a caixa do aluno: ao reabilitar, ele volta ao estado
+// que tinha escolhido, não a "tudo ligado".
+window.WartoolCamadas = (() => {
+  const permitido = {
+    extras: true,
+    inimigo: true,
+    bdgex: true,
+    trocarBase: true,
+    mapa: true,
+  };
+
+  function aplicarExtras() {
+    const painel = document.getElementById('extra-layers-panel');
+    if (painel && Object.keys(extraGrupos).length > 0) {
+      painel.style.display = permitido.extras ? 'block' : 'none';
+    }
+    Object.entries(extraGrupos).forEach(([nome, grupo]) => {
+      const alunoQuerVer = extraChecks[nome] ? extraChecks[nome].checked : true;
+      if (permitido.extras && alunoQuerVer) map.addLayer(grupo);
+      else map.removeLayer(grupo);
+    });
+  }
+
+  function aplicarInimigo() {
+    const check = document.getElementById('chk-i');
+    const linha = check ? check.closest('.layer-row') : null;
+    if (linha) linha.classList.toggle('bloqueado-por-permissao', !permitido.inimigo);
+    const alunoQuerVer = check ? check.checked : true;
+    if (permitido.inimigo && alunoQuerVer) map.addLayer(GRUPOS.I);
+    else map.removeLayer(GRUPOS.I);
+  }
+
+  function aplicarBdgex() {
+    const radio = document.querySelector('input[name=basemap][value=bdgex]');
+    if (!radio) return;
+    const linha = radio.closest('.basemap-row');
+    if (linha) linha.style.display = permitido.bdgex ? 'flex' : 'none';
+    // Esconder a opção não basta se o aluno JÁ estava com o BDGEx aberto
+    // quando a permissão caiu — nesse caso troca de carta na hora.
+    //
+    // O destino sai de FALLBACK_BASEMAP, e não de um valor escrito aqui: até a
+    // Etapa 7.1 este código apontava para o `osm`, que saiu do seletor quando
+    // a lista foi reduzida a seis. Com o valor solto, desligar a permissão
+    // deixaria o aluno com o BDGEx removido e nenhuma carta no lugar — mapa
+    // vazio, sem erro, no meio do exercício.
+    if (!permitido.bdgex && radio.checked) {
+      const alternativa = document.querySelector(`input[name=basemap][value=${FALLBACK_BASEMAP}]`);
+      if (alternativa) {
+        alternativa.checked = true;
+        alternativa.dispatchEvent(new Event('change'));
+      }
+    }
+  }
+
+  function aplicarTrocaBase() {
+    document.querySelectorAll('input[name=basemap]').forEach(r => {
+      r.disabled = !permitido.trocarBase;
+    });
+    document.getElementById('card-mapa-base')
+      ?.classList.toggle('bloqueado-por-permissao', !permitido.trocarBase);
+  }
+
+  function aplicarMapa() {
+    const cobertura = document.getElementById('mapa-bloqueado');
+    if (cobertura) cobertura.style.display = permitido.mapa ? 'none' : 'flex';
+  }
+
+  function reaplicar() {
+    aplicarExtras();
+    aplicarInimigo();
+    aplicarBdgex();
+    aplicarTrocaBase();
+    aplicarMapa();
+  }
+
+  return {
+    definir(chave, valor) {
+      if (!(chave in permitido)) {
+        console.warn('WartoolCamadas: chave desconhecida', chave);
+        return;
+      }
+      permitido[chave] = !!valor;
+      reaplicar();
+    },
+    reaplicar,
+  };
+})();
 
 // ── Carrega dados COP ────────────────────────────────────────────────────
 let primeiraVez = true;
@@ -520,9 +858,177 @@ function carregarDados() {
     });
 }
 
-carregarDados();
-carregarExtraLayers();
-setInterval(carregarDados, 120_000);
+// A carga inicial espera o DOMContentLoaded porque criarIcone() depende de
+// window.WartoolSimbolos, publicado por frontend/simbolos.js — que é um
+// module e, como todo module, só executa depois do parsing do HTML. Sem esta
+// espera, o fetch abaixo poderia (em tese) voltar antes de o módulo existir.
+document.addEventListener('DOMContentLoaded', () => {
+  carregarDados();
+  carregarExtraLayers();
+  setInterval(carregarDados, 120_000);
+});
+</script>
+
+<!-- ── Sessão e roteamento por papel (Etapa 2b) ────────────────────────────
+     Módulo separado do script acima (que não é module) para não precisar
+     reescrever o resto do arquivo. Fica escondido (body com visibility:hidden)
+     até confirmar que há sessão válida e papel = usuario; senão redireciona
+     para login.html. Ver frontend/auth.js para a lógica compartilhada. -->
+<script type="module">
+import { exigirSessao, sair, entrarNaTurmaComCodigo } from './auth.js';
+import { iniciarPermissoes, observarPermissao } from './permissoes.js';
+import { iniciarPerfilAoVivo } from './perfil-ao-vivo.js';
+import { iniciarRastreamentoProprio } from './gps.js';
+import { iniciarColegas } from './colegas.js';
+import { iniciarMarcacoes } from './marcacoes.js';
+import { iniciarCamadas } from './camadas.js';
+import { iniciarPainelRecolhivel, tornarRecolhivel } from './painel-lateral.js';
+
+const resultado = await exigirSessao('usuario');
+if (resultado) {
+  const { session, perfil } = resultado;
+
+  document.getElementById('user-nome').textContent = perfil.nome_guerra || '(sem nome de guerra)';
+  document.getElementById('turma-info').textContent = perfil.turma
+    ? `Turma: ${perfil.turma.nome} (${perfil.turma.codigo_acesso})`
+    : '';
+  document.getElementById('btn-sair').addEventListener('click', sair);
+
+  if (!perfil.turma_id) {
+    const banner = document.getElementById('turma-banner');
+    banner.style.display = 'flex';
+    document.getElementById('turma-entrar').addEventListener('click', async () => {
+      const codigo = document.getElementById('turma-codigo').value;
+      const { erro } = await entrarNaTurmaComCodigo(codigo);
+      if (erro) {
+        alert(erro);
+      } else {
+        window.location.reload();
+      }
+    });
+  }
+
+  document.body.style.visibility = 'visible';
+  // `map` é declarado com const no script clássico acima; scripts module
+  // compartilham o mesmo escopo global do documento, então dá para lê-lo
+  // daqui. Corrige o tamanho do Leaflet caso o container tenha ficado com
+  // dimensão indefinida enquanto estava com visibility:hidden.
+  if (typeof map !== 'undefined') {
+    setTimeout(() => map.invalidateSize(), 0);
+
+    // Etapa 6a: as permissões entram ANTES dos três módulos e são AGUARDADAS.
+    // Sem o await, o primeiro observarPermissao() de cada módulo receberia o
+    // padrão otimista e o aluno veria por um instante coisas que o instrutor
+    // já tinha desligado — piscar e sumir é pior do que demorar 200ms a mais
+    // para aparecer. Depois disso o módulo mantém tudo em dia sozinho, via
+    // Realtime nas tabelas permissoes_turma/permissoes_usuario.
+    //
+    // O try/catch NÃO é decoração: sem ele, uma exceção aqui abortaria o
+    // resto deste bloco e o aluno ficaria sem GPS, sem colegas e sem
+    // marcações — ou seja, uma falha ao ler PERMISSÃO derrubaria o APP
+    // inteiro. Coerente com a postura permissiva de permissoes.js: se não deu
+    // para saber o que o instrutor liberou, segue com os padrões e avisa na
+    // topbar, em vez de travar o exercício.
+    try {
+      await iniciarPermissoes({ userId: session.user.id, turmaId: perfil.turma_id });
+    } catch (e) {
+      console.error('Falha ao iniciar permissões — seguindo com os padrões:', e);
+      const el = document.getElementById('permissoes-status');
+      if (el) {
+        el.textContent = 'Permissões: falha ao carregar (usando padrões)';
+        el.style.color = '#f5c842';
+      }
+    }
+
+    // As permissões de CAMADA são aplicadas aqui (e não dentro de um módulo)
+    // porque as camadas moram no <script> clássico acima — a ponte
+    // window.WartoolCamadas é como este módulo fala com ele. Cada observador
+    // é chamado na hora com o valor atual e de novo a cada mudança.
+    observarPermissao('ver_mapa',         (ok) => WartoolCamadas.definir('mapa', ok));
+    observarPermissao('trocar_mapa_base', (ok) => WartoolCamadas.definir('trocarBase', ok));
+    observarPermissao('camada_bdgex',     (ok) => WartoolCamadas.definir('bdgex', ok));
+    observarPermissao('camada_manobra',   (ok) => WartoolCamadas.definir('extras', ok));
+    observarPermissao('camada_inimigo',   (ok) => WartoolCamadas.definir('inimigo', ok));
+
+    // Etapa 3: GPS próprio no mapa. `map` é passado explicitamente para
+    // gps.js (em vez de esse módulo depender de achar a variável global) —
+    // ver comentário no topo de gps.js. Se o usuário ainda não tiver turma
+    // (banner acima), a própria função só atualiza o status e não pede
+    // permissão de localização à toa.
+    iniciarRastreamentoProprio({ map, userId: session.user.id, perfil });
+
+    // Etapa 4: colegas de turma em tempo real. Mesmo padrão de `map`
+    // explícito. Também não faz nada se ainda não houver turma — ver
+    // comentário no topo de colegas.js.
+    // `partido` (Etapa 4.5) é o partido de quem está olhando: é ele que
+    // decide com que hostilidade cada símbolo aparece nesta tela.
+    iniciarColegas({
+      map,
+      userId: session.user.id,
+      turmaId: perfil.turma_id,
+      partido: perfil.partido,
+    });
+
+    // Etapa 5: marcação de elemento no mapa. Mesmo padrão de `map` explícito
+    // e mesma checagem de turma feita dentro do próprio módulo. `perfil` traz
+    // papel (para saber se pode editar/remover qualquer marcação da turma) e
+    // partido (metade do par que decide a hostilidade de cada marcação).
+    iniciarMarcacoes({
+      map,
+      userId: session.user.id,
+      turmaId: perfil.turma_id,
+      perfil,
+    });
+
+    // Etapa 6a: o instrutor também move o aluno de força pelo painel. Isso
+    // muda a hostilidade de TUDO que já está desenhado e o que a RLS deixa
+    // ver, então a reação é recarregar a página (com aviso) em vez de tentar
+    // remendar o estado dos três módulos acima — ver o cabeçalho de
+    // perfil-ao-vivo.js para o raciocínio.
+    iniciarPerfilAoVivo({
+      userId: session.user.id,
+      partidoAtual: perfil.partido_id,
+    });
+
+    // Etapa 7: camadas de arquivo — os calcos KML/KMZ que o instrutor publicou
+    // e o arquivo que o próprio aluno abre no aparelho. Mesmo padrão de `map`
+    // explícito dos módulos acima; o painel lateral é montado pelo próprio
+    // módulo, não existe HTML dele neste arquivo.
+    //
+    // Duas coisas que este módulo NÃO usa a ponte window.WartoolCamadas para
+    // fazer, e por quê: ele recebe `map` por parâmetro (é um module de
+    // verdade, ao contrário do <script> clássico onde as camadas antigas
+    // moram) e observa as próprias permissões direto em permissoes.js. A ponte
+    // continua existindo para as camadas que moram no script clássico — some
+    // junto com ele na Etapa 9.
+    // `userId` não é para consultar o banco — é a chave sob a qual o arquivo
+    // que o aluno abre fica guardado no IndexedDB do aparelho (Etapa 7, ver
+    // frontend/armazem-camadas.js). Sem ela, um celular emprestado mostraria
+    // ao próximo usuário o calco de quem entrou antes.
+    await iniciarCamadas({
+      map,
+      userId: session.user.id,
+      turmaId: perfil.turma_id,
+    });
+
+    // Etapa 7.1: o painel encolhe. Vem DEPOIS de iniciarCamadas() de
+    // propósito — o cartão "Camadas de arquivo" é montado lá dentro, e
+    // tornarRecolhivel() envolve o que já existe no cartão. Rodando antes, ele
+    // não teria o que envolver.
+    //
+    // "Mapa Base" nasce recolhido porque é o maior cartão e o menos usado:
+    // depois de escolher a carta no começo do exercício, ninguém volta nele.
+    // Os outros nascem abertos — são os que a pessoa liga e desliga o tempo
+    // todo.
+    tornarRecolhivel(document.getElementById('card-mapa-base'), { recolhido: true });
+    tornarRecolhivel(document.getElementById('card-forcas'));
+    tornarRecolhivel(document.getElementById('extra-layers-panel'));
+    // O cartão "Camadas de arquivo" não entra aqui: camadas.js já o torna
+    // recolhível ao montá-lo, porque ele também é usado na aba "Situação
+    // atual" do instrutor, que não passa por este bloco.
+    iniciarPainelRecolhivel({ seletor: '#side-panel' });
+  }
+}
 </script>
 </body>
 </html>

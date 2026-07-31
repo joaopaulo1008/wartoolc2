@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WartoolC2 — Entrar</title>
+
+<style>
+  /* Paleta e tipografia reaproveitadas de frontend/index.html */
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    font-family:'Segoe UI',Arial,sans-serif;
+    background:#1a1f2e; color:#e8eaf0;
+    min-height:100vh; display:flex; flex-direction:column;
+  }
+
+  #topbar {
+    background:#0d1b2a; border-bottom:2px solid #2a4a6b;
+    padding:8px 16px; flex-shrink:0;
+  }
+  #topbar h1 {
+    font-size:15px; font-weight:600; letter-spacing:.08em;
+    color:#a8c8e8; text-transform:uppercase;
+  }
+
+  #auth-wrap {
+    flex:1; display:flex; align-items:center; justify-content:center;
+    padding:24px;
+  }
+
+  .auth-card {
+    background:rgba(13,27,42,.92); border:1px solid #2a4a6b;
+    border-radius:8px; padding:24px; width:100%; max-width:340px;
+  }
+
+  .tabs { display:flex; margin-bottom:18px; border-bottom:1px solid #2a4a6b; }
+  .tab-btn {
+    flex:1; background:none; border:none; padding:8px 4px;
+    color:#7a9ab8; font-size:13px; font-weight:600; letter-spacing:.04em;
+    text-transform:uppercase; cursor:pointer; border-bottom:2px solid transparent;
+  }
+  .tab-btn.active { color:#a8c8e8; border-bottom-color:#4a90d9; }
+
+  form label {
+    display:block; font-size:12px; color:#7a9ab8;
+    margin-bottom:4px; margin-top:12px;
+  }
+  form label:first-of-type { margin-top:0; }
+  form input {
+    width:100%; padding:8px 10px; border-radius:4px;
+    border:1px solid #2a4a6b; background:#0d1b2a; color:#e8eaf0;
+    font-size:14px;
+  }
+  form input:focus { outline:none; border-color:#4a90d9; }
+
+  .btn-primary {
+    width:100%; margin-top:18px; padding:10px; border:none; border-radius:4px;
+    background:#1a3a5c; color:#7ab8f5; border:1px solid #2a5a8c;
+    font-size:14px; font-weight:600; cursor:pointer;
+  }
+  .btn-primary:hover { background:#204a72; }
+  .btn-primary:disabled { opacity:.6; cursor:default; }
+
+  .aviso {
+    border-radius:4px; padding:8px 10px; font-size:12px;
+    margin-bottom:14px; line-height:1.4;
+  }
+  .aviso-erro   { background:#5c1a1a; color:#f57a7a; border:1px solid #8c2a2a; }
+  .aviso-ok     { background:#1a3a1a; color:#7af57a; border:1px solid #2a6c2a; }
+  .aviso-info   { background:#3a3a1a; color:#f5e07a; border:1px solid #6c5a2a; }
+
+  .dica { font-size:11px; color:#4a6a8a; margin-top:16px; text-align:center; }
+  .dica code {
+    background:#0d1b2a; padding:1px 5px; border-radius:3px; color:#a8c8e8;
+  }
+
+  #footer {
+    background:#0d1b2a; border-top:1px solid #2a4a6b;
+    padding:4px 16px; font-size:11px; color:#4a6a8a;
+    text-align:center; flex-shrink:0;
+  }
+</style>
+</head>
+<body>
+
+<div id="topbar"><h1>🗺 WartoolC2</h1></div>
+
+<div id="auth-wrap">
+  <div class="auth-card">
+    <div class="tabs">
+      <button type="button" id="tab-entrar" class="tab-btn active">Entrar</button>
+      <button type="button" id="tab-cadastrar" class="tab-btn">Cadastrar</button>
+    </div>
+
+    <div id="aviso" class="aviso" style="display:none"></div>
+
+    <form id="form-entrar">
+      <label for="entrar-usuario">Usuário</label>
+      <input type="text" id="entrar-usuario" autocomplete="username" placeholder="ex.: joao" required>
+
+      <label for="entrar-senha">Senha</label>
+      <input type="password" id="entrar-senha" autocomplete="current-password" required>
+
+      <button type="submit" class="btn-primary" id="btn-entrar">Entrar</button>
+    </form>
+
+    <form id="form-cadastrar" style="display:none">
+      <label for="cad-usuario">Usuário</label>
+      <input type="text" id="cad-usuario" autocomplete="username" placeholder="ex.: joao" required>
+
+      <label for="cad-nome-guerra">Nome de guerra</label>
+      <input type="text" id="cad-nome-guerra" placeholder="o que aparece no mapa" required>
+
+      <label for="cad-senha">Senha</label>
+      <input type="password" id="cad-senha" autocomplete="new-password" required>
+
+      <label for="cad-senha2">Confirmar senha</label>
+      <input type="password" id="cad-senha2" autocomplete="new-password" required>
+
+      <button type="submit" class="btn-primary" id="btn-cadastrar">Cadastrar</button>
+    </form>
+
+    <p class="dica">O usuário não é um e-mail — é só um nome curto (ex.: <code>joao</code>), sem @ nem espaços.</p>
+  </div>
+</div>
+
+<div id="footer">WartoolC2 — Etapa 2b: autenticação e papéis</div>
+
+<script type="module">
+import { entrar, cadastrar, supabase, buscarPerfil } from './auth.js';
+
+const avisoEl       = document.getElementById('aviso');
+const tabEntrar      = document.getElementById('tab-entrar');
+const tabCadastrar   = document.getElementById('tab-cadastrar');
+const formEntrar     = document.getElementById('form-entrar');
+const formCadastrar  = document.getElementById('form-cadastrar');
+
+function mostrarAviso(texto, tipo) {
+  avisoEl.textContent = texto;
+  avisoEl.className = `aviso aviso-${tipo}`;
+  avisoEl.style.display = 'block';
+}
+
+function esconderAviso() {
+  avisoEl.style.display = 'none';
+}
+
+function irParaTela(perfil) {
+  window.location.href = perfil.papel === 'instrutor' ? 'instrutor.html' : 'index.html';
+}
+
+function trocarAba(aba) {
+  esconderAviso();
+  const ehEntrar = aba === 'entrar';
+  tabEntrar.classList.toggle('active', ehEntrar);
+  tabCadastrar.classList.toggle('active', !ehEntrar);
+  formEntrar.style.display = ehEntrar ? 'block' : 'none';
+  formCadastrar.style.display = ehEntrar ? 'none' : 'block';
+}
+
+tabEntrar.addEventListener('click', () => trocarAba('entrar'));
+tabCadastrar.addEventListener('click', () => trocarAba('cadastrar'));
+
+// Mensagem vinda de um redirecionamento (sessão expirada, deslogado etc.).
+const parametros = new URLSearchParams(window.location.search);
+const motivo = parametros.get('msg');
+if (motivo === 'sessao_expirada') {
+  mostrarAviso('Sua sessão expirou. Faça login novamente.', 'info');
+} else if (motivo === 'deslogado') {
+  mostrarAviso('Você foi desconectado.', 'info');
+}
+
+// Se já existe uma sessão válida (ex.: usuário voltou pra esta página com o
+// navegador ainda logado), pula direto pra tela certa em vez de mostrar o
+// formulário de novo.
+(async () => {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (session) {
+    const perfil = await buscarPerfil(session.user.id);
+    if (perfil) irParaTela(perfil);
+  }
+})();
+
+// ── Entrar ──────────────────────────────────────────────────────────────
+formEntrar.addEventListener('submit', async (ev) => {
+  ev.preventDefault();
+  esconderAviso();
+  const btn = document.getElementById('btn-entrar');
+  btn.disabled = true;
+  btn.textContent = 'Entrando...';
+
+  const usuario = document.getElementById('entrar-usuario').value;
+  const senha   = document.getElementById('entrar-senha').value;
+
+  const resultado = await entrar({ usuario, senha });
+
+  if (resultado.erro) {
+    mostrarAviso(resultado.erro, 'erro');
+    btn.disabled = false;
+    btn.textContent = 'Entrar';
+    return;
+  }
+
+  const perfil = await buscarPerfil(resultado.session.user.id);
+  if (!perfil) {
+    mostrarAviso('Login feito, mas não foi possível carregar seu perfil. Tente novamente.', 'erro');
+    btn.disabled = false;
+    btn.textContent = 'Entrar';
+    return;
+  }
+
+  irParaTela(perfil);
+});
+
+// ── Cadastrar ───────────────────────────────────────────────────────────
+formCadastrar.addEventListener('submit', async (ev) => {
+  ev.preventDefault();
+  esconderAviso();
+
+  const usuario     = document.getElementById('cad-usuario').value;
+  const nomeGuerra  = document.getElementById('cad-nome-guerra').value;
+  const senha       = document.getElementById('cad-senha').value;
+  const senha2      = document.getElementById('cad-senha2').value;
+
+  if (senha !== senha2) {
+    mostrarAviso('As senhas digitadas não conferem.', 'erro');
+    return;
+  }
+
+  const btn = document.getElementById('btn-cadastrar');
+  btn.disabled = true;
+  btn.textContent = 'Cadastrando...';
+
+  const resultado = await cadastrar({ usuario, senha, nomeGuerra });
+
+  if (resultado.erro) {
+    mostrarAviso(resultado.erro, 'erro');
+    btn.disabled = false;
+    btn.textContent = 'Cadastrar';
+    return;
+  }
+
+  if (resultado.avisoTurma) {
+    // Cadastro deu certo, mas a entrada na turma TESTE falhou (ex.: ainda não
+    // criada no SQL Editor). Deixa isso visível antes de seguir.
+    console.warn(resultado.avisoTurma);
+  }
+
+  // Sessão já foi criada pelo cadastrar(); busca o perfil e roteia por papel.
+  const { data: { session } } = await supabase.auth.getSession();
+  const perfil = session ? await buscarPerfil(session.user.id) : null;
+
+  if (!perfil) {
+    mostrarAviso('Cadastro criado, mas não foi possível carregar o perfil. Tente entrar pela aba "Entrar".', 'erro');
+    btn.disabled = false;
+    btn.textContent = 'Cadastrar';
+    return;
+  }
+
+  irParaTela(perfil);
+});
+</script>
+</body>
+</html>

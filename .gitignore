@@ -19,3 +19,9 @@ Thumbs.db
 # Editores
 .vscode/
 .idea/
+
+# Segredos e dados de exercício — NUNCA comitar
+# Lista real de usuários (contém senhas); só o .exemplo.csv vai para o repo
+backend/seed/usuarios_exercicio.csv
+# Chaves do projeto Supabase; só o config.example.js vai para o repo
+frontend/config.js

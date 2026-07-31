@@ -1,0 +1,6 @@
+email,senha,nome_completo,nome_guerra,posto_graduacao,papel,codigo_turma,hostilidade,dimensao,escalao,natureza_code
+instrutor@wartool.local,TrocarDepois01,Joao Paulo,Paulo,Cap,instrutor,EXERC-2026,AMIGO,UNIDADE,CIA,
+aluno01@wartool.local,Exerc2026-01,Fulano de Tal,Fulano,1 Ten,usuario,EXERC-2026,AMIGO,UNIDADE,PEL,
+aluno02@wartool.local,Exerc2026-02,Beltrano da Silva,Beltrano,2 Sgt,usuario,EXERC-2026,AMIGO,UNIDADE,SEC,
+aluno03@wartool.local,Exerc2026-03,Sicrano Souza,Sicrano,3 Sgt,usuario,EXERC-2026,AMIGO,UNIDADE,SQD,
+aluno04@wartool.local,Exerc2026-04,Ciclano Lima,Ciclano,Cb,usuario,EXERC-2026,AMIGO,INDIVIDUO,NONE,
