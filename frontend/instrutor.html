@@ -242,12 +242,17 @@
   }
   .calco-remover:hover { background:#3a1a1a; }
   .calco-meta { font-size:11px; color:#5a7a98; margin-top:5px; }
-  .calco-opacidade {
-    display:flex; align-items:center; gap:8px; margin-top:8px;
-    font-size:10px; letter-spacing:.06em; text-transform:uppercase; color:#4a6a8a;
+  /* ── Imagem georreferenciada (Etapa 8b) ─────────────────────── */
+  #calco-imagem-mapa {
+    height:220px; border:1px solid #2a4a6b; border-radius:4px; margin-bottom:8px;
+    background:#0d1b2a;
   }
-  .calco-opacidade input[type=range] { flex:1; max-width:180px; }
-  .calco-pct { color:#7a9ab8; min-width:34px; text-align:right; }
+  #calco-imagem-status { font-size:11px; color:#7a9ab8; line-height:1.5; margin-bottom:8px; }
+  .botao-secundario {
+    width:100%; background:transparent; color:#7a9ab8; border:1px solid #2a4a6b;
+    border-radius:4px; padding:6px 10px; font-size:12px; cursor:pointer; margin-bottom:10px;
+  }
+  .botao-secundario:hover { background:#16263a; color:#c8d8e8; }
   .campo select, .campo input[type=datetime-local] {
     padding:5px 7px; background:#16263a; color:#e8eaf0;
     border:1px solid #2a4a6b; border-radius:4px; font-size:12px; font-family:inherit;
@@ -353,7 +358,7 @@
   <button type="button" id="aba-permissoes" class="aba ativa">Permissões e forças</button>
   <button type="button" id="aba-situacao" class="aba">Situação atual</button>
   <button type="button" id="aba-debriefing" class="aba">Debriefing — rastro</button>
-  <button type="button" id="aba-calcos" class="aba">Calcos KML/KMZ</button>
+  <button type="button" id="aba-calcos" class="aba">Calcos</button>
 </div>
 
 <div id="contexto">
@@ -500,7 +505,8 @@
     </div>
   </div>
 
-  <!-- ── Aba 3: publicação de calcos KML/KMZ (Etapa 7) ─────────────────── -->
+  <!-- ── Aba 3: publicação de calcos — KML/KMZ (Etapa 7) e imagem
+       georreferenciada (Etapa 8b) ────────────────────────────────────── -->
   <!-- A lógica está em frontend/instrutor-calcos.js; o acesso ao banco e ao
        Storage, em frontend/calcos.js (compartilhado com o app do aluno). -->
   <div id="painel-calcos" class="painel" hidden>
@@ -509,14 +515,15 @@
       <div id="calcos-formulario">
         <h2 class="grade-titulo">Publicar um calco</h2>
         <p class="grade-sub">
-          O arquivo é conferido aqui no navegador <b>antes</b> de subir — número de
-          feições, vértices e tamanho. O que passar aparece no app dos alunos na hora,
-          sem ninguém recarregar a página.
+          KML/KMZ (calco vetor) ou JPG/PNG (imagem georreferenciada — foto aérea,
+          carta atualizada). O arquivo é conferido aqui no navegador <b>antes</b> de
+          subir. O que passar aparece no app dos alunos na hora, sem ninguém
+          recarregar a página.
         </p>
 
         <div class="campo">
-          <label for="calco-arquivo">Arquivo (.kml ou .kmz, até 2 MB)</label>
-          <input type="file" id="calco-arquivo" accept=".kml,.kmz">
+          <label for="calco-arquivo">Arquivo (.kml/.kmz até 2 MB, ou .jpg/.png até 3 MB)</label>
+          <input type="file" id="calco-arquivo" accept=".kml,.kmz,.jpg,.jpeg,.png">
         </div>
 
         <div class="campo">
@@ -542,22 +549,46 @@
           </span>
         </div>
 
-        <div class="campo campo-linha">
+        <div class="campo campo-linha" id="calco-cor-campo" hidden>
           <span>
             <label>Cor padrão</label>
             <!-- Três opções, não um seletor livre: calco militar tem convenção
                  de cor, e escolher livremente convida a inventar uma. As
                  bolinhas são montadas por instrutor-calcos.js a partir de
                  CORES_CAMADA (frontend/kml.js), a mesma lista que o aluno vê
-                 no painel dele. -->
+                 no painel dele. Só aparece para KML/KMZ — raster não tem
+                 stroke/fill por feição (Etapa 8b). -->
             <span id="calco-cores" class="campo-cores"></span>
           </span>
-          <span style="flex:1">
-            <label for="calco-opacidade">Opacidade padrão</label>
-            <span class="campo-faixa">
-              <input type="range" id="calco-opacidade" min="0" max="100" step="5" value="100">
-              <span id="calco-opacidade-pct">100%</span>
-            </span>
+          <!-- O campo "Opacidade padrão" que ficava aqui saiu na Etapa 8a —
+               opacidade não fazia sentido para calco/traçado tático. Ver o
+               comentário no topo de frontend/instrutor-calcos.js. A imagem
+               georreferenciada (Etapa 8b) tem o PRÓPRIO campo de opacidade,
+               no painel abaixo — não é uma reintrodução deste aqui. -->
+        </div>
+
+        <!-- Georreferenciamento + opacidade da imagem (Etapa 8b). Só aparece
+             quando o arquivo escolhido é .jpg/.png — ver
+             atualizarModoFormulario() em frontend/instrutor-calcos.js. O
+             mini-mapa é uma instância PRÓPRIA de Leaflet desta tela, só para
+             marcar os dois cantos (noroeste/sudeste) — mesmo princípio de
+             situacao.js/debriefing.js manterem cada um a própria instância. -->
+        <div class="campo" id="calco-imagem-painel" hidden>
+          <label>Posição no mapa</label>
+          <div id="calco-imagem-status"></div>
+          <div id="calco-imagem-mapa"></div>
+          <button type="button" id="calco-imagem-redesenhar" class="botao-secundario">
+            Marcar cantos no mapa
+          </button>
+          <label for="calco-imagem-opacidade">Opacidade padrão</label>
+          <div class="campo-faixa">
+            <input type="range" id="calco-imagem-opacidade" min="0.1" max="1" step="0.05" value="0.85">
+            <span id="calco-imagem-opacidade-valor">85%</span>
+          </div>
+          <span class="campo-dica">
+            Sugestão para o aluno — ele pode ajustar na própria tela. Foto aérea se
+            beneficia de opacidade (comparar com o mapa por baixo); calco vetor não
+            ganhou este controle de volta na Etapa 8b.
           </span>
         </div>
 
@@ -579,7 +610,7 @@
 
 <div id="footer">
   WartoolC2 — Etapa 6a: permissões e forças &nbsp;|&nbsp; Etapa 6c: situação atual
-  &nbsp;|&nbsp; Etapa 6b: debriefing do rastro &nbsp;|&nbsp; Etapa 7: calcos KML/KMZ
+  &nbsp;|&nbsp; Etapa 6b: debriefing do rastro &nbsp;|&nbsp; Etapa 7: calcos KML/KMZ &nbsp;|&nbsp; Etapa 8b: imagem georreferenciada
   &nbsp;<span id="debriefing-status"></span>
 </div>
 

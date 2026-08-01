@@ -74,6 +74,17 @@ import {
 // telas. Nada de segundo caminho de desenho.
 import { iniciarCamadas, definirTurmaCamadas } from './camadas.js';
 import { criarBasemaps, preencherSeletorBasemap, BASEMAP_PADRAO } from './basemaps.js';
+// Etapa 8a (correção pós-entrega): o instrutor também precisa de um mapa que
+// continue funcionando se a rede dele oscilar — a decisão original desta
+// etapa deixava só o app do aluno com isto, argumentando que "Situação
+// atual" depende de rede para o DADO (Realtime) de qualquer forma. Isso era
+// verdade mas irrelevante: instrutor sem rede também está sem posição
+// atualizada dos alunos, mas continua precisando enxergar o TERRENO por
+// baixo para se orientar — exatamente o mesmo raciocínio que já valia para
+// o aluno ("um app sem carta é pior que um app sem foto aérea"). Mesmo
+// módulo do app do aluno, mesmo padrão de `iniciarCamadas` acima: recebe
+// `map`/`camadaBdgex`/contêiner por parâmetro, nada de segundo caminho.
+import { iniciarOfflineMapa } from './offline-tela.js';
 // Mesma correção de colegas.js (bug relatado em campo: avatares empilhados
 // quando duas ou mais pessoas ficam fisicamente próximas). Aqui o instrutor
 // vê a turma INTEIRA de uma vez, então o problema aparece ainda mais — ver o
@@ -617,6 +628,24 @@ export function aoAbrirSituacao() {
       container: '#situacao-lateral',
     });
     camadasIniciadas = true;
+
+    // Etapa 8a: mapa offline, mesma decisão e mesmo módulo do app do aluno.
+    // `basemaps.bdgex` é a MESMA instância WMS que desenha a carta nesta
+    // aba (criada em garantirMapa(), acima) — não uma cópia; é o que garante
+    // que a URL de cada tile baixado bate com a que o Leaflet pede ao vivo
+    // depois (ver o comentário grande em offline-tela.js). Como o Service
+    // Worker registrado aqui tem escopo em toda `frontend/`, a aba
+    // "Debriefing" (outra instância de Leaflet, outro BDGEx — Etapa 6b) passa
+    // a se beneficiar do MESMO cache de tiles automaticamente, sem precisar
+    // registrar nada de novo lá: é a mesma página, o mesmo Service Worker
+    // intercepta as duas. Não é aguardado, pelo mesmo motivo de
+    // `iniciarCamadas` acima.
+    iniciarOfflineMapa({
+      map,
+      camadaBdgex: basemaps.bdgex,
+      userId: contexto?.userId,
+      seletorContainer: '#situacao-lateral',
+    });
   }
 }
 

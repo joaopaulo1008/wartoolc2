@@ -16,6 +16,15 @@
 // backend/supabase/0006_calcos.sql. Ler o cabeçalho de lá antes de mexer em
 // qualquer coisa deste arquivo: as decisões que explicam o formato do caminho,
 // o limite de 2 MB e quem enxerga o quê estão todas naquele comentário.
+//
+// Etapa 8b: `calcos` passou a servir também imagem georreferenciada (foto
+// aérea/carta atualizada), formato 'jpg'/'png', com quatro colunas de bounds
+// — ver backend/supabase/0008_imagem_geo.sql para o porquê de reaproveitar
+// esta tabela em vez de criar uma nova. Este arquivo não precisou de nenhuma
+// regra nova: `buscarCalcosDaTurma` passou a trazer as colunas de bounds (são
+// nulas para linhas de kml/kmz, e o cliente já sabe disso) e `publicarCalco`
+// passou a aceitar os quatro campos, sempre opcionais — quem decide se são
+// obrigatórios é o `check` da 0008, não este módulo.
 
 import { supabase } from './auth.js';
 
@@ -54,7 +63,7 @@ export async function buscarCalcosDaTurma(turmaId) {
   if (!turmaId) return [];
   const { data, error } = await supabase
     .from('calcos')
-    .select('id, nome, categoria, partido_id, caminho, formato, tamanho_bytes, num_feicoes, cor, opacidade, ordem, autor_id, criado_em')
+    .select('id, nome, categoria, partido_id, caminho, formato, tamanho_bytes, num_feicoes, cor, opacidade, ordem, autor_id, criado_em, bounds_norte, bounds_sul, bounds_leste, bounds_oeste')
     .eq('turma_id', turmaId)
     .is('removido_em', null)
     .order('ordem', { ascending: true })
@@ -97,13 +106,24 @@ export async function baixarCalco(caminho) {
 export async function publicarCalco({
   turmaId, autorId, nome, categoria, partidoId,
   formato, arquivo, numFeicoes, cor, opacidade, ordem,
+  // Etapa 8b: só usados quando formato é 'jpg'/'png' — kml/kmz continuam
+  // mandando `undefined` nos quatro, que vira `null` no insert, que é
+  // exatamente o que a 0008 exige para vetor (bounds tem que ser as quatro
+  // ou nenhuma; ver calcos_bounds_coerentes). Quem valida a COERÊNCIA dos
+  // quatro números antes de chegar aqui é validarBounds() (imagem-geo.js) —
+  // este módulo só encaminha o que já foi validado.
+  boundsNorte, boundsSul, boundsLeste, boundsOeste,
 }) {
   const id = crypto.randomUUID();
   const caminho = `${turmaId}/${id}.${formato}`;
 
   const { error: erroUpload } = await supabase.storage
     .from(BUCKET)
-    .upload(caminho, arquivo, { contentType: 'application/octet-stream', upsert: false });
+    // contentType do próprio arquivo quando o navegador souber dizer (jpg/png
+    // quase sempre trazem `arquivo.type` certo); cai para octet-stream no
+    // mesmo caso de sempre (kml/kmz, cujo MIME o navegador não reporta de
+    // forma confiável — ver a nota sobre allowed_mime_types na 0006).
+    .upload(caminho, arquivo, { contentType: arquivo.type || 'application/octet-stream', upsert: false });
   if (erroUpload) return { erro: erroUpload, calco: null };
 
   const { data, error } = await supabase
@@ -122,6 +142,10 @@ export async function publicarCalco({
       cor: cor || '#f5c842',
       opacidade: opacidade ?? 1,
       ordem: ordem ?? 0,
+      bounds_norte: boundsNorte ?? null,
+      bounds_sul: boundsSul ?? null,
+      bounds_leste: boundsLeste ?? null,
+      bounds_oeste: boundsOeste ?? null,
     })
     .select()
     .single();

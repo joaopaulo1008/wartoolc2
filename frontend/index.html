@@ -935,6 +935,7 @@ import { iniciarRastreamentoProprio } from './gps.js';
 import { iniciarColegas } from './colegas.js';
 import { iniciarMarcacoes } from './marcacoes.js';
 import { iniciarCamadas } from './camadas.js';
+import { iniciarOfflineMapa } from './offline-tela.js';
 import { iniciarPainelRecolhivel, tornarRecolhivel, LARGURA_PAINEL_ABERTO } from './painel-lateral.js';
 
 // Correção de mobile pós-campo: os itens de diagnóstico da topbar
@@ -1086,6 +1087,20 @@ if (resultado) {
       userId: session.user.id,
       turmaId: perfil.turma_id,
     });
+
+    // Etapa 8a: mapa offline. Só o app do aluno (ver o cabeçalho de
+    // offline-tela.js para o porquê de a aba "Situação atual" do instrutor
+    // não ganhar isto). `BASEMAPS.bdgex` é lido como global do <script>
+    // clássico acima — mesmo padrão de `typeof map !== 'undefined'` logo no
+    // início deste bloco: scripts module compartilham o escopo léxico global
+    // do documento com o <script> clássico que roda antes deles. Passa a
+    // MESMA instância de camada que desenha o BDGEx ao vivo, nunca uma cópia
+    // — é o que garante que a URL de cada tile baixado bate com a URL que o
+    // Leaflet pede de verdade depois (ver o comentário grande em
+    // offline-tela.js).
+    if (typeof BASEMAPS !== 'undefined' && BASEMAPS.bdgex) {
+      await iniciarOfflineMapa({ map, camadaBdgex: BASEMAPS.bdgex, userId: session.user.id });
+    }
 
     // Etapa 7.1: o painel encolhe. Vem DEPOIS de iniciarCamadas() de
     // propósito — o cartão "Camadas de arquivo" é montado lá dentro, e

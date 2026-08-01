@@ -231,10 +231,14 @@ export function formatoDoArquivo(nomeArquivo) {
 //
 // NÃO tem nada a ver com segurança: quem impede o nome de virar HTML é o
 // `textContent` de quem o exibe (ver o comentário de textoSimples abaixo).
+// Etapa 8b: a lista de extensões reconhecidas ganhou jpg/jpeg/png — esta
+// função virou o nomeador genérico de "camada de arquivo", não só de KML, e
+// instrutor-calcos.js a reusa para sugerir o nome da imagem georreferenciada
+// a partir do nome do arquivo, do mesmo jeito que já fazia para calco vetor.
 export function nomeDeCamada(nomeArquivo) {
   const base = String(nomeArquivo || '')
     .split(/[\\/]/).pop()
-    .replace(/\.(kml|kmz)$/i, '')
+    .replace(/\.(kml|kmz|jpe?g|png)$/i, '')
     .replace(/[\s ]+/g, ' ')
     .trim();
   if (!base) return 'Camada sem nome';

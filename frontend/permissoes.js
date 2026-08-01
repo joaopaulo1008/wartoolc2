@@ -92,6 +92,39 @@ export const CHAVES_APLICADAS = new Set([
   'camada_obstaculos',
 ]);
 
+// ── `carregar_imagem_geo`: DELIBERADAMENTE fora da lista acima (Etapa 8b) ──
+//
+// Não é um esquecimento — é a decisão 1 da Etapa 8b, escrita aqui para quem
+// olhar só este arquivo e perguntar "por que esta é a única chave que
+// sobrou?". O raciocínio completo está em CLAUDE.md ("Decisões da Etapa
+// 8b") e em frontend/imagem-geo.js; resumo:
+//
+// O catálogo (0001_schema_inicial.sql) descreve `carregar_imagem_geo` como
+// "Carregar imagem georreferenciada PRÓPRIA" — a mesma redação de
+// `carregar_kml`, que governa o arquivo LOCAL do aluno (sem rede, sem banco,
+// governado só pela permissão, tratado em frontend/camadas.js). Por essa
+// convenção, `carregar_imagem_geo` deveria abrir o mesmo tipo de caminho: o
+// aluno escolhe uma imagem já georreferenciada no próprio aparelho.
+//
+// A Etapa 8b implementou só o caminho do INSTRUTOR — foto aérea/carta
+// atualizada publicada pelo painel, com bounds desenhados no mapa, a mesma
+// tabela `calcos` dos calcos KML e as mesmas chaves `camada_*` que já
+// existem (não uma chave nova). Não abriu o caminho local porque, ao
+// contrário do KML (que pode vir de um planejamento feito no QGIS antes do
+// exercício, algo plausível de o aluno já ter no aparelho), uma imagem
+// georreferenciada de verdade raramente é algo que um aluno carrega pronto
+// — quem tem a imagem atualizada e o contexto de por que ela importa é o
+// instrutor. Abrir os dois caminhos (como a Etapa 7 fez para KML) dobraria a
+// superfície da etapa para um caminho local de valor prático baixo.
+//
+// `carregar_imagem_geo` continua no catálogo, com padrão `false`, RESERVADA
+// para esse caminho local se um dia ele fizer sentido de verdade — não foi
+// removida nem redefinida para outra coisa. Enquanto não tiver interface
+// correspondente, o painel do instrutor (instrutor-permissoes.js) mostra
+// esta chave como "sem efeito ainda", igual às outras que não têm função
+// correspondente — porque, de fato, não tem: ligar ou desligar esta chave
+// hoje não muda nada na tela de ninguém.
+
 // Rótulos em PT-BR para a coluna `origem` da view — é o que responde, na
 // tela do instrutor, "por que este aluno está assim?".
 export const ROTULO_ORIGEM = {

@@ -155,9 +155,9 @@ Authorization: Bearer <token do aluno Vermelho>
 ## 10. Checklist de saída
 
 Depois do teste, reúna:
-- [ ] Item 1: código errado barrou o cadastro, código certo entrou na turma?
-- [ ] Item 2: BDGEx desenhou? Se não, qual erro (certificado, CORS, timeout, tile branco)?
-- [ ] Item 3: os dois celulares se viram?
+- [x] Item 1: código errado barrou o cadastro, código certo entrou na turma? **Confirmado em campo, 2026-08-01.**
+- [x] Item 2: BDGEx desenhou? Se não, qual erro (certificado, CORS, timeout, tile branco)? **Confirmado em campo, 2026-08-01 — desenha, fecha a pendência que mais importava para abrir a Etapa 8a.**
+- [x] Item 3: os dois celulares se viram? **Confirmado em campo, 2026-08-01.**
 - [ ] Item 4a/4b: hostilidade relativa correta, marcação não vazou entre partidos?
 - [ ] Item 4c: instrutor vê Azul e Vermelho com cores diferentes (não os dois azuis)?
 - [ ] Avatares empilhados: com dois ou mais celulares fisicamente próximos (lado a lado), os avatares se separam visualmente no mapa (colegas.js e situacao.js), em vez de ficarem um em cima do outro?

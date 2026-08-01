@@ -29,15 +29,40 @@
 // MARCOU a caixa — e nada aqui desmarca a caixa do aluno, para que reabilitar
 // devolva o estado que ele tinha escolhido, não "tudo ligado".
 //
-// OPACIDADE E ORDEM: UM MECANISMO SÓ
-// ----------------------------------
-// Cada camada ganha um `pane` próprio do Leaflet. A opacidade é a opacidade
-// CSS do pane; a ordem é o z-index dele. Ver FAIXAS_PANE em kml.js para as
-// faixas e para por que nenhuma delas encosta no markerPane — um calco não
-// pode tapar um símbolo militar. Fazer opacidade por `setStyle` em cada feição
-// seria pior: sobrescreveria a cor que veio do próprio KML, não valeria para a
-// imagem georreferenciada da Etapa 8, e obrigaria a percorrer milhares de
-// feições a cada arrastar do controle.
+// ORDEM: CADA CAMADA GANHA UM PANE PRÓPRIO DO LEAFLET
+// ----------------------------------------------------
+// A ordem é o z-index do pane. Ver FAIXAS_PANE em kml.js para as faixas e
+// para por que nenhuma delas encosta no markerPane — um calco não pode tapar
+// um símbolo militar.
+//
+// ATÉ A ETAPA 8a, o pane também carregava a OPACIDADE (opacidade CSS do
+// pane, um slider por camada). Saiu a pedido de quem usa: um calco/traçado
+// tático não ganha nada em ficar semitransparente — o que importa é a cor
+// (que continua, `CORES_CAMADA`) e ligar/desligar (que continua). O
+// MECANISMO do pane continua existindo e serviu para a imagem
+// georreferenciada da Etapa 8b sem mudança nenhuma no pane em si — só a
+// exposição de opacidade PARA CAMADA DE ARQUIVO é que tinha sido retirada da
+// interface. (Não confundir com a opacidade de `EXTRA_LAYERS`, painel
+// "Camadas" do `<script>` clássico de `index.html` — outra funcionalidade,
+// não mudou.)
+//
+// ETAPA 8b — IMAGEM GEORREFERENCIADA GANHA OPACIDADE DE VOLTA, SÓ ELA
+// ---------------------------------------------------------------------
+// Uma foto aérea/carta atualizada é o caso oposto do calco vetor: o valor
+// dela está em comparar contra o mapa base por baixo, e raster não tem
+// "cor" que resolva isso (não há stroke/fill por feição). Por isso um calco
+// do tipo 'jpg'/'png' ganha um controle de opacidade PRÓPRIO na linha da
+// lista (ver linhaDaCamada) — usando a opacidade NATIVA do `L.imageOverlay`
+// (`setOpacity()`), não a opacidade CSS do pane que a 8a desligou. As duas
+// coisas não se tocam: um pane pode ter, ao mesmo tempo, uma imagem com
+// opacidade ajustada e um calco vetor com opacidade de pane sempre em 1 —
+// porque cada `L.imageOverlay`/`L.geoJSON` mora no PRÓPRIO pane
+// (`wt-camada-${id}`), nunca dividido com outra camada. Sugestão do
+// instrutor ao publicar, ajuste do aluno na tela dele por cima — mesma
+// distinção preferência-x-permissão de sempre, e o mesmo padrão que `cor`/
+// `corForcada` já usam para calco vetor (ver `corForcada` abaixo): a escolha
+// do instrutor vale até o aluno mexer, e depois disso o ajuste do aluno
+// prevalece mesmo que o instrutor publique de novo com outro padrão.
 
 import { observarPermissao, pode } from './permissoes.js';
 import {
@@ -60,6 +85,11 @@ import {
 const CHAVES_DE_CATEGORIA = [
   'camada_manobra', 'camada_inimigo', 'camada_logistica', 'camada_obstaculos',
 ];
+
+// Etapa 8b: dois formatos novos em `calcos.formato` (0008_imagem_geo.sql),
+// os dois tratados como "imagem" para fins de desenho — a diferença entre
+// jpg e png não muda nada aqui, só qual MIME o navegador sniffa sozinho.
+const FORMATOS_IMAGEM = new Set(['jpg', 'png']);
 
 // ── Estado do módulo ─────────────────────────────────────────────────────
 // Um "usuário logado" por página, então o estado mora no módulo — mesmo
@@ -149,10 +179,16 @@ function injetarEstilos() {
       border:1px solid #4a6a8a;
     }
     #card-camadas .cam-cor.ativa { border-color:#e8eaf0; box-shadow:0 0 0 1px #e8eaf0; }
-    #card-camadas .cam-opacidade { display:flex; align-items:center; gap:6px; margin-top:3px; padding-left:18px; }
-    #card-camadas .cam-opacidade input[type=range] { flex:1; height:14px; cursor:pointer; }
-    #card-camadas .cam-pct { font-size:10px; color:#5a7a98; min-width:30px; text-align:right; }
     #card-camadas .cam-meta { font-size:10px; color:#5a7a98; padding-left:18px; }
+    /* Etapa 8b: opacidade de imagem georreferenciada — única camada de
+       arquivo que ainda expõe este controle (ver o comentário grande no topo
+       do arquivo, seção "ETAPA 8b — IMAGEM GEORREFERENCIADA..."). */
+    #card-camadas .cam-opacidade-linha {
+      display:flex; align-items:center; gap:6px; padding-left:18px; margin-top:2px;
+    }
+    #card-camadas .cam-opacidade-rotulo { font-size:10px; color:#5a7a98; flex-shrink:0; }
+    #card-camadas .cam-opacidade-slider { flex:1; height:14px; }
+    #card-camadas .cam-opacidade-valor { font-size:10px; color:#7a9ab8; width:32px; text-align:right; flex-shrink:0; }
     #card-camadas .cam-aviso {
       font-size:11px; color:#f5c842; line-height:1.5;
       background:#3a3a1a; border:1px solid #6c5a2a; border-radius:4px;
@@ -212,29 +248,53 @@ function montarPainel() {
 // ── Um registro de camada ────────────────────────────────────────────────
 // origem: 'local' (arquivo do aluno) ou 'calco' (publicado pelo instrutor).
 // chave:  a permissão que manda nesta camada.
-function novoRegistro({ id, nome, origem, chave, cor, meta, opacidade, ordem, querVer }) {
+// formato: 'kml'/'kmz' (vetor) ou 'jpg'/'png' (imagem georreferenciada,
+//          Etapa 8b) — null para o que não veio de calcos.js (não acontece
+//          hoje, mas evita `undefined` se algum dia houver terceira origem.
+function novoRegistro({ id, nome, origem, chave, formato, cor, meta, opacidade, ordem, querVer }) {
   const registro = {
     id, nome, origem, chave,
+    formato: formato || null,
     cor: cor || COR_CAMADA_PADRAO,
     // O arquivo pode trazer estilo próprio (<Style> do KML). Enquanto o
     // usuário não escolher uma cor à mão, o estilo do arquivo manda — foi o
     // autor do calco que o desenhou assim. A partir do primeiro clique numa
     // bolinha, a escolha dele passa a valer sobre tudo: quem pede vermelho
     // quer vermelho, não "vermelho onde o arquivo não disser nada".
+    // (Não se aplica a imagem: raster não tem stroke/fill por feição, então
+    // o seletor de cor nem aparece para formato 'jpg'/'png' — ver
+    // linhaDaCamada.)
     corForcada: false,
     meta: meta || '',
     layer: null,
     pane: `wt-camada-${id}`,
+    // VESTIGIAL para KML/KMZ desde a Etapa 8a (ver o comentário grande no
+    // topo do arquivo): continua existindo/gravado, mas nada mais o aplica ao
+    // pane de vetor. Para IMAGEM (Etapa 8b) o campo passou a ser ATIVO de
+    // novo: é a opacidade nativa do `L.imageOverlay` (setOpacity()), sugerida
+    // pelo instrutor e ajustável pelo aluno — ver `opacidadeForcada` abaixo.
     opacidade: Number.isFinite(opacidade) ? opacidade : 1,
+    // Mesmo mecanismo de `corForcada`, mas para a opacidade de imagem: o
+    // padrão do instrutor só vale enquanto o aluno não tiver ajustado o
+    // próprio slider. Sem isso, o instrutor renomear/republicar a mesma
+    // categoria desfaria o ajuste que o aluno já tinha feito.
+    opacidadeForcada: false,
     ordem: Number.isFinite(ordem) ? ordem : sequencia,
     querVer: querVer !== false,   // escolha do ALUNO (a caixa marcada)
     noMapa: false,
     guardado: false,              // conseguiu ficar no IndexedDB?
+    // URL de objeto (Etapa 8b, só imagem): revogada em descartar() para não
+    // vazar memória — ver a nota lá.
+    objectUrl: null,
   };
   // A sequência precisa acompanhar as ordens restauradas, senão o primeiro
   // arquivo aberto depois de um F5 nasceria empatado com um já existente.
   sequencia = Math.max(sequencia, registro.ordem) + 1;
   return registro;
+}
+
+function ehImagem(registro) {
+  return FORMATOS_IMAGEM.has(registro && registro.formato);
 }
 
 // ── Persistência das preferências ────────────────────────────────────────
@@ -292,8 +352,9 @@ function estiloDaFeicao(registro) {
       // Espessura limitada: um `stroke-width` de 200 vindo do arquivo cobriria
       // o mapa inteiro com uma linha.
       weight: Math.min(Math.max(Number(p['stroke-width']) || 2, 1), 8),
-      // A opacidade da CAMADA mora no pane; aqui fica sempre 1 para as duas
-      // não se multiplicarem e o controle deslizante mentir sobre o resultado.
+      // A opacidade por FEIÇÃO fica sempre 1 (desde a Etapa 8a, o pane
+      // inteiro também não varia mais — ver o comentário grande no topo do
+      // arquivo). Continua explícita em vez de omitida, por clareza.
       opacity: 1,
       fillColor: corValida(p.fill, registro.cor),
       fillOpacity: ehArea ? (Number.isFinite(preenchimento) ? Math.min(preenchimento, 0.6) : 0.15) : 0,
@@ -381,6 +442,32 @@ function construirCamada(registro, geojson) {
   });
 }
 
+// ── Imagem georreferenciada (Etapa 8b) ───────────────────────────────────
+// Contraparte de construirCamada() para calco do tipo 'jpg'/'png'. Sem
+// GeoJSON, sem popup por feição — é UMA imagem, com bounds retangulares
+// (decisão 2 da Etapa 8b: dois cantos, sem rotação; ver frontend/imagem-geo.js).
+//
+// A URL é um Object URL (`URL.createObjectURL`) sobre os bytes baixados do
+// Storage — nunca um data: URI (uma imagem de 3 MB em base64 seria ~4 MB de
+// string, e o navegador já tem os bytes crus em mãos). Precisa ser revogada
+// quando a camada sai (descartar()), senão o navegador segura a memória do
+// blob até a aba fechar.
+function construirImagemOverlay(registro, bytes, bounds) {
+  garantirPane(registro);
+  if (registro.objectUrl) { URL.revokeObjectURL(registro.objectUrl); registro.objectUrl = null; }
+  const url = URL.createObjectURL(new Blob([bytes]));
+  registro.objectUrl = url;
+  registro.layer = L.imageOverlay(url, bounds, {
+    pane: registro.pane,
+    opacity: Number.isFinite(registro.opacidade) ? registro.opacidade : 1,
+    // O navegador não sabe o tamanho da imagem antes de decodificá-la; até
+    // lá o Leaflet não tem como posicionar nada. `errorOverlayUrl` fica de
+    // fora de propósito — um placeholder quebrado sobre bounds errados
+    // confundiria mais do que a imagem simplesmente não aparecer.
+    interactive: false,
+  });
+}
+
 // ── Visibilidade ─────────────────────────────────────────────────────────
 // A conjunção de sempre: instrutor PERMITE e aluno MARCOU.
 function deveMostrar(registro) {
@@ -397,11 +484,6 @@ function aplicarVisibilidade(registro) {
     mapaRef.removeLayer(registro.layer);
     registro.noMapa = false;
   }
-}
-
-function aplicarOpacidade(registro) {
-  const pane = mapaRef.getPane(registro.pane);
-  if (pane) pane.style.opacity = String(registro.opacidade);
 }
 
 // Ordem: z-index do pane, dentro da faixa da origem. Recalculado inteiro a
@@ -439,6 +521,10 @@ function descartar(id) {
   // pediu ao clicar no ×.
   if (registro.origem === 'local') removerArquivo(id);
   if (registro.layer && registro.noMapa) mapaRef.removeLayer(registro.layer);
+  // Etapa 8b: uma imagem tem um Object URL apontando para o Blob dos bytes
+  // baixados — sem revogar, o navegador segura essa memória até a aba
+  // fechar, mesmo com a camada fora do mapa e o registro apagado.
+  if (registro.objectUrl) { URL.revokeObjectURL(registro.objectUrl); registro.objectUrl = null; }
   // O pane fica no DOM (o Leaflet não tem removePane público e um <div> vazio
   // não custa nada), mas o registro sai — sem isso, um calco removido pelo
   // instrutor continuaria ocupando posição na ordenação.
@@ -475,7 +561,10 @@ function linhaDaCamada(registro, indice, total) {
 
   const dot = document.createElement('span');
   dot.className = 'cam-dot';
-  dot.style.background = registro.cor;
+  // Imagem não tem "cor" de verdade (a coluna `cor` do banco fica com o
+  // padrão, sem efeito nenhum na renderização) — o quadrado neutro evita
+  // sugerir uma escolha de cor que não existe para raster.
+  dot.style.background = ehImagem(registro) ? '#5a7a98' : registro.cor;
 
   const nome = document.createElement('span');
   nome.className = 'cam-nome';
@@ -484,32 +573,34 @@ function linhaDaCamada(registro, indice, total) {
 
   topo.append(check, dot, nome);
 
-  // Seletor de cor: três bolinhas, de CORES_CAMADA (kml.js). Substituiu a
-  // opacidade como controle PRINCIPAL da linha porque é o que muda a leitura
-  // de um calco sobre a carta — a opacidade continua existindo, agora atrás
-  // do botão de detalhe logo abaixo.
-  const cores = document.createElement('span');
-  cores.className = 'cam-cores';
-  for (const opcao of CORES_CAMADA) {
-    const bolinha = document.createElement('button');
-    bolinha.type = 'button';
-    bolinha.className = 'cam-cor';
-    if (registro.corForcada && registro.cor.toLowerCase() === opcao.valor.toLowerCase()) {
-      bolinha.classList.add('ativa');
+  // Seletor de cor: três bolinhas, de CORES_CAMADA (kml.js). Só faz sentido
+  // para calco VETOR — raster não tem stroke/fill por feição, então uma
+  // imagem georreferenciada (Etapa 8b) não ganha este controle; ganha o de
+  // opacidade logo abaixo em vez dele.
+  if (!ehImagem(registro)) {
+    const cores = document.createElement('span');
+    cores.className = 'cam-cores';
+    for (const opcao of CORES_CAMADA) {
+      const bolinha = document.createElement('button');
+      bolinha.type = 'button';
+      bolinha.className = 'cam-cor';
+      if (registro.corForcada && registro.cor.toLowerCase() === opcao.valor.toLowerCase()) {
+        bolinha.classList.add('ativa');
+      }
+      bolinha.style.background = opcao.valor;
+      bolinha.title = `Cor ${opcao.nome}`;
+      bolinha.setAttribute('aria-label', `Cor ${opcao.nome}`);
+      bolinha.addEventListener('click', () => {
+        registro.cor = opcao.valor;
+        registro.corForcada = true;
+        if (registro.layer) registro.layer.setStyle(estiloDaFeicao(registro));
+        guardarPreferencias(registro);
+        redesenharListas();
+      });
+      cores.appendChild(bolinha);
     }
-    bolinha.style.background = opcao.valor;
-    bolinha.title = `Cor ${opcao.nome}`;
-    bolinha.setAttribute('aria-label', `Cor ${opcao.nome}`);
-    bolinha.addEventListener('click', () => {
-      registro.cor = opcao.valor;
-      registro.corForcada = true;
-      if (registro.layer) registro.layer.setStyle(estiloDaFeicao(registro));
-      guardarPreferencias(registro);
-      redesenharListas();
-    });
-    cores.appendChild(bolinha);
+    topo.appendChild(cores);
   }
-  topo.appendChild(cores);
 
   const subir = document.createElement('button');
   subir.type = 'button';
@@ -539,39 +630,45 @@ function linhaDaCamada(registro, indice, total) {
     topo.append(fechar);
   }
 
-  // Botão de detalhe: a opacidade deixou de ser o controle principal da linha
-  // (a cor tomou o lugar) e passou a viver aqui atrás. Continua útil para ler
-  // a carta por baixo do calco — só não merecia uma linha inteira do painel
-  // em cada camada, num celular.
-  const detalhe = document.createElement('button');
-  detalhe.type = 'button';
-  detalhe.className = 'cam-mini';
-  detalhe.textContent = '⋯';
-  detalhe.title = 'Opacidade';
-  topo.appendChild(detalhe);
-
+  // O botão de detalhe (⋯) que abria o controle de opacidade para calco
+  // VETOR saiu na Etapa 8a — ver o comentário grande no topo do arquivo. A
+  // cor (acima) é o único ajuste de aparência que resta na linha para
+  // kml/kmz. Para IMAGEM (Etapa 8b) é o oposto: não há cor, mas há opacidade
+  // — uma linha dedicada, sempre visível (não atrás de botão de detalhe,
+  // porque para uma foto aérea esse é o controle que a pessoa vai usar de
+  // verdade, não um ajuste raro).
   linha.appendChild(topo);
 
-  const faixa = document.createElement('div');
-  faixa.className = 'cam-opacidade';
-  faixa.hidden = true;
-  detalhe.addEventListener('click', () => { faixa.hidden = !faixa.hidden; });
-  const range = document.createElement('input');
-  range.type = 'range';
-  range.min = '0'; range.max = '100'; range.step = '5';
-  range.value = String(Math.round(registro.opacidade * 100));
-  range.title = 'Opacidade';
-  const pct = document.createElement('span');
-  pct.className = 'cam-pct';
-  pct.textContent = `${range.value}%`;
-  range.addEventListener('input', () => {
-    registro.opacidade = Number(range.value) / 100;
-    pct.textContent = `${range.value}%`;
-    aplicarOpacidade(registro);
-    guardarPreferencias(registro);
-  });
-  faixa.append(range, pct);
-  linha.appendChild(faixa);
+  if (ehImagem(registro)) {
+    const opacidadeLinha = document.createElement('div');
+    opacidadeLinha.className = 'cam-opacidade-linha';
+
+    const rotulo = document.createElement('span');
+    rotulo.className = 'cam-opacidade-rotulo';
+    rotulo.textContent = 'Opacidade';
+
+    const slider = document.createElement('input');
+    slider.type = 'range';
+    slider.min = '0.1';
+    slider.max = '1';
+    slider.step = '0.05';
+    slider.value = String(registro.opacidade);
+    slider.className = 'cam-opacidade-slider';
+    slider.addEventListener('input', () => {
+      const valor = Number(slider.value);
+      registro.opacidade = valor;
+      registro.opacidadeForcada = true;   // a partir daqui, sobrevive a republicações do instrutor
+      if (registro.layer && registro.layer.setOpacity) registro.layer.setOpacity(valor);
+      valorTexto.textContent = `${Math.round(valor * 100)}%`;
+    });
+
+    const valorTexto = document.createElement('span');
+    valorTexto.className = 'cam-opacidade-valor';
+    valorTexto.textContent = `${Math.round(registro.opacidade * 100)}%`;
+
+    opacidadeLinha.append(rotulo, slider, valorTexto);
+    linha.appendChild(opacidadeLinha);
+  }
 
   if (registro.meta) {
     const meta = document.createElement('div');
@@ -707,7 +804,6 @@ function montarCamadaLocal({ id, nome, resultado, opacidade, ordem, querVer, cor
   registro.corForcada = !!corForcada;
   camadas.set(registro.id, registro);
   construirCamada(registro, resultado.geojson);
-  aplicarOpacidade(registro);
   aplicarOrdem();
   aplicarVisibilidade(registro);
   statusContagem();
@@ -868,19 +964,32 @@ function enquadrar(registro) {
 }
 
 // ── Calcos do instrutor ──────────────────────────────────────────────────
+// Etapa 8b: um calco pode ser vetor (kml/kmz, como desde a Etapa 7) ou
+// imagem georreferenciada (jpg/png). `linha.formato` decide o ramo — o resto
+// da função (estado do registro, visibilidade, ordenação) é o mesmo mecanismo
+// para os dois, porque ambos entram na mesma tabela `calcos` (decisão 4).
 async function desenharCalco(linha) {
   const existente = camadas.get(linha.id);
   if (existente) {
-    // Já está no mapa: o instrutor mudou nome/cor/ordem/opacidade padrão, não
+    // Já está no mapa: o instrutor mudou nome/categoria/aparência padrão, não
     // os bytes (trocar o arquivo é publicar outro calco). Não vale baixar de
     // novo — só atualizar o que mudou.
     existente.nome = linha.nome;
-    // A cor padrão do instrutor só vale enquanto o aluno não escolheu a dele.
-    // Sem esta guarda, o instrutor renomear o calco desfaria a escolha de cor
-    // de todo mundo que já tinha ajustado.
-    if (!existente.corForcada) existente.cor = linha.cor;
     existente.chave = linha.categoria;
-    if (existente.layer) existente.layer.setStyle(estiloDaFeicao(existente));
+    if (ehImagem(existente)) {
+      // Opacidade padrão só vale enquanto o aluno não ajustou a própria —
+      // mesma guarda que `corForcada` já faz para calco vetor.
+      if (!existente.opacidadeForcada) {
+        existente.opacidade = Number.isFinite(linha.opacidade) ? linha.opacidade : 1;
+        if (existente.layer) existente.layer.setOpacity(existente.opacidade);
+      }
+    } else {
+      // A cor padrão do instrutor só vale enquanto o aluno não escolheu a
+      // dele. Sem esta guarda, o instrutor renomear o calco desfaria a
+      // escolha de cor de todo mundo que já tinha ajustado.
+      if (!existente.corForcada) existente.cor = linha.cor;
+      if (existente.layer) existente.layer.setStyle(estiloDaFeicao(existente));
+    }
     aplicarVisibilidade(existente);
     redesenharListas();
     return;
@@ -891,10 +1000,11 @@ async function desenharCalco(linha) {
     nome: linha.nome,
     origem: 'calco',
     chave: linha.categoria,
+    formato: linha.formato,
     cor: linha.cor,
+    opacidade: linha.opacidade,
     meta: `${ROTULO_CATEGORIA[linha.categoria] || linha.categoria} · ${formatarBytes(linha.tamanho_bytes)}`,
   });
-  registro.opacidade = Number.isFinite(linha.opacidade) ? linha.opacidade : 1;
   camadas.set(registro.id, registro);
   redesenharListas();
 
@@ -906,17 +1016,34 @@ async function desenharCalco(linha) {
     return;
   }
 
-  const resultado = await lerArquivoKml(bytes, `x.${linha.formato}`);
-  if (resultado.acao === 'recusado') {
-    console.warn('Calco recusado no cliente:', linha.nome, resultado.motivo);
-    registro.meta = resultado.motivo;
-    redesenharListas();
-    return;
+  if (ehImagem(registro)) {
+    const bounds = L.latLngBounds(
+      [linha.bounds_sul, linha.bounds_oeste],
+      [linha.bounds_norte, linha.bounds_leste],
+    );
+    if (!bounds.isValid()) {
+      // Não deveria acontecer — a 0008 exige os quatro campos coerentes para
+      // formato 'jpg'/'png' — mas uma linha adulterada ou uma migration
+      // aplicada fora de ordem não pode travar a tela do aluno em silêncio.
+      console.warn('Calco de imagem sem bounds válidos:', linha.nome);
+      registro.meta = 'imagem sem coordenadas válidas — avise o instrutor';
+      redesenharListas();
+      return;
+    }
+    registro.meta = `${ROTULO_CATEGORIA[linha.categoria] || linha.categoria} · imagem georreferenciada · ${formatarBytes(linha.tamanho_bytes)}`;
+    construirImagemOverlay(registro, bytes, bounds);
+  } else {
+    const resultado = await lerArquivoKml(bytes, `x.${linha.formato}`);
+    if (resultado.acao === 'recusado') {
+      console.warn('Calco recusado no cliente:', linha.nome, resultado.motivo);
+      registro.meta = resultado.motivo;
+      redesenharListas();
+      return;
+    }
+    registro.meta = `${ROTULO_CATEGORIA[linha.categoria] || linha.categoria} · ${descreverCarga(resultado)}`;
+    construirCamada(registro, resultado.geojson);
   }
 
-  registro.meta = `${ROTULO_CATEGORIA[linha.categoria] || linha.categoria} · ${descreverCarga(resultado)}`;
-  construirCamada(registro, resultado.geojson);
-  aplicarOpacidade(registro);
   aplicarOrdem();
   aplicarVisibilidade(registro);
   statusContagem();
