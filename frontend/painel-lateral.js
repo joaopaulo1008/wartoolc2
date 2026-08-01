@@ -54,12 +54,19 @@ function injetarEstilos() {
 
     /* Botão que recolhe o painel inteiro. Fica onde o painel começa, para o
        polegar achar no mesmo lugar com o painel aberto ou fechado.
-       `top:10px` (não mais 58px): o botão é inserido como irmão do painel, no
-       mesmo pai (ver `painel.parentElement.insertBefore` abaixo) — desde a
+       'top:10px' (não mais 58px): o botão é inserido como irmão do painel, no
+       mesmo pai (ver 'painel.parentElement.insertBefore' abaixo) — desde a
        correção de mobile pós-campo esse pai é #mapa-wrap, que já tem
-       `position:relative` e só começa depois da topbar. Um valor fixo pequeno
+       'position:relative' e só começa depois da topbar. Um valor fixo pequeno
        aqui vale para qualquer altura de topbar; um valor fixo grande (58px)
-       só valia enquanto a topbar coubesse numa linha só. */
+       só valia enquanto a topbar coubesse numa linha só.
+       ATENÇÃO se for editar este comentário: ele mora DENTRO do template
+       literal de 'style.textContent' (abre na linha acima, fecha bem mais
+       abaixo) — um crase aqui fecha a string mais cedo e quebra o arquivo
+       inteiro em runtime, sem 'node --check' pegar (foi exatamente o bug que
+       tirou o site do ar até este comentário existir). Por isso aspas
+       simples aqui, NUNCA CRASE, enquanto este bloco continuar sendo um
+       template literal. */
     #pl-botao {
       position:absolute; top:10px; right:10px; z-index:1002;
       background:rgba(13,27,42,.92); color:#a8c8e8;
