@@ -62,6 +62,9 @@
 // avaliarCriacaoExtra() abaixo) e trocar de turma sem recarregar a página —
 // por isso ele ganhou dois acréscimos ADITIVOS (avaliarCriacaoExtra,
 // pararMarcacoes) que não mudam nada do comportamento do app do aluno.
+// Etapa 9a: `L` vinha de <script src=CDN> como global; agora é import de
+// verdade (leaflet pinado em package.json na mesma versão que já se usava).
+import * as L from 'leaflet';
 import { supabase, traduzirErro, buscarUsuariosDaTurma } from './auth.js';
 import { criarIconeSimbolo } from './icones.js';
 import { iniciarMarcacoes, pararMarcacoes } from './marcacoes.js';
@@ -73,7 +76,7 @@ import {
 // mapa e o contêiner do painel por parâmetro justamente para servir às duas
 // telas. Nada de segundo caminho de desenho.
 import { iniciarCamadas, definirTurmaCamadas } from './camadas.js';
-import { criarBasemaps, preencherSeletorBasemap, BASEMAP_PADRAO } from './basemaps.js';
+import { criarBasemaps, preencherSeletorBasemap, BASEMAP_PADRAO, trocarBasemap } from './basemaps.js';
 // Etapa 8a (correção pós-entrega): o instrutor também precisa de um mapa que
 // continue funcionando se a rede dele oscilar — a decisão original desta
 // etapa deixava só o app do aluno com isto, argumentando que "Situação
@@ -188,17 +191,14 @@ function garantirMapa() {
   basemaps = criarBasemaps();
   map = L.map('situacao-mapa', { center: [-22, -47], zoom: 10 });
   preencherSeletorBasemap(el('situacao-basemap'));
-  basemapAtual = basemaps[BASEMAP_PADRAO];
-  basemapAtual.addTo(map);
+  basemapAtual = trocarBasemap(map, basemaps, BASEMAP_PADRAO, null);
   camadaPosicoes = L.layerGroup().addTo(map);
 
   const seletor = el('situacao-basemap');
   if (seletor) {
     seletor.addEventListener('change', () => {
       if (!basemaps[seletor.value]) return;
-      map.removeLayer(basemapAtual);
-      basemapAtual = basemaps[seletor.value];
-      basemapAtual.addTo(map);
+      basemapAtual = trocarBasemap(map, basemaps, seletor.value, basemapAtual);
     });
   }
 
@@ -355,10 +355,13 @@ async function carregarPosicoesIniciais(turmaId) {
   posicoes.clear();
   for (const row of data || []) {
     registrarPosicao(row);
-    // Mesmo cuidado de colegas.js: se já estava "morta" antes mesmo de a
-    // página abrir, nem desenha — evita um flash de avatar que a vigia ia
-    // remover nos próximos segundos de qualquer jeito.
-    if (idadeMs(row.atualizado_em) < REMOVER_MS) desenharOuAtualizarMarcador(row.usuario_id);
+    // Bug de campo (2026-08-01): antes, uma posição já "morta" (mais velha
+    // que REMOVER_MS) nem era desenhada no mapa ao carregar a tela — o
+    // instrutor perdia de vista de onde alguém esteve por último. Agora
+    // SEMPRE desenha; aplicarOpacidadePorIdade() cuida de já mostrar
+    // esmaecido/sem sinal de cara, sem esperar o próximo ciclo da vigia.
+    desenharOuAtualizarMarcador(row.usuario_id);
+    aplicarOpacidadePorIdade(row.usuario_id, idadeMs(row.atualizado_em));
   }
   renderizarLista();
   return true;
@@ -397,6 +400,25 @@ function assinarCanalPosicoes(turmaId) {
 }
 
 // ── 3. Vigia de ausência (limiares em vigia-ausencia.js) ─────────────────
+// Bug de campo (teste em outra cidade, 2026-08-01): REMOVER_MS tirava o
+// marcador do mapa (removerMarcadorDoMapa) quando alguém perdia sinal — o
+// instrutor via o ícone sumir, mesmo a lista já mostrando "sem sinal há Xm"
+// (estadoDe(), que nunca dependeu do marker existir). Pedido explícito:
+// elemento amigo não some, fica na última posição conhecida, esmaecido, com
+// o horário dela (popupPosicao já mostra "Atualizado: ..."). Por isso
+// REMOVER_MS não remove mais o marker aqui — só esmaece mais forte que
+// AVISO_PARADO_MS. O marker só sai do mapa por um DELETE de verdade
+// (esquecerPosicao, via assinarCanalPosicoes ou apagarPosicao()).
+const OPACIDADE_ESMAECIDA = 0.4;
+const OPACIDADE_SEM_SINAL = 0.15;
+
+function aplicarOpacidadePorIdade(usuarioId, idade) {
+  const marker = posicoes.get(usuarioId)?.marker;
+  if (!marker) return;
+  if (idade >= REMOVER_MS) marker.setOpacity(OPACIDADE_SEM_SINAL);
+  else if (idade >= AVISO_PARADO_MS) marker.setOpacity(OPACIDADE_ESMAECIDA);
+}
+
 function iniciarVigiaLocal() {
   if (vigiaControlador) return;
   vigiaControlador = iniciarVigia({
@@ -404,11 +426,11 @@ function iniciarVigiaLocal() {
       usuarioId, ultimaAtualizacaoEm: estado.ultimaAtualizacaoEm,
     })),
     aoEsmaecer: (e) => {
-      posicoes.get(e.usuarioId)?.marker?.setOpacity(0.4);
+      posicoes.get(e.usuarioId)?.marker?.setOpacity(OPACIDADE_ESMAECIDA);
       renderizarLista(); // mantém "parado há Xm" contando na lista
     },
     aoRemover: (e) => {
-      removerMarcadorDoMapa(e.usuarioId);
+      posicoes.get(e.usuarioId)?.marker?.setOpacity(OPACIDADE_SEM_SINAL);
       renderizarLista();
     },
   });

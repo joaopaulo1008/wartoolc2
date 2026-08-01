@@ -10,7 +10,7 @@
 // banco Postgres, em vez de fazer select/insert direto numa tabela. Aqui usamos
 // a RPC entrar_na_turma(codigo), que já existe em backend/supabase/0002_rls.sql.
 
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.111.0';
+import { createClient } from '@supabase/supabase-js';
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from './config.js';
 
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);

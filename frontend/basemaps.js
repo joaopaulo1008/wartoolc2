@@ -14,43 +14,30 @@
 // BDGEx: o mapa mais importante do projeto faltava justamente para quem
 // conduz a instrução.
 //
-// O que este arquivo NÃO resolve: `index.html` continua com a própria cópia,
-// porque as camadas dele moram num `<script>` clássico que não pode importar,
-// e o `map` é criado no parsing, antes de qualquer module rodar. São DUAS
-// cópias agora, não quatro — e a que sobrou tem guarda: `basemaps.teste.mjs`
-// lê o HTML e falha se as duas listas divergirem. A cópia some na Etapa 9,
-// junto com o resto do script clássico.
+// ETAPA 9a: `index.html` deixou de ter a própria cópia — o `<script>`
+// clássico que não podia `import` não existe mais, e `criarBasemaps()`
+// passou a ser a ÚNICA fonte, nas três telas. `basemaps.teste.mjs` deixou de
+// precisar ler o HTML com regex por causa disso (ver o próprio arquivo).
+//
+// Os metadados puros (OPCOES_BASEMAP/BASEMAP_PADRAO/BASEMAP_FALLBACK) moraram
+// aqui até a Etapa 9a; agora vivem em basemaps-dados.js e são só
+// reexportados daqui — ver o cabeçalho de lá para o porquê da separação
+// física (resumo: `import * as L from 'leaflet'` executa na hora e quebra
+// fora do navegador, então o que não precisa de L não pode ficar no mesmo
+// arquivo que importa L).
 //
 // SOBRE O GOOGLE: os termos padrão do Google Maps proíbem uso militar/de
 // defesa. As duas opções ficam na lista por escolha explícita de quem usa e
 // continuam sendo risco jurídico, não padrão — é o BDGEx que abre o app. A
 // decisão está registrada em CLAUDE.md desde a Etapa 0.
+import * as L from 'leaflet';
 
-// Metadados das opções, em ordem de exibição. É a parte PURA (sem Leaflet):
-// dá para importar em Node, e é sobre ela que o teste compara as duas cópias.
-//
-// A ordem é a de importância para a instrução — BDGEx primeiro, porque é a
-// carta do Exército, a que a tropa lê no papel.
-export const OPCOES_BASEMAP = [
-  { chave: 'bdgex',         rotulo: 'BDGEx 1:50.000 (EB)',  thumb: 'linear-gradient(135deg,#c8b87a,#8ac890)' },
-  { chave: 'otopo',         rotulo: 'OpenTopoMap',          thumb: 'linear-gradient(135deg,#b8d8a8,#d8c890)' },
-  { chave: 'google_sat',    rotulo: 'Google Satélite',      thumb: 'linear-gradient(135deg,#1a3a1a,#2a5a2a)' },
-  { chave: 'google_hybrid', rotulo: 'Google Híbrido',       thumb: 'linear-gradient(135deg,#1a3a1a,#4a8af5)' },
-  { chave: 'hybrid',        rotulo: 'Híbrido (Sat+Labels)', thumb: 'linear-gradient(135deg,#1a2a1a,#7ab8f5)' },
-  { chave: 'light',         rotulo: 'Claro (CartoDB)',      thumb: 'linear-gradient(135deg,#f0f0f0,#d8d8d8)' },
-];
-
-// Com o que o app abre.
-export const BASEMAP_PADRAO = 'bdgex';
-
-// Para onde a permissão `camada_bdgex` manda o aluno quando o instrutor a
-// desliga com ele já no BDGEx. Precisa ser uma chave que EXISTA na lista —
-// até esta etapa o código apontava para `osm`, que saiu na redução, e o
-// resultado seria mapa vazio sem erro nenhum.
-export const BASEMAP_FALLBACK = 'otopo';
+export { OPCOES_BASEMAP, BASEMAP_PADRAO, BASEMAP_FALLBACK } from './basemaps-dados.js';
+import { BASEMAP_PADRAO, OPCOES_BASEMAP } from './basemaps-dados.js';
 
 // Instancia as camadas do Leaflet. Só funciona no navegador (depende do `L`
-// global e de `location`), por isso está separada dos metadados acima.
+// importado acima e de `location`), por isso está separada dos metadados em
+// basemaps-dados.js.
 export function criarBasemaps() {
   return {
     // Protocolo herdado da página, e não fixo em http.
@@ -59,7 +46,7 @@ export function criarBasemaps() {
     // bloqueado pelo navegador — ou seja, com `http://` fixo a carta mais
     // importante do projeto simplesmente não desenharia depois do deploy
     // (Etapa 11), sem erro visível além do mapa vazio. Herdando o protocolo,
-    // em `http://localhost` continua http (funciona como sempre) e em produção
+    // em `http://localhost` continua http (funciona como hoje) e em produção
     // vai https, que é a única forma que pode funcionar lá.
     //
     // PENDENTE DE TESTE AO VIVO: se bdgex.eb.mil.br não atender em https, a
@@ -82,19 +69,44 @@ export function criarBasemaps() {
     // Mercator (EPSG:3857), que já é o padrão do Leaflet. E `mapcache` não é
     // um WMS completo — ele serve só as grades de tiles que tem em cache, então
     // pedir a grade errada não dá erro: devolve tile em branco. Era um
-    // candidato forte a explicar o BDGEx parecer instável.
+    // candidato forte a explicar o BDGEx parecer instável (confirmado em
+    // campo na correção de 2026-08-01 — ver `bdgexFundo` abaixo).
     //
     // Se o `mapcache` der problema, o plano B são os endpoints por escala, que
     // a documentação do Exército publica em https e com o nome de camada
     // simplesmente `ctm`:
     //   https://bdgex.eb.mil.br/teogc/25/terraogcmed.cgi
     //   https://bdgex.eb.mil.br/teogc/50/terraogcmed.cgi   (e 100, 250)
+    // Registrado como pendência própria no ROADMAP (troca completa, mexe
+    // também no download offline).
     bdgex: L.tileLayer.wms(`${location.protocol}//bdgex.eb.mil.br/mapcache`, {
       layers: 'ctmmultiescalas_mercator',
       format: 'image/png',
       transparent: true,
       attribution: '© BDGEx / Exército Brasileiro',
       maxZoom: 18,
+    }),
+    // Mitigação mínima para o BDGEx "sumir" ao mudar de zoom (bug de campo,
+    // 2026-08-01 — ver CLAUDE.md). Causa confirmada em campo (sem nenhuma
+    // área offline baixada, então não é o Service Worker/cache da Etapa 8a):
+    // bate com o candidato já registrado na 7.1 — `mapcache` não é um WMS
+    // completo, só serve as grades de tile que já tem em cache, e devolve
+    // tile em branco (não erro) quando falta a grade pedida. Como o BDGEx já
+    // pede `transparent: true` acima, esse "branco" é um PNG TRANSPARENTE —
+    // só não aparece preenchido porque hoje não existe nada por baixo dele
+    // no mapa. `bdgexFundo` é uma instância PRÓPRIA do OpenTopoMap (não a
+    // mesma de `otopo`, para os dois ciclos de vida não colidirem), plantada
+    // por trocarBasemap() (abaixo) sempre que o BDGEx está selecionado.
+    // NÃO é o conserto de verdade — esse é trocar `ctmmultiescalas_mercator`
+    // (mapcache) pelos endpoints por escala do Exército (`/teogc/<escala>/`,
+    // WMS de verdade, sem grade fixa), que fica para uma etapa própria
+    // (mexe também no download offline — carta-offline.js/offline-tela.js
+    // assumem uma única camada WMS por trás de getTileUrl()). Registrado no
+    // ROADMAP. PENDENTE DE TESTE AO VIVO, como todo o resto do BDGEx aqui:
+    // depende de o mapcache realmente devolver alpha=0 no buraco, o que não
+    // foi possível confirmar a partir do ambiente de desenvolvimento.
+    bdgexFundo: L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', {
+      attribution: '© OpenTopoMap', maxZoom: 17,
     }),
     otopo: L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', {
       attribution: '© OpenTopoMap', maxZoom: 17,
@@ -117,6 +129,27 @@ export function criarBasemaps() {
       attribution: '© CartoDB', maxZoom: 19,
     }),
   };
+}
+
+// Troca o mapa base ativo, cuidando de BASEMAPS.bdgexFundo (ver comentário
+// dela acima) entrar/sair sempre junto do BDGEx. Extraído para cá — em vez
+// de deixar a mesma sequência (remover atual, achar o novo, adicionar) e
+// mais o "se for bdgex, adiciona/remove o fundo também" copiada em
+// situacao.js E debriefing.js, que são os dois consumidores deste factory —
+// mesmo critério de sempre (icones.js, vigia-ausencia.js, painel-lateral.js).
+// Desde a Etapa 9a, `index.html` também chama esta função (não tem mais
+// cópia própria da lógica de troca).
+//
+// basemapAnterior: a camada hoje ativa (ou null, na primeira chamada).
+// Devolve a nova camada ativa — quem chama é responsável por guardar isso na
+// própria variável de estado (mesmo padrão de `basemapAtual` em cada tela).
+export function trocarBasemap(map, basemaps, chave, basemapAnterior) {
+  if (basemapAnterior) map.removeLayer(basemapAnterior);
+  if (basemaps.bdgexFundo && map.hasLayer(basemaps.bdgexFundo)) map.removeLayer(basemaps.bdgexFundo);
+  if (chave === 'bdgex' && basemaps.bdgexFundo) basemaps.bdgexFundo.addTo(map);
+  const novo = basemaps[chave];
+  novo.addTo(map);
+  return novo;
 }
 
 // Preenche um <select> com as opções, na ordem. Usado pelas duas telas do

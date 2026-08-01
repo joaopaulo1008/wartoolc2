@@ -62,6 +62,9 @@
 // verdade, o que não foi possível fazer daqui (mesma pendência de HTTPS
 // herdada da 7.1/11).
 
+// Etapa 9a: `L` vinha de <script src=CDN> como global; agora é import de
+// verdade (leaflet pinado em package.json na mesma versão que já se usava).
+import * as L from 'leaflet';
 import {
   ZOOM_MIN_OFFLINE, ZOOM_MAX_OFFLINE,
   CONCORRENCIA_MAXIMA, TAMANHO_LOTE, PAUSA_ENTRE_LOTES_MS,
@@ -73,6 +76,10 @@ import { formatarBytes } from './kml.js';
 import { listarAreas, guardarArea, removerArea } from './armazem-offline.js';
 import { pedirDurabilidade } from './armazem-camadas.js';
 import { tornarRecolhivel } from './painel-lateral.js';
+// Bug de campo (2026-08-01): ver o comentário de suspenderClique() em
+// marcacoes.js — os dois módulos dividem o mesmo mapa em index.html, e sem
+// isto o primeiro clique do retângulo também abria o formulário de marcação.
+import { suspenderClique, retomarClique } from './marcacoes.js';
 
 // Tem que ser o MESMO nome usado em sw-bdgex.js. Sem `import` possível entre
 // os dois (o Service Worker roda num contexto de execução separado, não é um
@@ -303,6 +310,12 @@ function iniciarDesenhoRetangulo(map, aoConcluir) {
   const cursorOriginal = map.getContainer().style.cursor;
   map.getContainer().style.cursor = 'crosshair';
   map.dragging.disable();
+  // Enquanto o retângulo está sendo desenhado, o clique é só para marcar
+  // cantoA/cantoB — não para abrir o formulário de marcação de elemento
+  // (marcacoes.js escuta o mesmo 'click' do mesmo mapa). Desligado de volta
+  // em pararDeOuvir(), que os dois caminhos de saída (cancelar/finalizar)
+  // sempre passam por.
+  suspenderClique();
 
   function desenharPreview(latlngB) {
     if (retanguloPreview) map.removeLayer(retanguloPreview);
@@ -324,6 +337,7 @@ function iniciarDesenhoRetangulo(map, aoConcluir) {
     document.removeEventListener('keydown', aoTeclar);
     map.getContainer().style.cursor = cursorOriginal;
     map.dragging.enable();
+    retomarClique();
   }
   function cancelar() {
     pararDeOuvir();
@@ -790,7 +804,14 @@ export async function iniciarOfflineMapa({
   injetarEstilos();
   const cartao = montarCartao(seletorContainer);
   if (!cartao) return;
-  tornarRecolhivel(cartao);
+  // Bug de campo (2026-08-01): tornarRecolhivel() precisa rodar DEPOIS do
+  // conteúdo existir no cartão — ela move tudo que já está lá para dentro de
+  // .pl-corpo (ver painel-lateral.js). Chamada aqui, antes de
+  // montarInterfacePrincipal()/mostrarIndisponivel(), o cartão só tinha o
+  // <h3>: .pl-corpo nascia vazio e o conteúdo de verdade era anexado DEPOIS,
+  // como irmão dela — por isso "recolher" só escondia uma div vazia e a
+  // carta continuava na tela. Mesmo padrão que camadas.js já usava (conteúdo
+  // primeiro, tornarRecolhivel por último) — ver montarCard() lá.
 
   const suporte = avaliarSuporte({
     isSecureContext: !!window.isSecureContext,
@@ -799,10 +820,12 @@ export async function iniciarOfflineMapa({
   });
   if (!suporte.ok) {
     mostrarIndisponivel(suporte.motivo);
+    tornarRecolhivel(cartao);
     return;
   }
 
   montarInterfacePrincipal();
+  tornarRecolhivel(cartao);
 
   const registrado = await registrarServiceWorker();
   if (!registrado) {

@@ -64,6 +64,9 @@
 // do instrutor vale até o aluno mexer, e depois disso o ajuste do aluno
 // prevalece mesmo que o instrutor publique de novo com outro padrão.
 
+// Etapa 9a: `L` vinha de <script src=CDN> como global; agora é import de
+// verdade (leaflet pinado em package.json na mesma versão que já se usava).
+import * as L from 'leaflet';
 import { observarPermissao, pode } from './permissoes.js';
 import {
   buscarCalcosDaTurma, baixarCalco, assinarCalcos, desassinarCalcos, ROTULO_CATEGORIA,

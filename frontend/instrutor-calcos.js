@@ -54,6 +54,9 @@
 // substituir bytes por baixo de uma linha existente faria o aluno que já
 // baixou continuar com a versão velha até recarregar, sem saber disso.
 
+// Etapa 9a: `L` vinha de <script src=CDN> como global; agora é import de
+// verdade (leaflet pinado em package.json na mesma versão que já se usava).
+import * as L from 'leaflet';
 import { traduzirErro, buscarPartidosDaTurma } from './auth.js';
 import {
   CATEGORIAS, ROTULO_CATEGORIA,

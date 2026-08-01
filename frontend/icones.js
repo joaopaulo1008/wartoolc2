@@ -25,6 +25,13 @@
 // de index.html (milsymbol e Leaflet via CDN) — mesmo pressuposto de gps.js e
 // colegas.js: como este módulo é importado depois delas no HTML, já estão
 // disponíveis quando o código roda.
+// Etapa 9a: L/ms vinham de <script src=CDN> como globais; agora são import
+// de verdade (leaflet/milsymbol pinados em package.json na mesma versão que
+// já se usava). `import ms from 'milsymbol'` dá o objeto equivalente ao
+// global `ms` de antes — o pacote já registra app6b/std2525b/std2525c/
+// app6d/std2525d internamente (ver node_modules/milsymbol/index.js).
+import * as L from 'leaflet';
+import ms from 'milsymbol';
 import { sidcParaObservador } from './simbolos.js';
 
 // sidc: SIDC de 20 dígitos gravado (com placeholder de hostilidade, se vier

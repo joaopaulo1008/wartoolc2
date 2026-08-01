@@ -5,15 +5,15 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>WartoolC2 — Instrutor</title>
 
-<!-- Etapa 6b: a aba de debriefing tem mapa. Mesmas versões e mesma CDN de
-     frontend/index.html — o painel não pode desenhar símbolo com uma
-     biblioteca diferente da do app do aluno, senão o mesmo SIDC vira dois
-     símbolos. O desenho em si continua sendo criarIconeSimbolo() de
-     frontend/icones.js; aqui só se carrega o `L` e o `ms` globais que ele
-     pressupõe. -->
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/milsymbol@2.2.0/dist/milsymbol.js"></script>
+<!-- Etapa 6b: a aba de debriefing tem mapa. Mesma versão de Leaflet/milsymbol
+     de frontend/index.html (pinada em package.json) — o painel não pode
+     desenhar símbolo com uma biblioteca diferente da do app do aluno, senão
+     o mesmo SIDC vira dois símbolos. O desenho em si continua sendo
+     criarIconeSimbolo() de frontend/icones.js.
+     Etapa 9a: Leaflet/milsymbol deixaram de vir de CDN como globais `L`/`ms`
+     — cada módulo que precisa deles agora faz `import` de verdade (situacao.js,
+     debriefing.js, instrutor-calcos.js, icones.js). O CSS do Leaflet é
+     importado por efeito colateral no <script type="module"> lá embaixo. -->
 
 <style>
   /* Paleta reaproveitada de frontend/index.html */
@@ -615,6 +615,7 @@
 </div>
 
 <script type="module">
+import 'leaflet/dist/leaflet.css';
 import { exigirSessao, sair } from './auth.js';
 import { iniciarPermissoes } from './permissoes.js';
 import { iniciarPainelPermissoes, observarTurma } from './instrutor-permissoes.js';

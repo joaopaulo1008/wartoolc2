@@ -22,6 +22,9 @@
 //
 // Reusa o mesmo cliente Supabase de auth.js — mesmo motivo de gps.js: evita
 // duplicar estado de sessão no navegador com um segundo createClient.
+// Etapa 9a: `L` vinha de <script src=CDN> como global; agora é import de
+// verdade (leaflet pinado em package.json na mesma versão que já se usava).
+import * as L from 'leaflet';
 import { supabase, buscarPerfisDaTurma, buscarPerfilBasico } from './auth.js';
 // Etapa 5: o helper de ícone (resolver a hostilidade relativa via
 // sidcParaObservador() e montar o L.divIcon via milsymbol, com fallback) saiu
@@ -43,7 +46,7 @@ import { observarPermissao } from './permissoes.js';
 // cabeçalho de lá para o raciocínio completo. Este módulo continua dono do
 // PRÓPRIO laço (ele decide o que "esmaecer"/"remover" significam para um
 // avatar de colega), só não guarda mais os números nem a conta de idade.
-import { REMOVER_MS, idadeMs, iniciarVigia } from './vigia-ausencia.js';
+import { AVISO_PARADO_MS, REMOVER_MS, idadeMs, iniciarVigia } from './vigia-ausencia.js';
 // Bug relatado em campo (teste da Etapa 11): colegas em posições quase
 // idênticas (ex.: formados lado a lado) desenhavam avatares empilhados,
 // impossíveis de distinguir/clicar. dispersarPosicoes() é puro/testável
@@ -215,11 +218,14 @@ async function carregarEstadoInicial(turmaId, userId, { map }) {
   }
 
   for (const row of data || []) {
-    // Se a posição já estava "morta" (mais velha que REMOVER_MS) antes
-    // mesmo de você abrir a página, nem desenha — evita um flash de avatar
-    // que a vigia ia remover nos próximos 15s de qualquer jeito.
-    if (idadeMs(row.atualizado_em) >= REMOVER_MS) continue;
+    // Bug de campo (2026-08-01): antes, uma posição já "morta" (mais velha
+    // que REMOVER_MS) nem era desenhada — o colega sumia da tela de quem
+    // acabasse de abrir a página. Agora SEMPRE desenha: quem perdeu sinal
+    // continua marcado na ÚLTIMA posição conhecida, só esmaecido (ver
+    // aplicarOpacidadePorIdade) — a vigia (abaixo) só ajusta a opacidade a
+    // partir daqui, nunca mais remove.
     await upsertAvatar(row, { map });
+    aplicarOpacidadePorIdade(row.usuario_id, idadeMs(row.atualizado_em));
   }
 
   if (colegas.size === 0) status('nenhum colega visível ainda', '#7a9ab8');
@@ -281,14 +287,35 @@ function assinarCanal(turmaId, userId, { map }) {
 // O laço em si (os dois limiares, o intervalo de checagem) mora em
 // vigia-ausencia.js desde a Etapa 6c; aqui só se decide o que "esmaecer" e
 // "remover" significam para um avatar de colega.
-function iniciarVigiaAusencia(map) {
+//
+// Bug de campo (teste em outra cidade, 2026-08-01): REMOVER_MS tirava o
+// avatar do mapa de vez — um amigo que perdeu sinal literalmente sumia, sem
+// deixar rastro de onde esteve por último. Pedido explícito: para elementos
+// amigos, a última posição conhecida tem que continuar registrada, com o
+// horário dela. Por isso REMOVER_MS não remove mais nada aqui — só esmaece
+// mais forte que AVISO_PARADO_MS, para dar pra distinguir "atrasado" de "sem
+// sinal há tempo" numa olhada. O horário fica no popup (popupColega, campo
+// "Atualizado") e continua o mesmo enquanto não chegar posição nova. O
+// avatar só sai do mapa por um evento REAL (DELETE via assinarCanal(), ou a
+// permissão `ver_posicao_outros` sendo desligada em desativar()).
+const OPACIDADE_ESMAECIDA = 0.4;
+const OPACIDADE_SEM_SINAL = 0.15;
+
+function aplicarOpacidadePorIdade(usuarioId, idade) {
+  const estado = colegas.get(usuarioId);
+  if (!estado) return;
+  if (idade >= REMOVER_MS) estado.marker.setOpacity(OPACIDADE_SEM_SINAL);
+  else if (idade >= AVISO_PARADO_MS) estado.marker.setOpacity(OPACIDADE_ESMAECIDA);
+}
+
+function iniciarVigiaAusencia() {
   if (vigiaControlador) return;
   vigiaControlador = iniciarVigia({
     listarEstados: () => [...colegas].map(([usuarioId, estado]) => ({
       usuarioId, ultimaAtualizacaoEm: estado.ultimaAtualizacaoEm, marker: estado.marker,
     })),
-    aoEsmaecer: (e) => e.marker.setOpacity(0.4),
-    aoRemover: (e) => removerAvatar(e.usuarioId, { map }),
+    aoEsmaecer: (e) => e.marker.setOpacity(OPACIDADE_ESMAECIDA),
+    aoRemover: (e) => e.marker.setOpacity(OPACIDADE_SEM_SINAL),
   });
 }
 
@@ -345,7 +372,7 @@ async function ativar() {
   if (!ativo) return;
 
   assinarCanal(turmaId, userId, { map });
-  iniciarVigiaAusencia(map);
+  iniciarVigiaAusencia();
 }
 
 function desativar() {

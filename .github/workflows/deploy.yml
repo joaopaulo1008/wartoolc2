@@ -1,0 +1,85 @@
+# .github/workflows/deploy.yml — Etapa 9a: build + deploy no GitHub Pages.
+#
+# Por que este arquivo passou a existir
+# --------------------------------------
+# Até a Etapa 9a, o GitHub Pages estava configurado como "Deploy from a
+# branch" (Settings -> Pages), servindo a RAIZ do repositório crua — sem
+# passo de build, porque não havia bundler (Leaflet/milsymbol vinham de CDN).
+# Com o Vite, o que precisa ser publicado é `dist/` (gerado por
+# `npm run build`), não mais a raiz do repo. Isto exige trocar a origem do
+# Pages de "Deploy from a branch" para "GitHub Actions" — passo MANUAL em
+# Settings -> Pages -> Source, feito uma vez só, fora deste arquivo (mesma
+# natureza do passo manual "habilitar o Pages" já registrado na Etapa 11).
+#
+# O job "build" roda `npm ci && npm run build` (o mesmo comando que qualquer
+# um rodaria localmente — nada de lógica de build duplicada só para o CI) e
+# publica `dist/` como artefato do Pages; o job "deploy" o publica de fato.
+# Dois jobs, não um, porque é o padrão oficial das actions
+# `configure-pages`/`upload-pages-artifact`/`deploy-pages` — o ambiente
+# `github-pages` (com a URL exposta em `steps.deployment.outputs.page_url`)
+# só existe se o deploy for um job próprio.
+name: Deploy no GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  # Permite disparar manualmente pela aba Actions, sem precisar de um commit
+  # vazio só para re-publicar (por exemplo depois de trocar a origem do Pages
+  # em Settings, ou para confirmar que o workflow em si está correto).
+  workflow_dispatch:
+
+# `pages: write` e `id-token: write` são exigidos pelas actions oficiais de
+# deploy (OIDC, sem precisar de um token de acesso pessoal guardado em
+# secret). `contents: read` é só o checkout.
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Nunca dois deploys ao mesmo tempo — evita publicar uma versão antiga por
+# cima de uma mais nova se dois pushes chegarem próximos. Sem
+# `cancel-in-progress`: um deploy em andamento termina antes do próximo
+# começar, em vez de ser abortado no meio.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Instalar dependências
+        run: npm ci
+
+      # Mesmo comando que roda localmente (package.json): `vite build` +
+      # scripts/copiar-estaticos-build.mjs (data/, sw-bdgex.js, .nojekyll).
+      - name: Build
+        run: npm run build
+
+      - name: Configurar Pages
+        uses: actions/configure-pages@v5
+
+      - name: Empacotar dist/
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Publicar no Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

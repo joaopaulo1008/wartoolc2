@@ -7,6 +7,9 @@
 // Importa o MESMO cliente Supabase de auth.js (em vez de criar um segundo
 // `createClient`) — assim a sessão de login já validada em auth.js é reusada,
 // sem duplicar estado de autenticação no navegador.
+// Etapa 9a: `L` vinha de <script src=CDN> como global; agora é import de
+// verdade (leaflet pinado em package.json na mesma versão que já se usava).
+import * as L from 'leaflet';
 import { supabase, traduzirErro } from './auth.js';
 // Etapa 5: o helper de ícone (montar L.divIcon a partir de um SIDC via
 // milsymbol, com fallback) saiu daqui e de colegas.js para frontend/icones.js

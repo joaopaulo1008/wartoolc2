@@ -12,6 +12,11 @@
 // escrever nela. Mesmo padrão de módulo que gps.js/colegas.js: reusa o
 // cliente Supabase de auth.js, recebe `map` por parâmetro (nunca lê `map`
 // como global) e cuida só desta responsabilidade.
+// Etapa 9a: `L` vinha de <script src=CDN> como global; agora é import de
+// verdade (leaflet pinado em package.json na mesma versão que já se usava).
+// (marcacoes.teste.mjs continua sem importar este arquivo — só simbolos.js —
+// então este import não afeta o teste em Node.)
+import * as L from 'leaflet';
 import { supabase, traduzirErro, buscarPerfilBasico, buscarPartidosDaTurma } from './auth.js';
 import { getSIDC, decomporSidc, DIMENSAO, ESCALAO, NATUREZA } from './simbolos.js';
 // O desenho do símbolo (resolver a hostilidade relativa + montar o L.divIcon,
@@ -83,6 +88,21 @@ let avaliarCriacaoExtra = null;
 // pararMarcacoes() (Etapa 6c) sem sobrar um segundo listener duplicado numa
 // futura chamada de iniciarMarcacoes() no mesmo mapa (troca de turma).
 let cliqueHandler = null;
+
+// Bug de campo (2026-08-01): index.html usa o MESMO mapa Leaflet para este
+// módulo (tocar para marcar elemento) e para offline-tela.js (tocar duas
+// vezes para desenhar a área a salvar) — os dois registram o próprio
+// map.on('click', ...) e o Leaflet chama TODOS os listeners de 'click' do
+// mapa, sem um "parar aqui" entre eles. Resultado: clicar para marcar o
+// primeiro canto do retângulo offline também abria o formulário de
+// marcação. `suspenderClique`/`retomarClique` dão a quem estiver com outra
+// interação de clique ativa no mesmo mapa (hoje só offline-tela.js) um jeito
+// de avisar "não é para mim" sem os dois módulos precisarem se conhecer além
+// disso — o handler consulta a flag na hora do clique, então não importa a
+// ordem de registro dos listeners.
+let cliqueSuspenso = false;
+export function suspenderClique() { cliqueSuspenso = true; }
+export function retomarClique() { cliqueSuspenso = false; }
 
 // Funções de cancelamento dos observarPermissao() registrados em
 // iniciarMarcacoes(), para pararMarcacoes() poder desligá-los (Etapa 6c). O
@@ -550,6 +570,7 @@ async function removerMarcacao(id) {
 // várias vezes durante o exercício.
 function ativarCliqueNoMapa(map) {
   cliqueHandler = (ev) => {
+    if (cliqueSuspenso) return; // outra interação de clique está ativa no mesmo mapa (ex.: desenhar área offline)
     if (painelAberto) return; // um formulário por vez
     if (!podeCriar()) {
       status('criar marcação está desabilitado pelo instrutor', '#f5c842');

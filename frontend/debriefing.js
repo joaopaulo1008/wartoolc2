@@ -63,6 +63,9 @@
 // recebe 720 inserts por minuto durante o exercício seria a pior aplicação
 // possível de Realtime no projeto. A tela busca quando o instrutor manda.
 
+// Etapa 9a: `L` vinha de <script src=CDN> como global; agora é import de
+// verdade (leaflet pinado em package.json na mesma versão que já se usava).
+import * as L from 'leaflet';
 import { supabase, buscarUsuariosDaTurma } from './auth.js';
 // Símbolo NATO: SEMPRE por aqui. criarIconeSimbolo() resolve a hostilidade
 // relativa (sidcParaObservador) e monta o L.divIcon via milsymbol, com
@@ -70,7 +73,7 @@ import { supabase, buscarUsuariosDaTurma } from './auth.js';
 // marcacoes.js desde a Etapa 5. Redefinir o desenho do símbolo aqui seria a
 // quarta cópia que icones.js existe para impedir.
 import { criarIconeSimbolo } from './icones.js';
-import { criarBasemaps, preencherSeletorBasemap, BASEMAP_PADRAO } from './basemaps.js';
+import { criarBasemaps, preencherSeletorBasemap, BASEMAP_PADRAO, trocarBasemap } from './basemaps.js';
 // Etapa 6b: `ver_historico_rastro` deixa de ser "sem efeito ainda". Hoje esta
 // tela só existe para o instrutor (que recebe tudo habilitado pelo papel, via
 // vw_permissoes_efetivas), então na prática a chave está sempre ligada aqui —
@@ -270,17 +273,14 @@ function garantirMapa() {
   basemaps = criarBasemaps();
   map = L.map('debriefing-mapa', { center: [-22, -47], zoom: 10 });
   preencherSeletorBasemap(el('debriefing-basemap'));
-  basemapAtual = basemaps[BASEMAP_PADRAO];
-  basemapAtual.addTo(map);
+  basemapAtual = trocarBasemap(map, basemaps, BASEMAP_PADRAO, null);
   camadaTrilhas = L.layerGroup().addTo(map);
 
   const seletor = el('debriefing-basemap');
   if (seletor) {
     seletor.addEventListener('change', () => {
       if (!basemaps[seletor.value]) return;
-      map.removeLayer(basemapAtual);
-      basemapAtual = basemaps[seletor.value];
-      basemapAtual.addTo(map);
+      basemapAtual = trocarBasemap(map, basemaps, seletor.value, basemapAtual);
     });
   }
 

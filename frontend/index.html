@@ -5,15 +5,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>WartoolC2</title>
 
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/milsymbol@2.2.0/dist/milsymbol.js"></script>
-
-  <!-- Fonte única das tabelas APP-6D e da hostilidade relativa (Etapa 4.5).
-       Carregado como module aqui só para publicar window.WartoolSimbolos, que
-       é o que o <script> clássico lá embaixo consegue enxergar; colegas.js e
-       a marcação da Etapa 5 importam o mesmo arquivo por `import`. -->
-  <script type="module" src="./simbolos.js"></script>
+  <!-- Etapa 9a: Leaflet/milsymbol deixaram de vir de CDN como globais `L`/`ms`
+       — o <script type="module"> no fim do arquivo importa os dois de
+       verdade (leaflet/milsymbol pinados em package.json), junto com
+       simbolos.js, basemaps.js e kml.js. O CSS do Leaflet é importado por
+       efeito colateral dentro daquele mesmo module. -->
 
   <style>
     * { margin:0; padding:0; box-sizing:border-box; }
@@ -343,106 +339,67 @@
   Atualização automática a cada 2 minutos &nbsp;|&nbsp; Simbologia APP-6D / MD33-C-01
 </div>
 
-<script>
+<!-- ── Sessão e roteamento por papel (Etapa 2b) ────────────────────────────
+     Etapa 9a: até aqui, este bloco era DOIS <script>: um clássico (sem
+     import, dono do mapa/mapas-base/painel COP legado) e um module (sessão,
+     permissões, os módulos da Etapa 3+). A separação existia só porque o
+     primeiro precisava ficar visível como escopo global para o segundo ler
+     (`typeof map !== 'undefined'`, `BASEMAPS.bdgex`) — join que só funciona
+     com script clássico + module no MESMO documento. Com o Vite, é tudo um
+     `import` de verdade: os dois viraram UM module só, nesta ordem (mapa e
+     camadas legadas primeiro, sessão/módulos da Etapa 3+ depois) — mesma
+     ordem de execução de antes, sem a ponte. -->
+<script type="module">
+import 'leaflet/dist/leaflet.css';
+import * as L from 'leaflet';
+import ms from 'milsymbol';
+import { getSIDC } from './simbolos.js';
+import { criarBasemaps, trocarBasemap as trocarCamadaBasemap, BASEMAP_FALLBACK } from './basemaps.js';
+import { CORES_CAMADA, FAIXAS_PANE, escaparHtml } from './kml.js';
+import { exigirSessao, sair, entrarNaTurmaComCodigo } from './auth.js';
+import { iniciarPermissoes, observarPermissao } from './permissoes.js';
+import { iniciarPerfilAoVivo } from './perfil-ao-vivo.js';
+import { iniciarRastreamentoProprio } from './gps.js';
+import { iniciarColegas } from './colegas.js';
+import { iniciarMarcacoes } from './marcacoes.js';
+import { iniciarCamadas } from './camadas.js';
+import { iniciarOfflineMapa } from './offline-tela.js';
+import { iniciarPainelRecolhivel, tornarRecolhivel, LARGURA_PAINEL_ABERTO } from './painel-lateral.js';
+
 // ── Mapas base ────────────────────────────────────────────────────────────
 // SEIS opções, não as onze do protótipo. A lista foi cortada a pedido de quem
 // usa: escolher carta é coisa que se faz uma vez no começo do exercício, e um
 // seletor com onze linhas custava mais tela do que valia — ainda mais no
 // celular, que é o uso real. Saíram OSM, Esri topográfico, Esri satélite,
-// CartoDB escuro e "sem mapa base"; ficaram as seis abaixo.
+// CartoDB escuro e "sem mapa base"; ficaram as seis de basemaps.js.
 //
-// A ORDEM É INTENCIONAL: BDGEx primeiro porque é a carta do Exército e a mais
-// importante para a instrução — é ela que a tropa lê no papel.
-//
-// FALLBACK_BASEMAP existe porque a permissão `camada_bdgex` precisa de um
-// lugar para onde voltar quando o instrutor a desliga com o aluno já no BDGEx.
-// Antes esse lugar era o `osm`, que acabou de sair da lista — sem esta
-// constante, desligar a permissão deixaria o aluno sem mapa nenhum.
-const FALLBACK_BASEMAP = 'otopo';
-
-const BASEMAPS = {
-  // Protocolo herdado da página em vez de fixo em http.
-  //
-  // O BDGEx é servido em http, e uma página em https bloqueia conteúdo misto —
-  // ou seja, no dia do deploy (Etapa 11) o hardcoded `http://` faria a carta
-  // mais importante do projeto simplesmente não desenhar, sem erro visível
-  // além do mapa vazio. Herdando o protocolo, em `http://localhost` continua
-  // http (funciona como hoje) e em produção vai https, que é a única forma que
-  // pode funcionar lá.
-  //
-  // PENDENTE DE TESTE AO VIVO: se o bdgex.eb.mil.br não atender em https, a
-  // saída é um proxy reverso próprio — não dá para "voltar para http" numa
-  // página https. Está na lista de pendências do ROADMAP.
-  // Camada `ctmmultiescalas_mercator` e SEM `crs: L.CRS.EPSG4326`.
-  // As duas mudanças e o porquê de cada uma estão em frontend/basemaps.js —
-  // resumo: `ctm50` sozinha deixa o mapa BRANCO fora da cobertura 1:50.000, e
-  // o mapcache serve só as grades que tem em cache, então o CRS trocado
-  // devolvia tile vazio sem erro. Esta é a cópia obrigada pelo <script>
-  // clássico; basemaps.teste.mjs falha se as duas divergirem.
-  bdgex: L.tileLayer.wms(`${location.protocol}//bdgex.eb.mil.br/mapcache`, {
-    layers:      'ctmmultiescalas_mercator',
-    format:      'image/png',
-    transparent: true,
-    attribution: '© BDGEx / Exército Brasileiro',
-    maxZoom:     18,
-  }),
-  otopo: L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', {
-    attribution:'© OpenTopoMap', maxZoom:17
-  }),
-  // ATENÇÃO, decisão já registrada em CLAUDE.md: os termos padrão do Google
-  // Maps proíbem uso militar/de defesa. As duas opções abaixo ficam por
-  // escolha explícita de quem usa, e continuam sendo risco jurídico, não
-  // padrão — por isso o BDGEx é que abre o app.
-  google_sat: L.tileLayer('https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', {
-    attribution:'© Google', maxZoom:20
-  }),
-  google_hybrid: L.tileLayer('https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', {
-    attribution:'© Google', maxZoom:20
-  }),
-  hybrid: L.layerGroup([
-    L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-      attribution:'© Esri', maxZoom:18
-    }),
-    L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}', {
-      maxZoom:18, opacity:0.8
-    }),
-  ]),
-  light: L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
-    attribution:'© CartoDB', maxZoom:19
-  }),
-};
+// Etapa 9a: `BASEMAPS`/`trocarBasemap()`/`FALLBACK_BASEMAP` eram uma cópia
+// própria deste arquivo (o <script> clássico não podia importar) — some
+// aqui, junto com o resto da migração. `basemaps.js` (criarBasemaps()) é
+// agora a ÚNICA fonte, nas três telas.
+const BASEMAPS = criarBasemaps();
 
 // ── Inicializa o mapa ────────────────────────────────────────────────────
 const map = L.map('map', { center:[-22,-47], zoom:10 });
-let basemapAtual = BASEMAPS.bdgex;
-basemapAtual.addTo(map);
+let basemapAtual = null;
+
+// Fininho em volta de trocarCamadaBasemap() (basemaps.js) só para manter a
+// mesma assinatura de um argumento só que o resto deste arquivo já usa
+// (chamado direto pelo <input type=radio>, e por aplicarBdgex() abaixo).
+function selecionarBasemap(chave) {
+  basemapAtual = trocarCamadaBasemap(map, BASEMAPS, chave, basemapAtual);
+}
+selecionarBasemap('bdgex');
 
 // Troca de mapa base
 document.querySelectorAll('input[name=basemap]').forEach(radio => {
-  radio.addEventListener('change', () => {
-    map.removeLayer(basemapAtual);
-    basemapAtual = BASEMAPS[radio.value];
-    basemapAtual.addTo(map);
-  });
+  radio.addEventListener('change', () => selecionarBasemap(radio.value));
 });
-
-// ── Tabelas de conversão ─────────────────────────────────────────────────
-// MUDARAM DE CASA na Etapa 4.5: HOSTILIDADE, DIMENSAO, SITUACAO, ESCALAO,
-// HQTF e getSIDC() agora vivem em frontend/simbolos.js, que é fonte única
-// para este arquivo, para colegas.js e para a marcação da Etapa 5 — a
-// hostilidade virou relativa ao observador e não podia ter duas cópias
-// divergindo em silêncio.
-//
-// Este <script> não é module e portanto não pode fazer `import`; simbolos.js
-// se publica em window.WartoolSimbolos (ver a "ponte" no fim daquele
-// arquivo). Como módulos são deferred, WartoolSimbolos só existe DEPOIS do
-// parsing do HTML — por isso a carga inicial lá embaixo espera o
-// DOMContentLoaded em vez de rodar na hora.
 
 // ── Ícone milsymbol ──────────────────────────────────────────────────────
 function criarIcone(feature) {
   const props = feature.properties;
-  const sidc  = WartoolSimbolos.getSIDC(props);
+  const sidc  = getSIDC(props);
   try {
     const sym = new ms.Symbol(sidc, {
       size:              32,
@@ -565,43 +522,24 @@ const extraChecks = {};
 // Etapa 8. Ver FAIXAS_PANE em frontend/kml.js.
 const extraPanes = {};
 
-// FAIXA DE Z-INDEX DESTAS CAMADAS. Tem cópia em FAIXAS_PANE.repositorio
-// (frontend/kml.js), e a cópia existe porque este <script> não é module e
-// não pode importar — mesma limitação que criou window.WartoolSimbolos e
-// window.WartoolCamadas, e com o mesmo prazo de validade (Etapa 9).
+// FAIXA DE Z-INDEX DESTAS CAMADAS: FAIXAS_PANE.repositorio (frontend/kml.js,
+// importado no topo deste arquivo — até a Etapa 9a isto era uma cópia local,
+// porque o <script> clássico não podia importar).
 // As faixas: 410 aqui (GeoJSON do repositório), 440 calcos do instrutor,
 // 470 arquivo do aluno, teto em 500 (shadowPane) para nenhuma camada de
 // arquivo conseguir tapar um símbolo militar (markerPane é 600). O teste em
 // frontend/kml.teste.mjs trava essas invariantes.
-const FAIXA_PANE_REPOSITORIO = 410;
-
-// Cores de camada. Cópia de CORES_CAMADA em frontend/kml.js pelo mesmo motivo
-// da faixa acima: este script não é module e não pode importar (some na
-// Etapa 9). Azul e vermelho são os MESMOS tons da legenda de forças logo
+//
+// Cores de camada: CORES_CAMADA (frontend/kml.js, importado no topo — mesma
+// história). Azul e vermelho são os MESMOS tons da legenda de forças logo
 // acima nesta tela — a mesma cor querendo dizer a mesma coisa nos dois
 // lugares. Preto não é #000: sobre a carta BDGEx e sobre satélite escuro,
 // preto puro some no traço fino.
-const CORES_CAMADA = [
-  { nome: 'Azul',     valor: '#4a90d9' },
-  { nome: 'Preta',    valor: '#1a1a1a' },
-  { nome: 'Vermelha', valor: '#e05252' },
-];
-
-// Etapa 7: escapa o que vier de dentro de um arquivo de dados. Mesmo corpo de
-// esc() em instrutor-permissoes.js/debriefing.js e de escaparHtml() em
-// kml.js — repetido aqui porque este script clássico não pode importar.
 //
-// Até a Etapa 6b isto não existia e o popup fazia `<b>${nome}</b>` direto.
-// Era defensável enquanto o único GeoJSON desenhado era um arquivo que nós
-// mesmos exportávamos do QGIS e commitávamos; deixou de ser no momento em que
-// esta etapa abriu a porta para arquivo de fora. Ainda que EXTRA_LAYERS
-// continue vindo do repositório, um erro destes é do tipo que se copia para o
-// próximo lugar — melhor não deixar o exemplo errado no arquivo.
-function escTexto(texto) {
-  return String(texto ?? '').replace(/[&<>"']/g, c => (
-    { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]
-  ));
-}
+// Escapar texto de dentro de um arquivo de dados: escaparHtml() (frontend/
+// kml.js, importado no topo — até a Etapa 6b isto não existia e o popup
+// fazia `<b>${nome}</b>` direto; deixou de ser defensável quando esta etapa
+// abriu a porta para arquivo de fora).
 
 function carregarExtraLayers() {
   if (EXTRA_LAYERS.length === 0) return;
@@ -613,7 +551,7 @@ function carregarExtraLayers() {
   EXTRA_LAYERS.forEach((cfg, indice) => {
     const nomePane = `wt-extra-${indice}`;
     map.createPane(nomePane);
-    map.getPane(nomePane).style.zIndex = String(FAIXA_PANE_REPOSITORIO + indice);
+    map.getPane(nomePane).style.zIndex = String(FAIXAS_PANE.repositorio + indice);
     extraPanes[cfg.nome] = nomePane;
 
     const grupo = L.layerGroup().addTo(map);
@@ -641,9 +579,7 @@ function carregarExtraLayers() {
     });
 
     // Seletor de cor. As três opções (azul, preta, vermelha) vêm de
-    // CORES_CAMADA em frontend/kml.js, publicado aqui por
-    // window.WartoolCamadas.cores — este <script> não é module e não pode
-    // importar, mesma limitação de sempre (some na Etapa 9).
+    // CORES_CAMADA, importado de frontend/kml.js no topo deste arquivo.
     //
     // Cor foi pedida no lugar de opacidade porque é o que muda a leitura de um
     // calco: azul e vermelho são as cores da própria legenda de forças logo
@@ -718,7 +654,7 @@ function carregarExtraLayers() {
           onEachFeature: (feature, layer) => {
             if (feature.properties) {
               const nome = feature.properties.nome || feature.properties.name || '';
-              if (nome) layer.bindPopup(`<b>${escTexto(nome)}</b>`);
+              if (nome) layer.bindPopup(`<b>${escaparHtml(nome)}</b>`);
             }
           },
         });
@@ -731,17 +667,20 @@ function carregarExtraLayers() {
   // estiver desligada quando elas terminarem de ser montadas, isto as
   // esconde na hora (sem esta linha elas apareceriam até a próxima mudança
   // de permissão).
-  window.WartoolCamadas?.reaplicar();
+  camadasPermissao.reaplicar();
 }
 
-// ── Ponte de camadas para as permissões (Etapa 6a) ───────────────────────
-// Mesma ideia (e mesmo prazo de validade) da ponte window.WartoolSimbolos:
-// este script não é module, e o módulo que lê as permissões
-// (frontend/permissoes.js, importado pelo bloco de sessão no fim do arquivo)
-// não enxerga `map`, `BASEMAPS`, `GRUPOS` nem `extraGrupos`, que só existem aqui.
-// Em vez de deixar um módulo mexer em variáveis do escopo de outro arquivo,
-// este arquivo publica um punhado de comandos com nome de intenção e o módulo
-// só diz "pode" / "não pode". Some na Etapa 9, quando tudo virar `import`.
+// ── Camadas x permissões (Etapa 6a) ──────────────────────────────────────
+// Até a Etapa 9a isto era window.WartoolCamadas: uma "ponte" publicada no
+// objeto global porque o <script> clássico que desenha `map`/`BASEMAPS`/
+// `GRUPOS`/`extraGrupos` e o <script type="module"> que lê as permissões
+// (frontend/permissoes.js) eram DOIS scripts, e um module não enxerga as
+// variáveis internas de um script clássico a não ser publicadas em algum
+// lugar comum. Agora que é tudo um módulo só, `camadasPermissao` é uma
+// const local igual a qualquer outra — mas a forma continua a mesma: em vez
+// de deixar o bloco de permissões (mais abaixo neste arquivo) mexer direto em
+// `map`/`GRUPOS`/`extraGrupos`, ele só diz "pode"/"não pode" e quem decide o
+// que fazer com isso continua sendo este objeto.
 //
 // O mapeamento chave -> o que existe hoje na tela:
 //   camada_manobra  -> EXTRA_LAYERS (o GeoJSON "Limites e Eixos")
@@ -774,7 +713,7 @@ function carregarExtraLayers() {
 // só aparece quando o instrutor PERMITE e o aluno MARCOU a caixa. Por isso
 // nenhuma delas desmarca a caixa do aluno: ao reabilitar, ele volta ao estado
 // que tinha escolhido, não a "tudo ligado".
-window.WartoolCamadas = (() => {
+const camadasPermissao = (() => {
   const permitido = {
     extras: true,
     inimigo: true,
@@ -812,13 +751,14 @@ window.WartoolCamadas = (() => {
     // Esconder a opção não basta se o aluno JÁ estava com o BDGEx aberto
     // quando a permissão caiu — nesse caso troca de carta na hora.
     //
-    // O destino sai de FALLBACK_BASEMAP, e não de um valor escrito aqui: até a
-    // Etapa 7.1 este código apontava para o `osm`, que saiu do seletor quando
-    // a lista foi reduzida a seis. Com o valor solto, desligar a permissão
-    // deixaria o aluno com o BDGEx removido e nenhuma carta no lugar — mapa
-    // vazio, sem erro, no meio do exercício.
+    // O destino sai de BASEMAP_FALLBACK (frontend/basemaps.js, importado no
+    // topo deste arquivo), e não de um valor escrito aqui: até a Etapa 7.1
+    // este código apontava para o `osm`, que saiu do seletor quando a lista
+    // foi reduzida a seis. Com o valor solto, desligar a permissão deixaria
+    // o aluno com o BDGEx removido e nenhuma carta no lugar — mapa vazio,
+    // sem erro, no meio do exercício.
     if (!permitido.bdgex && radio.checked) {
-      const alternativa = document.querySelector(`input[name=basemap][value=${FALLBACK_BASEMAP}]`);
+      const alternativa = document.querySelector(`input[name=basemap][value=${BASEMAP_FALLBACK}]`);
       if (alternativa) {
         alternativa.checked = true;
         alternativa.dispatchEvent(new Event('change'));
@@ -850,7 +790,7 @@ window.WartoolCamadas = (() => {
   return {
     definir(chave, valor) {
       if (!(chave in permitido)) {
-        console.warn('WartoolCamadas: chave desconhecida', chave);
+        console.warn('camadasPermissao: chave desconhecida', chave);
         return;
       }
       permitido[chave] = !!valor;
@@ -911,32 +851,22 @@ function carregarDados() {
     });
 }
 
-// A carga inicial espera o DOMContentLoaded porque criarIcone() depende de
-// window.WartoolSimbolos, publicado por frontend/simbolos.js — que é um
-// module e, como todo module, só executa depois do parsing do HTML. Sem esta
-// espera, o fetch abaixo poderia (em tese) voltar antes de o módulo existir.
+// Etapa 9a: `<script type="module">` já é deferred por especificação (só
+// executa depois do parsing do HTML) — a espera por DOMContentLoaded foi
+// mantida mesmo assim porque não custa nada e não muda o comportamento
+// (o load inicial já rodaria depois do parsing de qualquer forma agora que
+// criarIcone() importa getSIDC() direto, em vez de depender de
+// window.WartoolSimbolos como antes da Etapa 9a).
 document.addEventListener('DOMContentLoaded', () => {
   carregarDados();
   carregarExtraLayers();
   setInterval(carregarDados, 120_000);
 });
-</script>
 
-<!-- ── Sessão e roteamento por papel (Etapa 2b) ────────────────────────────
-     Módulo separado do script acima (que não é module) para não precisar
-     reescrever o resto do arquivo. Fica escondido (body com visibility:hidden)
-     até confirmar que há sessão válida e papel = usuario; senão redireciona
-     para login.html. Ver frontend/auth.js para a lógica compartilhada. -->
-<script type="module">
-import { exigirSessao, sair, entrarNaTurmaComCodigo } from './auth.js';
-import { iniciarPermissoes, observarPermissao } from './permissoes.js';
-import { iniciarPerfilAoVivo } from './perfil-ao-vivo.js';
-import { iniciarRastreamentoProprio } from './gps.js';
-import { iniciarColegas } from './colegas.js';
-import { iniciarMarcacoes } from './marcacoes.js';
-import { iniciarCamadas } from './camadas.js';
-import { iniciarOfflineMapa } from './offline-tela.js';
-import { iniciarPainelRecolhivel, tornarRecolhivel, LARGURA_PAINEL_ABERTO } from './painel-lateral.js';
+// ── Sessão e roteamento por papel (Etapa 2b) ─────────────────────────────
+// Fica escondido (body com visibility:hidden) até confirmar que há sessão
+// válida e papel = usuario; senão redireciona para login.html. Ver
+// frontend/auth.js para a lógica compartilhada.
 
 // Correção de mobile pós-campo: os itens de diagnóstico da topbar
 // (#status-detalhes) nascem ocultos em tela estreita, com o mesmo critério de
@@ -986,11 +916,12 @@ if (resultado) {
   }
 
   document.body.style.visibility = 'visible';
-  // `map` é declarado com const no script clássico acima; scripts module
-  // compartilham o mesmo escopo global do documento, então dá para lê-lo
-  // daqui. Corrige o tamanho do Leaflet caso o container tenha ficado com
-  // dimensão indefinida enquanto estava com visibility:hidden.
-  if (typeof map !== 'undefined') {
+  // Corrige o tamanho do Leaflet caso o container tenha ficado com dimensão
+  // indefinida enquanto estava com visibility:hidden. Até a Etapa 9a este
+  // bloco checava `typeof map !== 'undefined'` porque `map` vinha de um
+  // <script> clássico separado — agora é tudo o mesmo módulo, `map` sempre
+  // existe aqui.
+  {
     setTimeout(() => map.invalidateSize(), 0);
 
     // Etapa 6a: as permissões entram ANTES dos três módulos e são AGUARDADAS.
@@ -1017,15 +948,15 @@ if (resultado) {
       }
     }
 
-    // As permissões de CAMADA são aplicadas aqui (e não dentro de um módulo)
-    // porque as camadas moram no <script> clássico acima — a ponte
-    // window.WartoolCamadas é como este módulo fala com ele. Cada observador
-    // é chamado na hora com o valor atual e de novo a cada mudança.
-    observarPermissao('ver_mapa',         (ok) => WartoolCamadas.definir('mapa', ok));
-    observarPermissao('trocar_mapa_base', (ok) => WartoolCamadas.definir('trocarBase', ok));
-    observarPermissao('camada_bdgex',     (ok) => WartoolCamadas.definir('bdgex', ok));
-    observarPermissao('camada_manobra',   (ok) => WartoolCamadas.definir('extras', ok));
-    observarPermissao('camada_inimigo',   (ok) => WartoolCamadas.definir('inimigo', ok));
+    // As permissões de CAMADA são aplicadas aqui através de `camadasPermissao`
+    // (definido mais acima neste mesmo módulo — ver o comentário na seção
+    // "Camadas x permissões"). Cada observador é chamado na hora com o valor
+    // atual e de novo a cada mudança.
+    observarPermissao('ver_mapa',         (ok) => camadasPermissao.definir('mapa', ok));
+    observarPermissao('trocar_mapa_base', (ok) => camadasPermissao.definir('trocarBase', ok));
+    observarPermissao('camada_bdgex',     (ok) => camadasPermissao.definir('bdgex', ok));
+    observarPermissao('camada_manobra',   (ok) => camadasPermissao.definir('extras', ok));
+    observarPermissao('camada_inimigo',   (ok) => camadasPermissao.definir('inimigo', ok));
 
     // Etapa 3: GPS próprio no mapa. `map` é passado explicitamente para
     // gps.js (em vez de esse módulo depender de achar a variável global) —
@@ -1072,12 +1003,11 @@ if (resultado) {
     // explícito dos módulos acima; o painel lateral é montado pelo próprio
     // módulo, não existe HTML dele neste arquivo.
     //
-    // Duas coisas que este módulo NÃO usa a ponte window.WartoolCamadas para
-    // fazer, e por quê: ele recebe `map` por parâmetro (é um module de
-    // verdade, ao contrário do <script> clássico onde as camadas antigas
-    // moram) e observa as próprias permissões direto em permissoes.js. A ponte
-    // continua existindo para as camadas que moram no script clássico — some
-    // junto com ele na Etapa 9.
+    // Duas coisas que este módulo NÃO usa `camadasPermissao` para fazer, e
+    // por quê: ele recebe `map` por parâmetro e observa as próprias
+    // permissões direto em permissoes.js. `camadasPermissao` continua
+    // existindo só para as camadas fixas deste arquivo (EXTRA_LAYERS, grupo
+    // I do painel COP legado, seletor de mapa base).
     // `userId` não é para consultar o banco — é a chave sob a qual o arquivo
     // que o aluno abre fica guardado no IndexedDB do aparelho (Etapa 7, ver
     // frontend/armazem-camadas.js). Sem ela, um celular emprestado mostraria
@@ -1090,15 +1020,12 @@ if (resultado) {
 
     // Etapa 8a: mapa offline. Só o app do aluno (ver o cabeçalho de
     // offline-tela.js para o porquê de a aba "Situação atual" do instrutor
-    // não ganhar isto). `BASEMAPS.bdgex` é lido como global do <script>
-    // clássico acima — mesmo padrão de `typeof map !== 'undefined'` logo no
-    // início deste bloco: scripts module compartilham o escopo léxico global
-    // do documento com o <script> clássico que roda antes deles. Passa a
-    // MESMA instância de camada que desenha o BDGEx ao vivo, nunca uma cópia
-    // — é o que garante que a URL de cada tile baixado bate com a URL que o
-    // Leaflet pede de verdade depois (ver o comentário grande em
+    // não ganhar isto). Passa a MESMA instância de camada que desenha o
+    // BDGEx ao vivo (`BASEMAPS`, declarado mais acima neste módulo), nunca
+    // uma cópia — é o que garante que a URL de cada tile baixado bate com a
+    // URL que o Leaflet pede de verdade depois (ver o comentário grande em
     // offline-tela.js).
-    if (typeof BASEMAPS !== 'undefined' && BASEMAPS.bdgex) {
+    if (BASEMAPS.bdgex) {
       await iniciarOfflineMapa({ map, camadaBdgex: BASEMAPS.bdgex, userId: session.user.id });
     }
 

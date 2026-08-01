@@ -18,10 +18,10 @@
 // hora de desenhar. O mesmo pelotão sai hostil na tela do Azul e amigo na tela
 // do Vermelho, a partir da MESMA linha do banco.
 //
-// Este módulo é ES module, mas o <script> clássico de index.html não consegue
-// fazer `import`. A ponte é `window.WartoolSimbolos`, publicada no final do
-// arquivo: uma única definição, dois caminhos de acesso. A ponte some na Etapa
-// 9, quando o frontend virar SPA com bundler e tudo passar a ser `import`.
+// Até a Etapa 9a, o <script> clássico de index.html não conseguia fazer
+// `import` — a ponte era `window.WartoolSimbolos`, publicada no final deste
+// arquivo. Com o bundler (Vite), index.html virou um module de verdade e
+// importa getSIDC()/etc. direto daqui; a ponte foi removida.
 
 // ── Tabelas de conversão APP-6D ─────────────────────────────────────────────
 // Vieram de frontend/index.html sem alteração de conteúdo. Continuam sendo
@@ -207,18 +207,4 @@ export function sidcParaObservador(sidc, partidoObservador, partidoElemento) {
   const h = hostilidadeRelativa(partidoObservador, partidoElemento);
   if (!h) return sidc;
   return aplicarHostilidade(sidc, h);
-}
-
-// ── Ponte para o <script> clássico de index.html ────────────────────────────
-// Um <script> sem type="module" não pode fazer `import`. Em vez de duplicar as
-// tabelas lá (que é exatamente o problema que este arquivo resolve), o módulo
-// se publica em `window.WartoolSimbolos` e index.html consome de lá.
-// Módulos são deferred: este bloco roda depois do parsing do HTML e ANTES do
-// DOMContentLoaded — por isso index.html só chama as funções de dentro de um
-// listener de DOMContentLoaded.
-if (typeof window !== 'undefined') {
-  window.WartoolSimbolos = {
-    HOSTILIDADE, DIMENSAO, SITUACAO, ESCALAO, HQTF, NATUREZA,
-    getSIDC, decomporSidc, hostilidadeRelativa, aplicarHostilidade, sidcParaObservador,
-  };
 }

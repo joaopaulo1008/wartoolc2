@@ -25,22 +25,30 @@ docs/           plano de viabilidade, decisões de arquitetura
 
 ## Rodando localmente
 
-O frontend é estático — basta servir com qualquer servidor HTTP simples. Desde
-a Etapa 11, sirva a partir da **raiz do repositório** (não de dentro de
-`frontend/`): o app passou a buscar `data/*.geojson` por caminho relativo
-(`frontend/index.html` -> `../data/...`), no mesmo esquema que o GitHub Pages
-usa em produção — servir só `frontend/` localmente faria esse fetch falhar.
+Desde a Etapa 9a, o projeto usa [Vite](https://vitejs.dev) como bundler
+(Leaflet e milsymbol vêm de `npm`, não mais de CDN). Rode a partir da **raiz
+do repositório**:
 
 ```
-python3 -m http.server 8000
+npm install
+npm run dev
 ```
 
-Acesse `http://localhost:8000/frontend/login.html` (a raiz `http://localhost:8000/`
-também funciona e redireciona para lá).
+O Vite abre um servidor local (padrão `http://localhost:5173`) já servindo
+`frontend/login.html`, `frontend/index.html` e `frontend/instrutor.html` com
+hot-reload. `npm run build` gera o site publicável em `dist/` (inclui um
+passo extra, `scripts/copiar-estaticos-build.mjs`, que copia `data/*.geojson`
+e `frontend/sw-bdgex.js` — arquivos que o Vite não enxerga porque são
+buscados por `fetch()`/Service Worker, não por `import`); `npm run preview`
+serve esse `dist/` localmente para conferir antes de publicar.
 
 ## Publicado em
 
-GitHub Pages, a partir da raiz deste repositório (branch `main`) — grátis,
-HTTPS automático, sem etapa de build. Detalhes da decisão e como reconfigurar
-em `docs/prompt-etapa-11.md` e na seção "Decisões da Etapa 11" de
+GitHub Pages, publicado por GitHub Actions (`.github/workflows/deploy.yml`):
+a cada push em `main`, o workflow roda `npm run build` e publica `dist/`.
+Antes da Etapa 9a, o Pages servia a raiz do repositório crua (sem build) —
+mudar para um bundler exigiu trocar a origem do Pages de "Deploy from a
+branch" para "GitHub Actions" em Settings -> Pages -> Source (passo manual,
+feito uma vez só). Detalhes das decisões em `docs/prompt-etapa-11.md`
+(hospedagem) e nas seções "Decisões da Etapa 11" e "Decisões da Etapa 9a" de
 [CLAUDE.md](./CLAUDE.md).

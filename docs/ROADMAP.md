@@ -27,7 +27,7 @@ Sugestão de modelo por etapa: tarefas mecânicas/config → **modelo mais leve*
 
   **Extração do helper de ícone**, prevista desde o comentário de `colegas.js`: `frontend/icones.js` (novo) reúne `sidcParaObservador()` + montagem do `L.divIcon` via milsymbol (com fallback), consumido agora pelos três desenhistas de símbolo (`gps.js`, `colegas.js`, `marcacoes.js`) — acabou a duplicação.
 
-  **Tabela `NATUREZA` reduzida**, nova em `simbolos.js` (mesma fonte — `legacy-qgis/cop_tatico_v7.py` — que já alimentava as demais tabelas manuais), para o `<select>` de tipo/natureza do formulário. Assim como as outras, é candidata a virar as tabelas oficiais do `stanag-app6` na Etapa 9.
+  **Tabela `NATUREZA` reduzida**, nova em `simbolos.js` (mesma fonte — `legacy-qgis/cop_tatico_v7.py` — que já alimentava as demais tabelas manuais), para o `<select>` de tipo/natureza do formulário. Assim como as outras, é candidata a virar a tabela oficial do MD/EB na Etapa 9b (ver a seção correspondente, "A fazer").
 
   Verificado com `node --check` em todos os arquivos novos/alterados, `frontend/simbolos.teste.mjs` (ainda 20/20 — a tabela nova não quebrou nada) e um teste novo, `frontend/marcacoes.teste.mjs` (40/40), provando o par `getSIDC()`/`decomporSidc()` para todas as chaves reais de `DIMENSAO`, `ESCALAO` e `NATUREZA`, e que o dígito de hostilidade sempre sai como placeholder (nunca é pedido no formulário).
 
@@ -250,6 +250,10 @@ Sugestão de modelo por etapa: tarefas mecânicas/config → **modelo mais leve*
 
   **Pendente de teste ao vivo — e aqui, ao contrário de todas as etapas anteriores, é a verificação que fecha a etapa, não um adendo**: habilitar o GitHub Pages no repositório (passo manual), aplicar a `0007`, trocar `codigo_acesso` da turma de teste para algo não adivinhável (passo manual — deixar `'TESTE'` derrota o propósito do item 2), rodar `criar_usuarios.mjs` para a conta do instrutor, e então **abrir o site publicado no celular** — cadastro com código funcionando, BDGEx desenhando (fecha a pendência da 7.1), avatares próximos se separando, topbar colapsada/painel acessível, e todo o roteiro acumulado desde a Etapa 3 em `docs/roteiro-teste-campo.md` (novo).
 
+- [x] **Correções de campo (2026-08-01)**: quatro problemas achados num teste com uma pessoa em outra cidade, depois do deploy da Etapa 11 — amigo sumindo do mapa ao perder sinal (agora fica na última posição, esmaecido), cartão do mapa offline que não colapsava, clique de desenhar área offline abrindo também o formulário de marcação, e BDGEx "sumindo" ao mudar de zoom (mitigado plantando OpenTopoMap por baixo; conserto completo virou item novo abaixo). Detalhe técnico completo na seção "Correções de campo (2026-08-01)" de `CLAUDE.md`.
+
+- [x] **Etapa 9a — Migração para bundler (Vite)**: dividida da antiga "Etapa 9" — a parte mecânica (bundler) saiu da parte em discussão (substituir a tabela de símbolos pelo catálogo oficial, ver Etapa 9b abaixo). Vite introduzido (`vite.config.js`, `base:'/wartoolc2/'` por causa da subpasta do GitHub Pages); Leaflet/milsymbol viraram dependências `npm` (eram CDN); as duas "pontes" de escopo global (`window.WartoolSimbolos`, `window.WartoolCamadas`) que só existiam pela falta de bundler foram eliminadas — `frontend/index.html` virou um único `<script type="module">`; `frontend/basemaps.js` ganhou um irmão puro (`basemaps-dados.js`) para continuar testável em Node puro sem puxar `leaflet`; deploy passou de "GitHub Pages servindo a raiz crua" para "GitHub Actions builda e publica `dist/`" (`.github/workflows/deploy.yml`, novo — exige trocar a origem do Pages em Settings, passo manual). Sem migration — só frontend/build. Detalhe técnico completo na seção "Decisões da Etapa 9a" de `CLAUDE.md`. **Pendente de teste ao vivo**: trocar a origem do Pages para "GitHub Actions" e confirmar o site publicado depois de um push em `main`.
+
 ## A fazer, em ordem
 
 - [ ] **Etapa 2 — Autenticação e papéis** *(em andamento — dividida em 2a e 2b)*
@@ -279,8 +283,19 @@ Sugestão de modelo por etapa: tarefas mecânicas/config → **modelo mais leve*
 
 - [x] **Etapa 8b — Foto aérea / carta atualizada, publicada pelo instrutor** *(concluída — ver a seção "Feito", acima)*
 
-- [ ] **Etapa 9 — Migração para SPA com bundler + stanag-app6**
-  Trocar o HTML estático por uma aplicação com Vite/webpack, e substituir as tabelas manuais de hostilidade/dimensão/natureza pelas tabelas oficiais do `stanag-app6`. Mudança estrutural, mexe em tudo. Melhor fazer depois que as etapas 1-8 já estiverem estáveis. Complexidade: alta. Modelo sugerido: mais forte.
+- [ ] **BDGEx: trocar mapcache pelos endpoints por escala (conserto completo, não a mitigação de 2026-08-01)**
+  A mitigação já em produção (plantar OpenTopoMap por baixo do BDGEx quando ele "sumir" ao mudar de zoom) tapa o buraco visual, mas não resolve a causa: `ctmmultiescalas_mercator` via `mapcache` (Etapa 7.1) só serve grades de tile que já tem em cache, e devolve tile em branco (não erro) quando a resolução pedida não está no grid — o que pode acontecer ao mudar de zoom, mesmo sem nenhuma área offline baixada.
+  - Conserto de verdade: usar os endpoints por escala que o Exército publica em https (`/teogc/25/`, `/50/`, `/100/`, `/250/`, camada `ctm`) — WMS de verdade, renderiza sob demanda, sem grade fixa. Exige decidir faixas de zoom↔escala (sem tabela oficial publicada — a mais próxima é a regra de bolso "cada escala cobre ~4x a área da anterior").
+  - Mexe também no download offline: `carta-offline.js`/`offline-tela.js` assumem hoje uma ÚNICA camada WMS por trás de `getTileUrl()`; uma área salva entre zoom 12 e 16 pode cruzar duas escalas diferentes, então `urlDoTile()` precisaria escolher a camada certa por `tile.z`, não uma fixa.
+  - Também precisa: atualizar `basemaps.teste.mjs` (a checagem hoje já exclui `bdgexFundo` de propósito — ver comentário lá) e confirmar ao vivo que `/teogc/` responde em https (pendência não confirmada; uma tentativa de `GetCapabilities` durante o diagnóstico de 2026-08-01 não trouxe resposta utilizável).
+  Complexidade: média-alta (mexe na camada usada pelas três telas e no download offline). Modelo sugerido: intermediário/mais forte.
+
+- [x] **Etapa 9a — Migração para bundler (Vite)** *(concluída — ver a seção "Feito", acima)*
+
+- [ ] **Etapa 9b — Tabela de símbolos oficial do MD/EB** *(em discussão, escopo ainda não fechado)*
+  Substituir as tabelas manuais de hostilidade/dimensão/natureza/escalão (`simbolos.js`) pela fonte oficial brasileira. Hipótese verificada nesta etapa de discussão: o [stanag-app6](https://github.com/spatialillusions/stanag-app6) NÃO é um catálogo de símbolos — ele gera a imagem a partir do código SIDC (mesmo papel que `milsymbol` já cumpre aqui). A fonte de dados de verdade é o **Portal de Simbologia Militar do MD** (`https://simbologia.eb.mil.br/`, baseado no manual MD33-M-02 e no catálogo MD33-C-01, ambos fornecidos pelo usuário): 12 arquivos JSON públicos (`symbolSet-<categoria>-json.<hash>.js`), cada um com `Doutrina FS`, `Entity`/`Entity Type`/`Entity Subtype` (taxonomia em inglês, igual APP-6D), `sector 1`/`sector 2` (modificadores), `ExtEntity` (extensões brasileiras), `ModificadoresEB`, e `icones_centrais` com `Code`, `NomeBR` (rótulo oficial em português) e `sidcBR` (SIDC completo) — confirmado via inspeção de rede no Chrome.
+  - Escopo ainda em aberto: se a troca é só de DADOS (rótulos/tabelas em `simbolos.js`, mantendo `milsymbol` para desenhar) ou se inclui mudar a interface para os nomes/agrupamentos oficiais em português do portal — é este segundo ponto que motivou "vamos discutir mais" antes de começar.
+  Complexidade: média-alta (dados de fonte nova, possível reformulação de parte da interface). Modelo sugerido: mais forte.
 
 - [ ] **Etapa 10 — Teste de carga (60+ usuários) e ajuste de plano**
   Simular múltiplos usuários simultâneos, medir, decidir se precisa migrar do Supabase Free para o Pro. Complexidade: média (mais QA que desenvolvimento). Modelo sugerido: leve a intermediário.

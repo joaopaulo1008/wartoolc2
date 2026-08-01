@@ -9,23 +9,35 @@
 // cópias à mão é uma divergência esperando para acontecer — foi exatamente
 // assim que a Etapa 4.5 encontrou as tabelas de SIDC.
 //
-// Hoje sobraram DUAS cópias: `basemaps.js` (a fonte) e o `<script>` clássico
-// de `index.html`, que não pode importar módulo e por isso não tem como ler a
-// primeira. A cópia só desaparece na Etapa 9. Até lá, quem garante que as
-// duas dizem a mesma coisa é este arquivo — ele LÊ o HTML e compara.
+// Até a Etapa 9a sobravam DUAS cópias: `basemaps.js` (a fonte) e o `<script>`
+// clássico de `index.html`, que não podia importar módulo e por isso não
+// tinha como ler a primeira. A Etapa 9a (migração para bundler) fechou essa
+// cópia: index.html agora importa `criarBasemaps`/`BASEMAP_FALLBACK` direto
+// de basemaps.js e `CORES_CAMADA`/`FAIXAS_PANE`/`escaparHtml` direto de
+// kml.js — não há mais um segundo objeto BASEMAPS nem uma segunda
+// CORES_CAMADA para divergir da fonte.
 //
-// Se este teste falhar, não "conserte o teste": significa que alguém
-// acrescentou ou tirou um mapa de um lado só, e alguma das três telas está
-// oferecendo uma opção que a outra não tem (ou pior, apontando para uma chave
-// que não existe mais, que é como o fallback do `camada_bdgex` quebrou
-// quando o OSM saiu da lista).
+// O que continua sendo cópia de verdade, e por isso continua testado aqui, é
+// o HTML dos rádios do seletor (`<input name=basemap value=...>`): esses são
+// marcação estática, não código importável, e uma chave adicionada/removida
+// de OPCOES_BASEMAP sem o rádio correspondente quebra o seletor em silêncio
+// — foi assim que o fallback do `camada_bdgex` apontou para o `osm` depois
+// que ele saiu da lista.
+//
+// Se este teste falhar, não "conserte o teste": significa que os rádios do
+// HTML e a lista de basemaps.js divergiram, ou que index.html voltou a
+// duplicar algo que devia estar importando.
 
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
+// Etapa 9a: os metadados puros moraram em basemaps.js até aqui; agora vivem
+// em basemaps-dados.js, justamente para este teste poder importar sem
+// puxar `import * as L from 'leaflet'` (que executa na hora e quebra fora
+// do navegador) — ver o cabeçalho de basemaps-dados.js.
 import {
   OPCOES_BASEMAP, BASEMAP_PADRAO, BASEMAP_FALLBACK,
-} from './basemaps.js';
+} from './basemaps-dados.js';
 import { CORES_CAMADA } from './kml.js';
 
 const aqui = dirname(fileURLToPath(import.meta.url));
@@ -60,90 +72,76 @@ okVerdade('toda opção tem rótulo', OPCOES_BASEMAP.every((o) => typeof o.rotul
 okVerdade('toda opção tem miniatura', OPCOES_BASEMAP.every((o) => typeof o.thumb === 'string' && o.thumb.length > 0));
 
 // ─────────────────────────────────────────────────────────────────────────
-console.log('\n── A cópia em index.html (script clássico, some na Etapa 9)');
+console.log('\n── O que index.html ainda duplica de propósito: os rádios ─');
 
-// 1. As chaves do objeto BASEMAPS do script clássico.
-const blocoBasemaps = html.match(/const BASEMAPS = \{([\s\S]*?)\n\};/);
-okVerdade('o objeto BASEMAPS foi encontrado em index.html', !!blocoBasemaps);
-const chavesHtml = [...(blocoBasemaps?.[1] || '').matchAll(/^\s{2}(\w+):/gm)].map((m) => m[1]);
-ok('index.html declara as MESMAS chaves, na MESMA ordem',
-  chavesHtml.join(','), chaves.join(','));
-
-// 2. Os rádios do seletor — é o que o aluno de fato vê. Um mapa em BASEMAPS
-//    sem rádio é código morto; um rádio sem entrada em BASEMAPS quebra o mapa
-//    ao ser clicado.
+// 1. Os rádios do seletor — é o que o aluno de fato vê. Um mapa em
+//    OPCOES_BASEMAP sem rádio é opção que ninguém consegue escolher; um rádio
+//    sem entrada na lista quebra o mapa ao ser clicado (criarBasemaps()
+//    lançaria ao tentar ler uma chave que não existe).
 const chavesRadio = [...html.matchAll(/name="basemap" value="(\w+)"/g)].map((m) => m[1]);
 ok('os rádios do seletor batem com a lista, na mesma ordem',
   chavesRadio.join(','), chaves.join(','));
 
-// 3. O rádio marcado tem que ser o padrão.
+// 2. O rádio marcado tem que ser o padrão.
 const marcado = html.match(/name="basemap" value="(\w+)" checked/);
 ok('o rádio marcado é o padrão', marcado?.[1], BASEMAP_PADRAO);
 
-// 4. O fallback do script clássico é uma constante, e não um valor solto —
-//    era um literal 'osm' até a Etapa 7.1, e foi assim que ele apontou para
-//    um mapa que já não existia.
-const fallbackHtml = html.match(/const FALLBACK_BASEMAP = '(\w+)';/);
-ok('index.html define FALLBACK_BASEMAP', fallbackHtml?.[1], BASEMAP_FALLBACK);
-okVerdade('e não sobrou nenhum value=osm solto no seletor',
+okVerdade('e não sobrou nenhum value=osm solto no seletor (saiu na Etapa 7.1)',
   !/name=basemap\]\[value=osm/.test(html) && !/value="osm"/.test(html));
 
-// 5. O BDGEx não pode voltar a ter protocolo fixo: numa página https, `http://`
-//    é conteúdo misto e o navegador bloqueia — a carta mais importante do
-//    projeto sumiria no deploy, sem erro além do mapa vazio.
-okVerdade('o BDGEx herda o protocolo da página em index.html',
-  /location\.protocol\}\/\/bdgex\.eb\.mil\.br/.test(html));
-okVerdade('e não há http:// fixo apontando para o bdgex',
-  !/http:\/\/bdgex\.eb\.mil\.br/.test(html));
+// ─────────────────────────────────────────────────────────────────────────
+console.log('\n── Etapa 9a: index.html IMPORTA em vez de duplicar ───────');
 
-// 6. As duas armadilhas do BDGEx, travadas nas DUAS cópias. As duas falham do
-//    mesmo jeito — tile em branco, sem erro nenhum no console —, que é por que
-//    valem um teste em vez de confiança:
-//    (a) `ctm50` sozinha existe só em parte do território (RS, SC, PR, SP, RJ,
-//        ES e pedaços de outros estados). Num exercício fora dessa cobertura, o
-//        aluno abre o app e vê um mapa branco.
-//    (b) `crs: L.CRS.EPSG4326` pede ao mapcache uma grade que ele não tem em
-//        cache. Mapcache não é WMS completo: grade errada não dá erro, dá
-//        tile vazio. O sufixo `_mercator` da camada é literal.
+// A Etapa 9a fechou as duas cópias que este arquivo vigiava desde a Etapa
+// 7.1/7: o objeto BASEMAPS do <script> clássico e a CORES_CAMADA local.
+// Continua valendo checar que o import realmente está lá — um `import`
+// apagado por engano reintroduziria a divergência calada de sempre, só que
+// como `ReferenceError` em vez de silêncio.
+okVerdade("index.html importa criarBasemaps/BASEMAP_FALLBACK de basemaps.js",
+  /import\s*\{[^}]*criarBasemaps[^}]*\}\s*from\s*'\.\/basemaps\.js'/.test(html));
+okVerdade("index.html importa CORES_CAMADA/FAIXAS_PANE/escaparHtml de kml.js",
+  /import\s*\{[^}]*CORES_CAMADA[^}]*\}\s*from\s*'\.\/kml\.js'/.test(html));
+okVerdade('e não voltou a declarar um BASEMAPS ou CORES_CAMADA locais',
+  !/const BASEMAPS = \{/.test(html) && !/const CORES_CAMADA = \[/.test(html));
+
+// As duas armadilhas do BDGEx continuam travadas na FONTE (basemaps.js). As
+// duas falham do mesmo jeito — tile em branco, sem erro nenhum no console —,
+// que é por que valem um teste em vez de confiança:
+//   (a) `ctm50` sozinha existe só em parte do território (RS, SC, PR, SP, RJ,
+//       ES e pedaços de outros estados). Num exercício fora dessa cobertura,
+//       o aluno abre o app e vê um mapa branco.
+//   (b) `crs: L.CRS.EPSG4326` pede ao mapcache uma grade que ele não tem em
+//       cache. Mapcache não é WMS completo: grade errada não dá erro, dá
+//       tile vazio. O sufixo `_mercator` da camada é literal.
 //
-// As duas checagens rodam sobre o código SEM COMENTÁRIOS. Não é preciosismo:
-// a primeira versão deste bloco falhou de imediato porque o comentário que
-// explica a mudança cita `crs: L.CRS.EPSG4326` e `ctm50` para dizer que eles
-// NÃO devem estar lá — e a regex, ingênua, achava as duas coisas no texto que
-// as proíbe. Mesma pegadinha do `<script>` dentro de comentário em index.html.
+// Roda sobre o código SEM COMENTÁRIOS — não é preciosismo: a primeira versão
+// deste bloco falhou de imediato porque o comentário que explica a mudança
+// cita `crs: L.CRS.EPSG4326` e `ctm50` para dizer que eles NÃO devem estar
+// lá, e a regex ingênua achava as duas coisas no texto que as proíbe.
 const semComentarios = (texto) => texto
   .replace(/<!--[\s\S]*?-->/g, ' ')
   .replace(/^\s*\/\/.*$/gm, ' ');
-
-for (const [nome, fonte] of [
-  ['basemaps.js', semComentarios(readFileSync(join(aqui, 'basemaps.js'), 'utf-8'))],
-  ['index.html', semComentarios(html)],
-]) {
-  okVerdade(`${nome}: usa a camada multiescalas, não a ctm50`,
-    /layers:\s*'ctmmultiescalas_mercator'/.test(fonte) && !/'ctm50'/.test(fonte));
-  okVerdade(`${nome}: não força EPSG4326 no BDGEx`,
-    !/crs:\s*L\.CRS\.EPSG4326/.test(fonte));
-}
+const basemapsJs = semComentarios(readFileSync(join(aqui, 'basemaps.js'), 'utf-8'));
+okVerdade('basemaps.js: usa a camada multiescalas, não a ctm50',
+  /layers:\s*'ctmmultiescalas_mercator'/.test(basemapsJs) && !/'ctm50'/.test(basemapsJs));
+okVerdade('basemaps.js: não força EPSG4326 no BDGEx',
+  !/crs:\s*L\.CRS\.EPSG4326/.test(basemapsJs));
+okVerdade('basemaps.js: o BDGEx herda o protocolo da página (sem http:// fixo)',
+  /location\.protocol\}\/\/bdgex\.eb\.mil\.br/.test(basemapsJs) &&
+  !/http:\/\/bdgex\.eb\.mil\.br/.test(basemapsJs));
 
 // ─────────────────────────────────────────────────────────────────────────
-console.log('\n── A outra cópia: as cores de camada ─────────────────────');
-
-// Mesma situação da lista de mapas, mesmo motivo: `CORES_CAMADA` mora em
-// kml.js, e o `<script>` clássico de index.html precisa das mesmas três cores
-// para o seletor das camadas do repositório. Enquanto ele não puder importar
-// (Etapa 9), quem impede as duas de divergirem é este bloco.
-const bloco = html.match(/const CORES_CAMADA = \[([\s\S]*?)\n\];/);
-okVerdade('index.html declara CORES_CAMADA', !!bloco);
-const coresHtml = [...(bloco?.[1] || '').matchAll(/valor:\s*'(#[0-9a-fA-F]{6})'/g)].map((m) => m[1]);
-ok('as três cores de index.html são as mesmas de kml.js, na mesma ordem',
-  coresHtml.join(','), CORES_CAMADA.map((c) => c.valor).join(','));
+console.log('\n── A legenda de forças — cores que precisam bater à mão ──');
 
 // Azul e vermelho não são cores quaisquer: são os MESMOS tons dos pontinhos
-// de Amigo e Hostil na legenda de forças, logo acima no mesmo painel. Se
-// alguém trocar um dos dois de um lado só, a mesma cor passa a querer dizer
-// duas coisas diferentes na mesma tela.
+// de Amigo e Hostil na legenda de forças do painel, e das opções de
+// CORES_CAMADA (kml.js) para as camadas do repositório. Este trecho da
+// legenda é HTML/CSS estático, não código — por isso continua comparado à
+// mão, mesmo depois da Etapa 9a.
 okVerdade('o azul é o mesmo da legenda "Amigo"', html.includes('background:#4a90d9'));
 okVerdade('o vermelho é o mesmo da legenda "Hostil"', html.includes('background:#e05252'));
+okVerdade('e são as mesmas cores de CORES_CAMADA (kml.js)',
+  CORES_CAMADA.some((c) => c.valor === '#4a90d9') && CORES_CAMADA.some((c) => c.valor === '#e05252'));
 
 // ─────────────────────────────────────────────────────────────────────────
 console.log(`\n${'─'.repeat(58)}`);
