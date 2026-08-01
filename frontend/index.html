@@ -237,7 +237,7 @@
     <label class="basemap-row">
       <input type="radio" name="basemap" value="bdgex" checked>
       <span class="basemap-thumb" style="background:linear-gradient(135deg,#c8b87a,#8ac890)"></span>
-      <span class="basemap-label">BDGEx 1:50.000 (EB)</span>
+      <span class="basemap-label">BDGEx Multiescala (EB)</span>
     </label>
 
     <label class="basemap-row">
@@ -334,12 +334,17 @@ const BASEMAPS = {
   // PENDENTE DE TESTE AO VIVO: se o bdgex.eb.mil.br não atender em https, a
   // saída é um proxy reverso próprio — não dá para "voltar para http" numa
   // página https. Está na lista de pendências do ROADMAP.
+  // Camada `ctmmultiescalas_mercator` e SEM `crs: L.CRS.EPSG4326`.
+  // As duas mudanças e o porquê de cada uma estão em frontend/basemaps.js —
+  // resumo: `ctm50` sozinha deixa o mapa BRANCO fora da cobertura 1:50.000, e
+  // o mapcache serve só as grades que tem em cache, então o CRS trocado
+  // devolvia tile vazio sem erro. Esta é a cópia obrigada pelo <script>
+  // clássico; basemaps.teste.mjs falha se as duas divergirem.
   bdgex: L.tileLayer.wms(`${location.protocol}//bdgex.eb.mil.br/mapcache`, {
-    layers:      'ctm50',
+    layers:      'ctmmultiescalas_mercator',
     format:      'image/png',
     transparent: true,
     attribution: '© BDGEx / Exército Brasileiro',
-    crs:         L.CRS.EPSG4326,
     maxZoom:     18,
   }),
   otopo: L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', {
@@ -499,7 +504,16 @@ const EXTRA_LAYERS = [
   },
 ];
 
-const REPO_RAW = 'https://raw.githubusercontent.com/joaopaulo1008/wartoolc2/main/';
+// Até a Etapa 11 isto apontava para raw.githubusercontent.com/.../main/ — uma
+// dependência externa desnecessária, já que os arquivos de data/ passam a ser
+// servidos pelo próprio site publicado (GitHub Pages), e frágil (exigia o
+// repositório ficar público para sempre, só por causa deste fetch). Agora é
+// caminho relativo: frontend/index.html -> ../data/... chega em data/ na raiz
+// do repositório, funcionando IGUAL em produção (GitHub Pages serve a partir
+// da raiz do repo) e em desenvolvimento local — DESDE QUE o servidor local
+// também sirva a partir da raiz do repo, não de dentro de frontend/ (ver
+// README.md, "Rodando localmente" — mudou nesta etapa por este motivo).
+const REPO_RAW = '../';
 const extraGrupos = {};
 // Etapa 6a: guarda o <input> de cada camada extra para a permissão
 // `camada_manobra` conseguir devolver a camada ao estado que o próprio aluno

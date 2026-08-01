@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta http-equiv="refresh" content="0; url=./frontend/login.html">
+<title>WartoolC2</title>
+<!--
+  Redirecionamento da RAIZ do site para frontend/login.html — Etapa 11.
+
+  Por quê raiz != frontend/: o GitHub Pages só serve a partir da raiz do
+  repositório ou de /docs (que já é usado para documentação real, não para o
+  site). O app em si mora em frontend/ (index.html, login.html etc.), então
+  quem abre o domínio "pelado" (https://joaopaulo1008.github.io/wartoolc2/)
+  precisa de algo aqui para não cair num 404. Isto NÃO é o mapa nem tem
+  Leaflet/Supabase — é só a porta de entrada.
+
+  Sem JS (funciona mesmo se o navegador bloquear o refresh por algum motivo,
+  ver o link abaixo) e sem dependência de módulo, de propósito: se algo no
+  frontend quebrar, esta página continua servindo pra apontar o caminho.
+-->
+<script>location.replace('./frontend/login.html');</script>
+</head>
+<body>
+  <p>Redirecionando para o WartoolC2&hellip;</p>
+  <p>Se nada acontecer, <a href="./frontend/login.html">clique aqui</a>.</p>
+</body>
+</html>

@@ -23,5 +23,13 @@ Thumbs.db
 # Segredos e dados de exercício — NUNCA comitar
 # Lista real de usuários (contém senhas); só o .exemplo.csv vai para o repo
 backend/seed/usuarios_exercicio.csv
-# Chaves do projeto Supabase; só o config.example.js vai para o repo
-frontend/config.js
+# Service role key (Admin API) — quem roda o seed passa por variável de
+# ambiente na hora, nunca em arquivo. Ver backend/seed/criar_usuarios.mjs.
+.env.seed
+
+# frontend/config.js NÃO está mais aqui (Etapa 11): a SUPABASE_ANON_KEY é a
+# "publishable key" do projeto — pública por design, porque quem decide o que
+# ela pode ler/escrever é a RLS do banco, não a chave. Sem commitar este
+# arquivo, o site publicado (sem etapa de build) não tem como carregar a
+# configuração e nenhuma tela abre. Ver a explicação completa no cabeçalho de
+# frontend/config.js e em CLAUDE.md, seção "Decisões da Etapa 11".

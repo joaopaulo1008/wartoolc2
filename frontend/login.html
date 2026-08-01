@@ -87,11 +87,6 @@
 
 <div id="auth-wrap">
   <div class="auth-card">
-    <div class="tabs">
-      <button type="button" id="tab-entrar" class="tab-btn active">Entrar</button>
-      <button type="button" id="tab-cadastrar" class="tab-btn">Cadastrar</button>
-    </div>
-
     <div id="aviso" class="aviso" style="display:none"></div>
 
     <form id="form-entrar">
@@ -104,36 +99,22 @@
       <button type="submit" class="btn-primary" id="btn-entrar">Entrar</button>
     </form>
 
-    <form id="form-cadastrar" style="display:none">
-      <label for="cad-usuario">Usuário</label>
-      <input type="text" id="cad-usuario" autocomplete="username" placeholder="ex.: joao" required>
-
-      <label for="cad-nome-guerra">Nome de guerra</label>
-      <input type="text" id="cad-nome-guerra" placeholder="o que aparece no mapa" required>
-
-      <label for="cad-senha">Senha</label>
-      <input type="password" id="cad-senha" autocomplete="new-password" required>
-
-      <label for="cad-senha2">Confirmar senha</label>
-      <input type="password" id="cad-senha2" autocomplete="new-password" required>
-
-      <button type="submit" class="btn-primary" id="btn-cadastrar">Cadastrar</button>
-    </form>
-
-    <p class="dica">O usuário não é um e-mail — é só um nome curto (ex.: <code>joao</code>), sem @ nem espaços.</p>
+    <p class="dica">
+      Não tem usuário e senha? Fale com o instrutor — desde a Etapa 11 o
+      cadastro não é mais aberto: as contas são criadas antes do exercício
+      (<code>backend/seed/criar_usuarios.mjs</code>), não pela própria pessoa
+      nesta tela.
+    </p>
   </div>
 </div>
 
-<div id="footer">WartoolC2 — Etapa 2b: autenticação e papéis</div>
+<div id="footer">WartoolC2 — Etapa 11: cadastro fechado, contas pré-criadas pelo instrutor</div>
 
 <script type="module">
-import { entrar, cadastrar, supabase, buscarPerfil } from './auth.js';
+import { entrar, supabase, buscarPerfil } from './auth.js';
 
-const avisoEl       = document.getElementById('aviso');
-const tabEntrar      = document.getElementById('tab-entrar');
-const tabCadastrar   = document.getElementById('tab-cadastrar');
-const formEntrar     = document.getElementById('form-entrar');
-const formCadastrar  = document.getElementById('form-cadastrar');
+const avisoEl    = document.getElementById('aviso');
+const formEntrar = document.getElementById('form-entrar');
 
 function mostrarAviso(texto, tipo) {
   avisoEl.textContent = texto;
@@ -148,18 +129,6 @@ function esconderAviso() {
 function irParaTela(perfil) {
   window.location.href = perfil.papel === 'instrutor' ? 'instrutor.html' : 'index.html';
 }
-
-function trocarAba(aba) {
-  esconderAviso();
-  const ehEntrar = aba === 'entrar';
-  tabEntrar.classList.toggle('active', ehEntrar);
-  tabCadastrar.classList.toggle('active', !ehEntrar);
-  formEntrar.style.display = ehEntrar ? 'block' : 'none';
-  formCadastrar.style.display = ehEntrar ? 'none' : 'block';
-}
-
-tabEntrar.addEventListener('click', () => trocarAba('entrar'));
-tabCadastrar.addEventListener('click', () => trocarAba('cadastrar'));
 
 // Mensagem vinda de um redirecionamento (sessão expirada, deslogado etc.).
 const parametros = new URLSearchParams(window.location.search);
@@ -206,54 +175,6 @@ formEntrar.addEventListener('submit', async (ev) => {
     mostrarAviso('Login feito, mas não foi possível carregar seu perfil. Tente novamente.', 'erro');
     btn.disabled = false;
     btn.textContent = 'Entrar';
-    return;
-  }
-
-  irParaTela(perfil);
-});
-
-// ── Cadastrar ───────────────────────────────────────────────────────────
-formCadastrar.addEventListener('submit', async (ev) => {
-  ev.preventDefault();
-  esconderAviso();
-
-  const usuario     = document.getElementById('cad-usuario').value;
-  const nomeGuerra  = document.getElementById('cad-nome-guerra').value;
-  const senha       = document.getElementById('cad-senha').value;
-  const senha2      = document.getElementById('cad-senha2').value;
-
-  if (senha !== senha2) {
-    mostrarAviso('As senhas digitadas não conferem.', 'erro');
-    return;
-  }
-
-  const btn = document.getElementById('btn-cadastrar');
-  btn.disabled = true;
-  btn.textContent = 'Cadastrando...';
-
-  const resultado = await cadastrar({ usuario, senha, nomeGuerra });
-
-  if (resultado.erro) {
-    mostrarAviso(resultado.erro, 'erro');
-    btn.disabled = false;
-    btn.textContent = 'Cadastrar';
-    return;
-  }
-
-  if (resultado.avisoTurma) {
-    // Cadastro deu certo, mas a entrada na turma TESTE falhou (ex.: ainda não
-    // criada no SQL Editor). Deixa isso visível antes de seguir.
-    console.warn(resultado.avisoTurma);
-  }
-
-  // Sessão já foi criada pelo cadastrar(); busca o perfil e roteia por papel.
-  const { data: { session } } = await supabase.auth.getSession();
-  const perfil = session ? await buscarPerfil(session.user.id) : null;
-
-  if (!perfil) {
-    mostrarAviso('Cadastro criado, mas não foi possível carregar o perfil. Tente entrar pela aba "Entrar".', 'erro');
-    btn.disabled = false;
-    btn.textContent = 'Cadastrar';
     return;
   }
 

@@ -65,12 +65,35 @@ export function criarBasemaps() {
     // PENDENTE DE TESTE AO VIVO: se bdgex.eb.mil.br não atender em https, a
     // saída é um proxy reverso próprio — não existe "voltar para http" numa
     // página https.
+    // CAMADA: `ctmmultiescalas_mercator`, não `ctm50`.
+    //
+    // O protótipo pedia `ctm50` — só a Carta Topográfica Matricial 1:50.000. O
+    // problema é a COBERTURA: a 1:50.000 existe em RS, SC, PR, SP, RJ, ES e
+    // pedaços de MG, BA, AM, PA, AP, AL, RN e MA. Fora dessas áreas o BDGEx
+    // devolve tile vazio, e o aluno vê um mapa em branco sem nenhuma pista do
+    // motivo — o pior tipo de falha para quem está em campo.
+    //
+    // A `ctmmultiescalas_mercator` empilha 1:25.000 → 1:250.000 e escolhe pelo
+    // zoom: cobre ~90% do território e ainda entrega 1:25.000 onde ela existe.
+    // Uma opção só no seletor, mais carta do que antes.
+    //
+    // CRS: o `crs: L.CRS.EPSG4326` que estava aqui foi REMOVIDO de propósito.
+    // O sufixo `_mercator` do nome da camada é literal: ela é publicada em Web
+    // Mercator (EPSG:3857), que já é o padrão do Leaflet. E `mapcache` não é
+    // um WMS completo — ele serve só as grades de tiles que tem em cache, então
+    // pedir a grade errada não dá erro: devolve tile em branco. Era um
+    // candidato forte a explicar o BDGEx parecer instável.
+    //
+    // Se o `mapcache` der problema, o plano B são os endpoints por escala, que
+    // a documentação do Exército publica em https e com o nome de camada
+    // simplesmente `ctm`:
+    //   https://bdgex.eb.mil.br/teogc/25/terraogcmed.cgi
+    //   https://bdgex.eb.mil.br/teogc/50/terraogcmed.cgi   (e 100, 250)
     bdgex: L.tileLayer.wms(`${location.protocol}//bdgex.eb.mil.br/mapcache`, {
-      layers: 'ctm50',
+      layers: 'ctmmultiescalas_mercator',
       format: 'image/png',
       transparent: true,
       attribution: '© BDGEx / Exército Brasileiro',
-      crs: L.CRS.EPSG4326,
       maxZoom: 18,
     }),
     otopo: L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', {

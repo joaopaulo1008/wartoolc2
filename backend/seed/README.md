@@ -30,13 +30,30 @@ As três últimas colunas existem para você não ter que escrever o SIDC de 20 
 
 ## Como rodar
 
-Instruções do script ficam em `../README.md` (seção de seed), a ser escrita na Etapa 2.
+O script é `criar_usuarios.mjs` (Etapa 11 — é a parte da Etapa 2c que não dava
+mais para adiar depois do deploy, porque o cadastro aberto de `login.html`
+virou um risco numa URL pública). Instruções completas no cabeçalho do
+próprio arquivo; resumo:
 
-O script precisa da **`service_role` key** do projeto Supabase, não da `anon`. Essa chave ignora todas as regras de RLS e dá controle total do banco:
+```
+cp usuarios_exercicio.exemplo.csv usuarios_exercicio.csv   # preencha com o efetivo real
+# crie backend/seed/.env.seed (gitignored) com SUPABASE_URL e SUPABASE_SERVICE_ROLE_KEY
+node --env-file=backend/seed/.env.seed backend/seed/criar_usuarios.mjs
+```
 
-- nunca a coloque em arquivo do frontend;
-- nunca a comite;
-- passe por variável de ambiente na hora de rodar o seed.
+O script precisa da **`service_role` key** do projeto Supabase, não da
+`anon`/`publishable`. Essa chave ignora todas as regras de RLS e dá controle
+total do banco:
+
+- nunca a coloque em arquivo do frontend (`frontend/config.js` só tem a
+  publishable key, que é pública por design — ver o cabeçalho desse arquivo);
+- nunca a comite (`backend/seed/.env.seed` está no `.gitignore`);
+- passe por variável de ambiente na hora de rodar o seed, nunca colada no chat.
+
+O script não cria a turma citada em `codigo_turma` — crie-a antes (SQL
+Editor) se ainda não existir. E não atualiza conta já existente: e-mail
+repetido é reportado e pulado, para nenhum script batch resetar senha de
+quem já está treinando.
 
 ## Aviso
 

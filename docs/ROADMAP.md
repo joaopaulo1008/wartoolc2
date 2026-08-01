@@ -167,9 +167,30 @@ Sugestão de modelo por etapa: tarefas mecânicas/config → **modelo mais leve*
 
   **3. Cor por camada, em três opções fixas** (azul, preta, vermelha) no lugar da opacidade como controle principal. Não é seletor livre porque calco militar tem convenção de cor. **Azul e vermelho são os mesmos tons da legenda de forças** (Amigo e Hostil) logo acima no painel — a mesma cor querendo dizer a mesma coisa na mesma tela, com teste travando isso. O estilo que vem dentro do KML manda **até** o usuário escolher uma cor à mão; a partir daí a escolha dele vale sobre tudo (`corForcada`), e isso também impede que o instrutor renomear um calco desfaça a cor que o aluno já ajustou. A opacidade continua existindo, atrás de um botão de detalhe.
 
-  Verificado com `node --check` em 28 arquivos e nos 4 blocos `<script>` embutidos, testes existentes verdes (**20**, **40**, **64**, **116**) e um teste novo, **`frontend/basemaps.teste.mjs` (20)** — de um tipo que o projeto ainda não tinha: ele **lê o `index.html`** e falha se as cópias divergirem (chaves de `BASEMAPS`, rádios do seletor, rádio marcado, constante de fallback, protocolo do BDGEx e as três cores). É o que torna aceitável manter uma cópia até a Etapa 9.
+  Verificado com `node --check` em 28 arquivos e nos 4 blocos `<script>` embutidos, testes existentes verdes (**20**, **40**, **64**, **116**) e um teste novo, **`frontend/basemaps.teste.mjs` (24)** — de um tipo que o projeto ainda não tinha: ele **lê o `index.html`** e falha se as cópias divergirem (chaves de `BASEMAPS`, rádios do seletor, rádio marcado, constante de fallback, protocolo do BDGEx e as três cores). É o que torna aceitável manter uma cópia até a Etapa 9.
 
-  **Pendente de teste ao vivo, e este é urgente:** confirmar que `bdgex.eb.mil.br` atende em **https**. Se não atender, a carta mais importante do projeto não vai funcionar depois do deploy, e a saída é um proxy reverso próprio — não existe "voltar para http" numa página https.
+  **Ainda na 7.1, ao ler a documentação do BDGEx: a carta estava configurada errada de duas formas, e as duas falhavam em silêncio.**
+  - **`ctm50` cobre só parte do território** (RS, SC, PR, SP, RJ, ES e pedaços de MG, BA, AM, PA, AP, AL, RN, MA). **Num exercício fora dessa área, o aluno abria o app e via mapa branco**, sem pista do motivo. Passou a usar **`ctmmultiescalas_mercator`**, que empilha 1:25.000 → 1:250.000 e escolhe pelo zoom: ~90% do território, e 1:25.000 onde houver. Uma opção só no seletor, mais carta do que antes.
+  - **O `crs: L.CRS.EPSG4326` forçado saiu.** O sufixo `_mercator` é literal: a camada é publicada em EPSG:3857, que já é o padrão do Leaflet. E `mapcache` não é WMS completo — serve só as grades que tem em cache, então grade errada devolve **tile em branco, sem erro**. Era candidato forte a explicar o BDGEx parecer instável.
+
+  Os dois erros ficaram travados em `basemaps.teste.mjs`, nas duas cópias — e a checagem roda sobre o código **sem comentários**, porque a primeira versão dela falhou ao encontrar `ctm50` e `EPSG4326` dentro do próprio comentário que os proíbe (a mesma pegadinha do `<script>` dentro de comentário no `index.html`). Plano B, se o `mapcache` der problema: endpoints por escala em https (`/teogc/25/`, `/50/`, `/100/`, `/250/`, camada `ctm`).
+
+  **Pendente de teste ao vivo:**
+  1. **abrir o app e conferir se a carta desenha** com a camada e o CRS novos — não deu para testar daqui, o BDGEx não responde a requisição de fora do Brasil;
+  2. confirmar que `bdgex.eb.mil.br/mapcache` atende em **https**. A documentação lista `https://bdgex.eb.mil.br/teogc/...` e o app oficial roda em https, então o host atende — falta o caminho `/mapcache`. Se não atender, a saída é um proxy reverso próprio: não existe "voltar para http" numa página https.
+
+- [x] **Etapa 11 — Deploy e domínio** *(ANTECIPADA em 2026-07-31: passou na frente da 8a e da 9)*
+
+  Sem migration. Publicado no **GitHub Pages**, a partir da raiz do repositório — grátis, HTTPS automático, sem etapa de build. Domínio, por ora, o subdomínio do próprio Pages (`https://joaopaulo1008.github.io/wartoolc2/`); domínio próprio fica em aberto, não bloqueador. Ver a seção "Decisões da Etapa 11" em `CLAUDE.md` para o raciocínio completo de cada uma das quatro decisões pedidas em `docs/prompt-etapa-11.md`; resumo:
+
+  1. **`frontend/config.js` passou a ser commitado** (saiu do `.gitignore`) — a `SUPABASE_ANON_KEY` é a *publishable key* do projeto, pública por design (quem barra é a RLS, não a chave). Sem isso o `import` em `auth.js` falha e nenhuma tela carrega.
+  2. **Cadastro aberto fechado**: `frontend/login.html` perdeu a aba de cadastro; `backend/seed/criar_usuarios.mjs` (novo) cria conta via Admin API (`service_role`, nunca no frontend) — é a parte da Etapa 2c que não dava mais para adiar. Falta um passo MANUAL: desligar "Allow new users to sign up" no painel do Supabase antes de divulgar a URL.
+  3. **`REPO_RAW` deixou de apontar para `raw.githubusercontent.com`** — vira caminho relativo (`../`), já que o próprio site agora serve `data/`. Isso mudou a instrução de "Rodando localmente" em `README.md` (servir da raiz do repo, não de dentro de `frontend/`).
+  4. **`/index.html` (redirect) e `/.nojekyll` novos na raiz** — GitHub Pages só serve raiz ou `/docs` (que já é documentação de verdade), nunca `/frontend` como subpasta arbitrária.
+
+  Verificado com `node --check` em todos os arquivos alterados/novos (incluindo os blocos `<script>` embutidos) e com os cinco testes existentes ainda verdes — **20** (`simbolos`), **40** (`marcacoes`), **64** (`rastro`), **116** (`kml`), **24** (`basemaps`). `backend/testes/valida_sql.py` não se aplica (nenhuma migration nova).
+
+  **Pendente de teste ao vivo — e aqui, ao contrário de todas as etapas anteriores, é a verificação que fecha a etapa, não um adendo**: habilitar o GitHub Pages no repositório (passo manual), desligar o autocadastro no Supabase (passo manual), rodar `criar_usuarios.mjs` com contas de teste, e então **abrir o site publicado no celular** — login funcionando, BDGEx desenhando (fecha a pendência da 7.1), e todo o roteiro acumulado desde a Etapa 3 em `docs/roteiro-teste-campo.md` (novo).
 
 ## A fazer, em ordem
 
@@ -196,13 +217,30 @@ Sugestão de modelo por etapa: tarefas mecânicas/config → **modelo mais leve*
 
 - [x] **Etapa 7 — Upload de KML/KMZ com opacidade** *(concluída — ver a seção "Feito", acima)*
 
-- [ ] **Etapa 8 — Upload de imagem georreferenciada local**
-  Carregar GeoTIFF/imagem+world file direto do navegador, com opacidade e ordenação de camadas. Complexidade: média-alta (arquivos grandes podem exigir processamento). Modelo sugerido: intermediário a forte.
+- [ ] **Etapa 8a — Mapa offline: salvar uma área para quando a rede oscilar** *(redefinida em 2026-07-31 — ver abaixo)*
 
-  **A Etapa 7 já deixou meio caminho andado, e vale reaproveitar em vez de reinventar:**
-  - **Opacidade e ordenação já são resolvidas por `pane` do Leaflet** (`FAIXAS_PANE` em `frontend/kml.js`), e o mecanismo foi escolhido justamente por servir a raster do mesmo jeito que a vetor — um `L.imageOverlay`/`L.tileLayer` colocado num pane herda a opacidade e o z-index sem código novo.
-  - **A tabela `calcos` e o bucket foram desenhados como "arquivo publicado pelo instrutor", não como "KML"**: `formato` é um `check` de texto, então acrescentar `'geotiff'` ali é uma linha. O que precisa de pensamento novo é o limite de tamanho — uma imagem georreferenciada é uma ordem de grandeza maior que um calco vetorial, e a conta de egress da 0006 (2 MB × 60 alunos) não sobrevive a isso. Provavelmente exige tiling ou uma revisão do plano do Supabase, e é essa a decisão central da etapa.
-  - **`carregar_imagem_geo` continua sendo a última chave "sem efeito ainda"** do catálogo, e é ela que esta etapa liga.
+  **A Etapa 8 era "upload de imagem georreferenciada" e foi trocada, a pedido, por CACHE OFFLINE.** O motivo é o uso real: o projeto sempre assumiu "campo com rede de dados disponível", e a rede de campo não cai — ela **oscila**. Um app que fica sem carta no meio do exercício por trinta segundos é pior do que um app que nunca teve foto aérea. O upload de imagem não sumiu; virou a 8b, menor e só para o instrutor.
+
+  **A ideia:** o usuário desenha um retângulo no mapa, escolhe até que zoom, vê **quantos tiles e quantos MB** aquilo dá **antes** de baixar, e confirma. Dali em diante aquela área abre sem rede.
+
+  **Decisões que a etapa precisa tomar, e que são o trabalho de verdade:**
+  - **Service Worker + Cache API, e não `fetch` + IndexedDB.** O Leaflet pede tile como `<img src>`; para servir offline é preciso interceptar. A diferença decisiva é CORS: com `fetch()` cross-origin sem CORS a resposta é *opaque* e não dá para ler os bytes — e não há como saber se o BDGEx manda `Access-Control-Allow-Origin`. Um Service Worker guarda a resposta opaca no Cache API e devolve ao `<img>` sem precisar lê-la. **Custo:** o Chrome infla a cota de resposta opaca (padding), então a estimativa de MB na tela vai ser otimista — dizer isso ao usuário faz parte.
+  - **Isso exige HTTPS.** Service Worker só roda em contexto seguro (`localhost` é a exceção). É a mesma restrição já documentada para o GPS desde a Etapa 3 — **e é o motivo de a Etapa 11 (deploy) ter sido antecipada para antes desta, e já está concluída**: com o site em https no GitHub Pages, esta etapa passa a ser testável de verdade no celular.
+  - **Só o BDGEx, provavelmente.** Baixar tile em massa viola os termos de uso da maioria dos serviços — o Google **proíbe explicitamente** cache e pré-carga, e o OpenTopoMap desencoraja download em bloco. O BDGEx é serviço do próprio Exército e é a carta que importa. Decidir se as outras opções ficam de fora, e dizer na tela por quê.
+  - **Ser educado com o servidor.** Uma área média em vários zooms são milhares de tiles; 60 celulares fazendo isso ao mesmo tempo é um ataque involuntário à Diretoria de Serviço Geográfico. Limite de concorrência, pausa entre lotes, e um teto de tiles que o usuário não consegue passar.
+  - **A matemática é pura e testável** (padrão de `rastro.js`/`kml.js`): contagem de tiles de um bbox por nível de zoom (cresce 4× por nível — é a conta que impede alguém pedir o Brasil inteiro em z16), estimativa de bytes, e o corte de zoom máximo.
+
+  Complexidade: média-alta. Modelo sugerido: intermediário a forte.
+
+- [ ] **Etapa 8b — Foto aérea / carta atualizada, publicada pelo instrutor** *(o que sobrou da Etapa 8 original)*
+
+  Só o instrutor publica, como já é com os calcos KML/KMZ. Herda quase tudo da Etapa 7:
+  - **Opacidade e ordenação já funcionam** por `pane` do Leaflet (`FAIXAS_PANE` em `frontend/kml.js`) — o mecanismo foi escolhido na 7 justamente por servir raster igual a vetor: um `L.imageOverlay` num pane herda opacidade e z-index sem código novo.
+  - **A tabela `calcos` e o bucket já são "arquivo publicado pelo instrutor", não "KML"**: `formato` é um `check` de texto, e acrescentar um valor é uma linha.
+  - **Duas decisões pendentes:** (a) como georreferenciar — GeoTIFF exige biblioteca pesada no navegador; imagem + *world file*, ou o instrutor arrastando os cantos no mapa, são bem mais baratos; (b) o **tamanho**, que é o problema real — a conta de egress da `0006` (2 MB × 60 alunos) não sobrevive a uma ortofoto, então ou entra tiling, ou muda o plano do Supabase, ou a imagem é distribuída pelo cache da 8a em vez de baixada por todo mundo.
+  - **`carregar_imagem_geo` é a última chave "sem efeito ainda"** do catálogo, e é esta etapa que a liga.
+
+  Complexidade: média. Modelo sugerido: intermediário.
 
 - [ ] **Etapa 9 — Migração para SPA com bundler + stanag-app6**
   Trocar o HTML estático por uma aplicação com Vite/webpack, e substituir as tabelas manuais de hostilidade/dimensão/natureza pelas tabelas oficiais do `stanag-app6`. Mudança estrutural, mexe em tudo. Melhor fazer depois que as etapas 1-8 já estiverem estáveis. Complexidade: alta. Modelo sugerido: mais forte.
@@ -210,8 +248,6 @@ Sugestão de modelo por etapa: tarefas mecânicas/config → **modelo mais leve*
 - [ ] **Etapa 10 — Teste de carga (60+ usuários) e ajuste de plano**
   Simular múltiplos usuários simultâneos, medir, decidir se precisa migrar do Supabase Free para o Pro. Complexidade: média (mais QA que desenvolvimento). Modelo sugerido: leve a intermediário.
 
-- [ ] **Etapa 11 — Deploy final e domínio**
-  Publicar o frontend (Vercel/Netlify), configurar domínio próprio, revisar custos reais contra o plano do `docs/Plano_WartoolC2.docx`. Complexidade: baixa-média. Modelo sugerido: leve.
 
 - [ ] **Etapa 12 — Controle de início/fim do exercício (STARTEX/ENDEX)**
   *Nova, proposta e aprovada em 2026-07-31 (brainstorm de capacidades do instrutor ainda não previstas).*

@@ -40,6 +40,12 @@ export function traduzirErro(error) {
   if (msg.includes('already registered') || msg.includes('already exists')) {
     return 'Esse usuário já está cadastrado. Tente entrar em vez de cadastrar.';
   }
+  if (msg.includes('signups not allowed') || msg.includes('signup is disabled') || msg.includes('signup not allowed')) {
+    // Etapa 11: cadastro fechado no painel do Supabase (Authentication ->
+    // Sign In / Providers -> "Allow new users to sign up" desligado). A conta
+    // agora nasce só por backend/seed/criar_usuarios.mjs (Admin API).
+    return 'Cadastro fechado. Fale com o instrutor para receber usuário e senha.';
+  }
   if (msg.includes('invalid login credentials') || msg.includes('invalid credentials')) {
     return 'Usuário ou senha incorretos.';
   }
@@ -63,6 +69,13 @@ export function traduzirErro(error) {
 // Fluxo: valida campos -> signUp -> grava nome_guerra -> entra na turma TESTE
 // via RPC de verdade (não é atalho: é o mesmo caminho que qualquer aluno usa
 // depois, com qualquer código de turma).
+//
+// Etapa 11: NÃO é mais chamada por login.html — o cadastro aberto foi a
+// decisão de risco da Etapa 2b, revertida ao publicar o site (ver a seção
+// "Decisões da Etapa 11" em CLAUDE.md). Função mantida (não apagada) porque
+// continua correta e pode servir de referência/teste manual pelo console;
+// com o signup desligado no painel do Supabase, chamá-la devolve o erro
+// traduzido acima ("Cadastro fechado...") em vez de criar conta.
 export async function cadastrar({ usuario, senha, nomeGuerra }) {
   const usuarioLimpo = (usuario || '').trim().toLowerCase();
   const nomeGuerraLimpo = (nomeGuerra || '').trim();

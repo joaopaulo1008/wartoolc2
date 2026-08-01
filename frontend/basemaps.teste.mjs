@@ -96,6 +96,35 @@ okVerdade('o BDGEx herda o protocolo da página em index.html',
 okVerdade('e não há http:// fixo apontando para o bdgex',
   !/http:\/\/bdgex\.eb\.mil\.br/.test(html));
 
+// 6. As duas armadilhas do BDGEx, travadas nas DUAS cópias. As duas falham do
+//    mesmo jeito — tile em branco, sem erro nenhum no console —, que é por que
+//    valem um teste em vez de confiança:
+//    (a) `ctm50` sozinha existe só em parte do território (RS, SC, PR, SP, RJ,
+//        ES e pedaços de outros estados). Num exercício fora dessa cobertura, o
+//        aluno abre o app e vê um mapa branco.
+//    (b) `crs: L.CRS.EPSG4326` pede ao mapcache uma grade que ele não tem em
+//        cache. Mapcache não é WMS completo: grade errada não dá erro, dá
+//        tile vazio. O sufixo `_mercator` da camada é literal.
+//
+// As duas checagens rodam sobre o código SEM COMENTÁRIOS. Não é preciosismo:
+// a primeira versão deste bloco falhou de imediato porque o comentário que
+// explica a mudança cita `crs: L.CRS.EPSG4326` e `ctm50` para dizer que eles
+// NÃO devem estar lá — e a regex, ingênua, achava as duas coisas no texto que
+// as proíbe. Mesma pegadinha do `<script>` dentro de comentário em index.html.
+const semComentarios = (texto) => texto
+  .replace(/<!--[\s\S]*?-->/g, ' ')
+  .replace(/^\s*\/\/.*$/gm, ' ');
+
+for (const [nome, fonte] of [
+  ['basemaps.js', semComentarios(readFileSync(join(aqui, 'basemaps.js'), 'utf-8'))],
+  ['index.html', semComentarios(html)],
+]) {
+  okVerdade(`${nome}: usa a camada multiescalas, não a ctm50`,
+    /layers:\s*'ctmmultiescalas_mercator'/.test(fonte) && !/'ctm50'/.test(fonte));
+  okVerdade(`${nome}: não força EPSG4326 no BDGEx`,
+    !/crs:\s*L\.CRS\.EPSG4326/.test(fonte));
+}
+
 // ─────────────────────────────────────────────────────────────────────────
 console.log('\n── A outra cópia: as cores de camada ─────────────────────');
 
