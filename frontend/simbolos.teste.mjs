@@ -18,9 +18,12 @@ import {
 
 const [argAzul, argVermelho] = process.argv.slice(2);
 
-const AZUL     = { id: argAzul     || 'p-azul',     tipo: 'beligerante' };
-const VERMELHO = { id: argVermelho || 'p-vermelho', tipo: 'beligerante' };
-const VERDE    = { id: 'p-verde',    tipo: 'neutro' };
+const AZUL     = { id: argAzul     || 'p-azul',     tipo: 'beligerante', ordem: 1 };
+const VERMELHO = { id: argVermelho || 'p-vermelho', tipo: 'beligerante', ordem: 2 };
+const VERDE    = { id: 'p-verde',    tipo: 'neutro',      ordem: 3 };
+// Fixture SEM `ordem` — simula um embed antigo/desatualizado, para provar o
+// fallback seguro (ver Etapa 11 abaixo).
+const AZUL_SEM_ORDEM = { id: 'p-azul-legado', tipo: 'beligerante' };
 
 let passou = 0, falhou = 0;
 function ok(descricao, obtido, esperado) {
@@ -56,9 +59,28 @@ ok('elemento de partido neutro -> NEUTRO', hostilidadeRelativa(AZUL, VERDE), 'NE
 ok('observador neutro não tem inimigos -> NEUTRO', hostilidadeRelativa(VERDE, AZUL), 'NEUTRO');
 ok('elemento sem partido, observador com partido -> DESCONHECIDO',
   hostilidadeRelativa(AZUL, null), 'DESCONHECIDO');
-ok('observador sem partido -> null (não afirma nada)', hostilidadeRelativa(null, VERMELHO), null);
-ok('ninguém com partido -> null, e NÃO desconhecido',
+ok('ninguém com partido (self, ver icones.js) -> null, e NÃO desconhecido',
   hostilidadeRelativa(null, null), null);
+
+// ── Observador sem partido, mas elemento COM partido (o instrutor) ─────────
+// Etapa 11: bug relatado em campo — "o instrutor vê os dois partidos como
+// azul". O instrutor nunca tem partido (fn_sou_instrutor_da_turma bypassa a
+// visibilidade normal) e via situacao.js enxerga os dois lados ao mesmo
+// tempo; antes desta correção, os dois desenhavam com o MESMO placeholder de
+// hostilidade (AMIGO/azul) gravado em perfis.sidc, ficando indistinguíveis.
+console.log('\nObservador sem partido, elemento COM partido (instrutor) — Etapa 11');
+ok('elemento é o partido de menor ordem (Azul, ordem 1) -> AMIGO (referência)',
+  hostilidadeRelativa(null, AZUL), 'AMIGO');
+ok('elemento é outro beligerante (Vermelho, ordem 2) -> HOSTIL',
+  hostilidadeRelativa(null, VERMELHO), 'HOSTIL');
+ok('elemento neutro -> NEUTRO, independente do observador',
+  hostilidadeRelativa(null, VERDE), 'NEUTRO');
+ok('elemento COM partido mas sem `ordem` no embed -> null (fallback seguro, não adivinha cor)',
+  hostilidadeRelativa(null, AZUL_SEM_ORDEM), null);
+ok('ponta a ponta: instrutor vendo um aluno do Vermelho -> SIDC sai com dígito HOSTIL (06)',
+  sidcParaObservador(PEL_VERMELHO.sidc, null, VERMELHO).slice(2, 4), '06');
+ok('ponta a ponta: instrutor vendo um aluno do Azul -> SIDC sai com dígito AMIGO (03), diferente do Vermelho acima',
+  sidcParaObservador(PEL_VERMELHO.sidc, null, AZUL).slice(2, 4), '03');
 
 // ── Compatibilidade com o que já funcionava ─────────────────────────────────
 console.log('\nCompatibilidade (Etapas 3 e 4 não podem quebrar)');

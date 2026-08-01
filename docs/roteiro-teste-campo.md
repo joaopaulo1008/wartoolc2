@@ -49,9 +49,15 @@ Sem isto pronto, nenhum item abaixo funciona:
 
 **Como saber que falhou:** um dos dois não aparece no aparelho do outro → confira primeiro se os dois estão na mesma turma e com partido atribuído (partido nulo é invisível para todo mundo, por design — não é bug). Se os dois têm partido e turma certos e mesmo assim não aparecem, é a pendência real desde a Etapa 4: confira o console do navegador (erro de subscribe no canal Realtime).
 
-## 4. Hostilidade relativa nas marcações (Etapas 4.5 e 5)
+## 4. Hostilidade relativa nas marcações e nos avatares (Etapas 4.5, 5 e correção da 11)
 
-Dois testes distintos — fazer os dois, são complementares:
+Três testes distintos — fazer os três, são complementares:
+
+**4c. Instrutor vê as duas forças com cores diferentes (regressão corrigida na Etapa 11).** Com pelo menos um aluno do Azul e um do Vermelho enviando posição, abra "Situação atual" no painel do instrutor.
+
+**Esperar:** o avatar do aluno Azul desenha AMIGO (azul) e o do Vermelho desenha HOSTIL (vermelho) — **cores diferentes entre os dois**. Antes da correção, os dois apareciam idênticos (ambos azuis), porque o instrutor nunca tem partido próprio e a função de hostilidade relativa não sabia o que fazer com isso.
+
+**Como saber que falhou:** os dois avatares aparecem com o mesmo símbolo/cor → confira se `frontend/auth.js` está na versão com `ordem` no embed de `partido:partidos(...)` (`buscarUsuariosDaTurma`) e se `frontend/simbolos.js` tem o bloco "Observador sem partido, mas o ELEMENTO tem um conhecido" em `hostilidadeRelativa()`.
 
 **4a. Mesmo partido (o teste que prova a hostilidade relativa):** duas contas do mesmo partido (ex.: Azul-1 e Azul-2). Na conta Azul-1, marque um elemento no mapa escolhendo partido "Azul" (o próprio). Na mesma conta, marque outro elemento escolhendo partido "Vermelho".
 
@@ -153,6 +159,7 @@ Depois do teste, reúna:
 - [ ] Item 2: BDGEx desenhou? Se não, qual erro (certificado, CORS, timeout, tile branco)?
 - [ ] Item 3: os dois celulares se viram?
 - [ ] Item 4a/4b: hostilidade relativa correta, marcação não vazou entre partidos?
+- [ ] Item 4c: instrutor vê Azul e Vermelho com cores diferentes (não os dois azuis)?
 - [ ] Item 5: status de GPS mudou sem F5?
 - [ ] Item 6: "Voltar ao padrão" propagou sem F5? **(o item mais provável de falhar)**
 - [ ] Item 7: troca de força recarregou sozinho?

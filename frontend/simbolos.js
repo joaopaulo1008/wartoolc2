@@ -126,49 +126,66 @@ export function decomporSidc(sidc) {
 }
 
 // ── Hostilidade relativa ────────────────────────────────────────────────────
-// Recebe DOIS partidos, no formato { id, tipo }, onde `tipo` é 'beligerante'
-// ou 'neutro' (coluna `partidos.tipo` no banco). Devolve a chave de
+// Recebe DOIS partidos, no formato { id, tipo, ordem }, onde `tipo` é
+// 'beligerante' ou 'neutro' e `ordem` é a coluna de mesmo nome em
+// `partidos` (Azul = 1, Vermelho = 2 por padrão). Devolve a chave de
 // HOSTILIDADE a usar, ou `null` quando não há como afirmar nada — e `null`
 // aqui significa "não mexa no SIDC gravado", não "desconhecido".
-//
-// A distinção importa: se o observador ainda não foi distribuído numa força,
-// a resposta honesta é "não sei", e sobrescrever o símbolo com DESCONHECIDO
-// seria inventar informação. Quem chama decide o que fazer com o null (ver
-// sidcParaObservador, que simplesmente preserva o símbolo original).
 //
 // Note que o 'neutro' é decidido pela COLUNA `tipo` do partido, e não por uma
 // lista de nomes aqui dentro: é isso que permite acrescentar um partido
 // "civil" ou "imprensa" com um INSERT no banco, sem tocar neste arquivo.
+//
+// CORREÇÃO na Etapa 11 (relatado em campo: "o instrutor vê os dois partidos
+// como azul"). Até então, observador sem partido SEMPRE devolvia `null`
+// (passthrough), pensado para o caso "ninguém tem partido ainda" — mas o
+// mesmo caminho também é o do INSTRUTOR (que nunca tem partido, por design,
+// e enxerga os dois lados ao mesmo tempo em frontend/situacao.js). Como o
+// SIDC gravado em `perfis.sidc`/`elementos_marcados.sidc` tem SEMPRE o
+// placeholder de hostilidade AMIGO (`03` — é o default do schema), o
+// passthrough fazia Azul e Vermelho desenharem IDÊNTICOS para o instrutor.
+// A ORDEM DESTAS GUARDAS CONTINUA IMPORTANDO (há teste em simbolos.teste.mjs):
 export function hostilidadeRelativa(partidoObservador, partidoElemento) {
   const ele = partidoElemento || null;
   const obs = partidoObservador || null;
 
-  // A ORDEM DESTAS GUARDAS IMPORTA — trocá-las quebra a compatibilidade com
-  // as Etapas 3 e 4 (há teste para isso em simbolos.teste.mjs).
-  //
-  // Observador sem partido (o instrutor, ou qualquer conta antes de o
-  // instrutor distribuir as forças): não existe relação de hostilidade a
-  // derivar, então não se afirma nada e o SIDC gravado passa intacto. Tem de
-  // vir ANTES da checagem do elemento: se viesse depois, um banco recém
-  // migrado — onde ninguém tem partido ainda — passaria a desenhar todo mundo
-  // como DESCONHECIDO, que é inventar informação em cima de "não sei".
-  if (!obs || !obs.id) return null;
+  // Observador E elemento sem partido: é a chamada "self" do próprio avatar
+  // (ver icones.js — gps.js não passa nenhum dos dois). Não há relação
+  // nenhuma a derivar aqui, então não se afirma nada — precisa vir ANTES de
+  // qualquer outra guarda, senão o próprio avatar de quem ainda não tem
+  // partido passaria a desenhar como DESCONHECIDO.
+  if ((!obs || !obs.id) && (!ele || !ele.id)) return null;
 
-  // Daqui para baixo, quem olha TEM um partido — então "elemento sem partido"
-  // é uma afirmação de verdade, e não falta de contexto: é o "vi alguém, não
-  // sei de quem é" que a marcação precisa saber representar.
+  // Elemento sem partido, mas ALGUÉM está de fato olhando (com ou sem
+  // partido): "vi alguém, não sei de quem é" — é uma afirmação de verdade, e
+  // não falta de contexto.
   if (!ele || !ele.id) return 'DESCONHECIDO';
 
-  // Um partido neutro é neutro para todo mundo, inclusive para ele mesmo.
+  // Um partido neutro é neutro para todo mundo, inclusive para ele mesmo —
+  // não depende de o observador ter partido.
   if (ele.tipo === 'neutro') return 'NEUTRO';
 
-  if (obs.id === ele.id) return 'AMIGO';
+  if (obs && obs.id) {
+    if (obs.id === ele.id) return 'AMIGO';
+    // Observador neutro não tem inimigos.
+    if (obs.tipo === 'neutro') return 'NEUTRO';
+    // Dois beligerantes diferentes.
+    return 'HOSTIL';
+  }
 
-  // Observador neutro não tem inimigos.
-  if (obs.tipo === 'neutro') return 'NEUTRO';
-
-  // Dois beligerantes diferentes.
-  return 'HOSTIL';
+  // Observador SEM partido, mas o ELEMENTO tem um conhecido — tipicamente o
+  // instrutor olhando um aluno já distribuído numa força. Não existe "eu"
+  // para comparar, então isto NÃO é hostilidade relativa de verdade: é uma
+  // referência FIXA (o partido de menor `ordem` da turma — Azul, por
+  // padrão — conta como "amigo"/azul; qualquer outro beligerante conta como
+  // "hostil"/vermelho) só para dar distinção visual às duas forças na tela
+  // do instrutor, na mesma convenção de cor já usada nos calcos (Etapa 7.1:
+  // "azul e vermelho são os mesmos tons da legenda de forças"). Se o
+  // chamador não mandar `ordem` (embed antigo, não atualizado), não dá para
+  // saber qual referência usar — melhor devolver `null` (preserva o SIDC)
+  // do que arriscar uma cor errada.
+  if (typeof ele.ordem === 'number') return ele.ordem <= 1 ? 'AMIGO' : 'HOSTIL';
+  return null;
 }
 
 // Troca os dígitos 3-4 de um SIDC de 20 dígitos pelo par de hostilidade.

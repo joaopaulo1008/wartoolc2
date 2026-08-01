@@ -211,7 +211,7 @@ export async function buscarPerfil(userId) {
     .select(
       'papel, nome_guerra, turma_id, sidc, partido_id, preferencias_visualizacao,' +
       ' turma:turmas!perfis_turma_id_fkey(nome, codigo_acesso),' +
-      ' partido:partidos(id, nome, tipo, cor)'
+      ' partido:partidos(id, nome, tipo, cor, ordem)'
     )
     .eq('id', userId)
     .maybeSingle();
@@ -242,7 +242,7 @@ export async function buscarPerfil(userId) {
 export async function buscarPerfisDaTurma(turmaId, { excluirId } = {}) {
   let query = supabase
     .from('perfis')
-    .select('id, nome_guerra, sidc, partido_id, partido:partidos(id, tipo)')
+    .select('id, nome_guerra, sidc, partido_id, partido:partidos(id, tipo, ordem)')
     .eq('turma_id', turmaId);
   if (excluirId) query = query.neq('id', excluirId);
 
@@ -264,7 +264,7 @@ export async function buscarPerfisDaTurma(turmaId, { excluirId } = {}) {
 export async function buscarPerfilBasico(usuarioId) {
   const { data, error } = await supabase
     .from('perfis')
-    .select('id, nome_guerra, sidc, partido_id, partido:partidos(id, tipo)')
+    .select('id, nome_guerra, sidc, partido_id, partido:partidos(id, tipo, ordem)')
     .eq('id', usuarioId)
     .maybeSingle();
   if (error) {
@@ -294,10 +294,16 @@ export async function buscarPerfilBasico(usuarioId) {
 // painel de permissões não usa a coluna e não é prejudicado por ela; o que
 // continua valendo é não engordar buscarPerfisDaTurma(), essa sim no caminho
 // crítico do mapa do aluno.
+// `partido:partidos(..., ordem)` ganhou `ordem` na Etapa 11 (correção do bug
+// "instrutor vê os dois partidos como azul" em frontend/situacao.js):
+// hostilidadeRelativa() (simbolos.js) precisa da ordem do partido do ELEMENTO
+// para dar cor de referência quando o observador (o instrutor) não tem
+// partido — sem essa coluna, o observer-sem-partido cai no fallback seguro
+// (não mexe no SIDC) e volta a mostrar todo mundo com o placeholder AMIGO.
 export async function buscarUsuariosDaTurma(turmaId) {
   const { data, error } = await supabase
     .from('perfis')
-    .select('id, nome_guerra, nome_completo, papel, posto_graduacao, ativo, sidc, partido:partidos(id, nome, cor, tipo)')
+    .select('id, nome_guerra, nome_completo, papel, posto_graduacao, ativo, sidc, partido:partidos(id, nome, cor, tipo, ordem)')
     .eq('turma_id', turmaId);
   if (error) {
     console.error('buscarUsuariosDaTurma falhou:', error);
