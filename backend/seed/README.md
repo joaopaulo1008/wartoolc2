@@ -1,6 +1,17 @@
 # Seed — lista de usuários do exercício
 
-Como o WartoolC2 é usado em exercícios com efetivo e funções definidos de antemão, as contas não são criadas por auto-cadastro: você monta a lista antes e um script cria tudo de uma vez, já com a turma e o símbolo militar de cada um.
+Desde a revisão da Etapa 11, o cadastro em `frontend/login.html` voltou a ser
+aberto (protegido pelo código da turma — ver `backend/supabase/0007_codigo_turma_valido.sql`
+e a seção "Decisões da Etapa 11" em `CLAUDE.md`), então este script **não é
+mais o único caminho** para criar conta. Ele continua útil para dois casos
+que o cadastro aberto não cobre:
+
+- a **conta do instrutor** — o formulário de `login.html` sempre cria papel
+  `usuario`, nunca `instrutor` (por design: papel não é escolhido pelo
+  cliente);
+- exercícios onde se prefere não depender de autocadastro e montar a lista
+  inteira (efetivo, função, símbolo) de antemão, como no plano original da
+  Etapa 2c.
 
 ## O arquivo
 

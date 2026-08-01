@@ -66,19 +66,25 @@ export function traduzirErro(error) {
 }
 
 // ── Cadastro ─────────────────────────────────────────────────────────────
-// Fluxo: valida campos -> signUp -> grava nome_guerra -> entra na turma TESTE
-// via RPC de verdade (não é atalho: é o mesmo caminho que qualquer aluno usa
-// depois, com qualquer código de turma).
+// Fluxo: valida campos -> confere o código da turma (fn_codigo_turma_valido,
+// SEM sessão) -> signUp -> grava nome_guerra -> entra na turma via
+// entrar_na_turma(codigo) (mesmo caminho que qualquer aluno usaria depois).
 //
-// Etapa 11: NÃO é mais chamada por login.html — o cadastro aberto foi a
-// decisão de risco da Etapa 2b, revertida ao publicar o site (ver a seção
-// "Decisões da Etapa 11" em CLAUDE.md). Função mantida (não apagada) porque
-// continua correta e pode servir de referência/teste manual pelo console;
-// com o signup desligado no painel do Supabase, chamá-la devolve o erro
-// traduzido acima ("Cadastro fechado...") em vez de criar conta.
-export async function cadastrar({ usuario, senha, nomeGuerra }) {
+// Etapa 11, revisado: a primeira versão desta etapa tinha fechado o cadastro
+// por completo (signup desligado no painel + contas só via
+// backend/seed/criar_usuarios.mjs). Decisão revertida a pedido — o cadastro
+// volta a ser aberto, mas agora EXIGE o código da turma já na hora de criar a
+// conta (não entra mais automaticamente numa turma "TESTE" fixa). O código
+// funciona como a "senha do exercício": só quem o recebeu do instrutor cria
+// conta que enxerga algo — sem turma, a conta não vê ninguém e não é vista
+// (mesma regra de partido nulo desde a Etapa 4.5). Ver
+// backend/supabase/0007_codigo_turma_valido.sql e a seção "Decisões da Etapa
+// 11" em CLAUDE.md. O signup do Supabase pode continuar LIGADO no painel —
+// quem barra agora é o código, não mais o toggle de signup.
+export async function cadastrar({ usuario, senha, nomeGuerra, codigoTurma }) {
   const usuarioLimpo = (usuario || '').trim().toLowerCase();
   const nomeGuerraLimpo = (nomeGuerra || '').trim();
+  const codigoLimpo = (codigoTurma || '').trim();
 
   if (!validarUsuario(usuarioLimpo)) {
     return { erro: 'Usuário deve ter de 3 a 20 caracteres: letras, números, ponto, hífen ou underscore (sem espaços, sem @).' };
@@ -89,6 +95,20 @@ export async function cadastrar({ usuario, senha, nomeGuerra }) {
   if (!senha || senha.length < 6) {
     return { erro: 'A senha precisa ter pelo menos 6 caracteres.' };
   }
+  if (!codigoLimpo) {
+    return { erro: 'Informe o código da turma (recebido do instrutor).' };
+  }
+
+  // Confere o código ANTES de criar a conta — fn_codigo_turma_valido roda sem
+  // sessão (grant para `anon`), então não gasta um cadastro num código
+  // errado. Só diz sim/não; a validação de verdade, que de fato entra na
+  // turma, continua sendo entrar_na_turma() logo abaixo.
+  const { data: codigoValido, error: erroCodigo } = await supabase.rpc(
+    'fn_codigo_turma_valido',
+    { p_codigo: codigoLimpo }
+  );
+  if (erroCodigo) return { erro: traduzirErro(erroCodigo) };
+  if (!codigoValido) return { erro: 'Código de turma inválido ou turma inativa. Confira com o instrutor.' };
 
   const email = usuarioParaEmail(usuarioLimpo);
 
@@ -126,14 +146,16 @@ export async function cadastrar({ usuario, senha, nomeGuerra }) {
     console.warn('Falha ao gravar nome de guerra:', erroPerfil.message);
   }
 
-  // Entrada na turma de teste — caminho real via RPC (não é atalho).
-  // Se falhar (ex.: a turma TESTE ainda não foi criada no SQL Editor), o
-  // cadastro continua válido; a tela seguinte mostra um aviso e permite tentar
-  // de novo com um código manual.
+  // Entrada na turma pelo código que a pessoa digitou — já confirmado válido
+  // acima, mas entrar_na_turma() é quem de fato grava turma_id (e é ela,
+  // não a checagem anterior, que fecha a RLS). Repetir a checagem aqui não é
+  // desperdício: entre o fn_codigo_turma_valido() acima e este ponto, a
+  // turma pode ter sido desativada — condição de corrida rara, mas o
+  // tratamento de erro já existe de qualquer jeito.
   let avisoTurma = null;
-  const { error: erroTurma } = await supabase.rpc('entrar_na_turma', { p_codigo: 'TESTE' });
+  const { error: erroTurma } = await supabase.rpc('entrar_na_turma', { p_codigo: codigoLimpo });
   if (erroTurma) {
-    avisoTurma = `Cadastro criado, mas não foi possível entrar na turma de teste automaticamente: ${traduzirErro(erroTurma)}`;
+    avisoTurma = `Cadastro criado, mas não foi possível entrar na turma automaticamente: ${traduzirErro(erroTurma)}`;
   }
 
   return { ok: true, avisoTurma };

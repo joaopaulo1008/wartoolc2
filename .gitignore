@@ -20,6 +20,11 @@ Thumbs.db
 .vscode/
 .idea/
 
+# Supabase CLI — estado local de `supabase link` (referência do projeto,
+# tokens de sessão do pooler/versões), gerado automaticamente, não é código
+supabase/.temp/
+backend/supabase/.temp/
+
 # Segredos e dados de exercício — NUNCA comitar
 # Lista real de usuários (contém senhas); só o .exemplo.csv vai para o repo
 backend/seed/usuarios_exercicio.csv

@@ -1,18 +1,20 @@
-// criar_usuarios.mjs — Etapa 11: a parte da Etapa 2c que fecha o cadastro.
+// criar_usuarios.mjs — Etapa 11: criação de contas fora do autocadastro.
 //
-// Por que este script existe agora, e por que não é a Etapa 2c inteira
+// Por que este script existe, e por que não é a Etapa 2c inteira
 // -----------------------------------------------------------------------
-// A Etapa 11 (deploy) tornou o cadastro aberto de login.html um risco real:
-// numa URL pública, qualquer um que ache o link cria a própria conta e entra
-// na turma. A correção tem duas partes, e as duas são necessárias:
-//   1. Desligar "Allow new users to sign up" no painel do Supabase
-//      (Authentication -> Sign In / Providers) — passo manual, fora deste
-//      script, documentado em backend/README.md.
-//   2. Ter uma forma de CRIAR conta sem o autocadastro. É isso que este
-//      script faz — é a parte da Etapa 2c ("contas pré-cadastradas") que não
-//      dava para adiar mais, sem fazer a etapa inteira (esta versão não trata
-//      hostilidade/dimensão como o modelo final fará quando 2c for retomada
-//      com calma; usa exatamente as mesmas tabelas de simbolos.js, só isso).
+// O cadastro de login.html voltou a ser aberto (revisão da Etapa 11: protegido
+// pelo código da turma — ver backend/supabase/0007_codigo_turma_valido.sql),
+// então este script deixou de ser a única porta de entrada. Continua
+// necessário para dois casos que o cadastro aberto NÃO cobre:
+//   1. A conta do INSTRUTOR — login.html sempre cria papel `usuario` (o papel
+//      não é escolhido pelo cliente, por design desde a Etapa 1); promover a
+//      instrutor é operação de service_role, e este script já faz isso.
+//   2. Exercícios que preferem montar a lista inteira de antemão (efetivo,
+//      função, símbolo) em vez de depender de autocadastro — é a parte da
+//      Etapa 2c ("contas pré-cadastradas") que não dava para adiar mais, sem
+//      fazer a etapa inteira (esta versão não trata hostilidade/dimensão como
+//      o modelo final fará quando 2c for retomada com calma; usa exatamente
+//      as mesmas tabelas de simbolos.js, só isso).
 //
 // Como rodar
 // -----------------------------------------------------------------------
