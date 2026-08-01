@@ -53,9 +53,15 @@ function injetarEstilos() {
     .pl-recolhido .pl-corpo { display:none; }
 
     /* Botão que recolhe o painel inteiro. Fica onde o painel começa, para o
-       polegar achar no mesmo lugar com o painel aberto ou fechado. */
+       polegar achar no mesmo lugar com o painel aberto ou fechado.
+       `top:10px` (não mais 58px): o botão é inserido como irmão do painel, no
+       mesmo pai (ver `painel.parentElement.insertBefore` abaixo) — desde a
+       correção de mobile pós-campo esse pai é #mapa-wrap, que já tem
+       `position:relative` e só começa depois da topbar. Um valor fixo pequeno
+       aqui vale para qualquer altura de topbar; um valor fixo grande (58px)
+       só valia enquanto a topbar coubesse numa linha só. */
     #pl-botao {
-      position:absolute; top:58px; right:10px; z-index:1002;
+      position:absolute; top:10px; right:10px; z-index:1002;
       background:rgba(13,27,42,.92); color:#a8c8e8;
       border:1px solid #2a4a6b; border-radius:6px;
       padding:7px 11px; font-size:13px; line-height:1; cursor:pointer;
@@ -142,8 +148,10 @@ export function iniciarPainelRecolhivel({
     botao.classList.toggle('pl-aberto', aberto);
     botao.setAttribute('aria-expanded', String(aberto));
     // Com o painel aberto o botão sobe para não cobrir o primeiro cartão;
-    // fechado, ocupa o lugar que o painel deixou.
-    botao.style.top = aberto ? '26px' : '58px';
+    // fechado, ocupa o lugar que o painel deixou. Mesma diferença de ~32px de
+    // antes, só que a partir da nova base de 10px (ver comentário do #pl-botao
+    // acima) em vez da antiga base de 58px.
+    botao.style.top = aberto ? '-22px' : '10px';
   }
 
   botao.addEventListener('click', () => { aberto = !aberto; aplicar(); });

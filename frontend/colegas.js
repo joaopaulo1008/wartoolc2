@@ -44,6 +44,13 @@ import { observarPermissao } from './permissoes.js';
 // PRÓPRIO laço (ele decide o que "esmaecer"/"remover" significam para um
 // avatar de colega), só não guarda mais os números nem a conta de idade.
 import { REMOVER_MS, idadeMs, iniciarVigia } from './vigia-ausencia.js';
+// Bug relatado em campo (teste da Etapa 11): colegas em posições quase
+// idênticas (ex.: formados lado a lado) desenhavam avatares empilhados,
+// impossíveis de distinguir/clicar. dispersarPosicoes() é puro/testável
+// (frontend/dispersar-avatares.js) — este módulo só chama de novo depois de
+// qualquer mudança e aplica o resultado nos markers. Ver o cabeçalho de lá
+// para o porquê de usar a posição CRUA (não a já deslocada) como entrada.
+import { dispersarPosicoes } from './dispersar-avatares.js';
 
 // ── Estado do módulo ─────────────────────────────────────────────────────
 // perfisCache: usuario_id -> { id, nome_guerra, sidc }. Povoado de uma vez
@@ -157,9 +164,15 @@ async function upsertAvatar(row, { map }) {
     estado.marker.setOpacity(1); // pode ter sido esmaecido pela vigia; voltou a se mover, então "está vivo"
   }
 
+  // Posição CRUA guardada à parte do que está desenhado — redistribuirAvatares()
+  // sempre parte daqui, nunca do que um deslocamento anterior já moveu (senão
+  // o deslocamento se acumularia a cada posição nova).
+  estado.lat = row.latitude;
+  estado.lng = row.longitude;
   estado.ultimaAtualizacaoEm = row.atualizado_em ? new Date(row.atualizado_em).getTime() : Date.now();
   estado.marker.bindPopup(popupColega(perfil, row));
 
+  redistribuirAvatares();
   status(`${colegas.size} visível${colegas.size === 1 ? '' : 'eis'}`, '#7af57a');
 }
 
@@ -168,7 +181,23 @@ function removerAvatar(usuarioId, { map }) {
   if (!estado) return;
   map.removeLayer(estado.marker);
   colegas.delete(usuarioId);
+  redistribuirAvatares();
   status(`${colegas.size} visível${colegas.size === 1 ? '' : 'eis'}`, '#7a9ab8');
+}
+
+// Recalcula, a partir das posições CRUAS de todo mundo ainda no mapa, quem
+// precisa ser deslocado por estar empilhado com outro colega — e aplica o
+// resultado. Determinístico (mesmas posições cruas -> mesmo arranjo,
+// qualquer que seja a ordem de chegada dos eventos), então chamar isto a
+// cada mudança não faz os avatares "tremerem": quem não está em cima de
+// ninguém sempre volta pra própria posição exata.
+function redistribuirAvatares() {
+  const pontos = [...colegas].map(([id, e]) => ({ id, lat: e.lat, lng: e.lng }));
+  const posicionado = dispersarPosicoes(pontos);
+  for (const [id, e] of colegas) {
+    const p = posicionado.get(id);
+    if (p) e.marker.setLatLng([p.lat, p.lng]);
+  }
 }
 
 // ── 1. Estado inicial (select comum, não Realtime) ──────────────────────

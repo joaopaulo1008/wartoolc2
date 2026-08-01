@@ -34,6 +34,23 @@
       color:#a8c8e8; text-transform:uppercase; white-space:nowrap;
     }
     #status-bar { display:flex; align-items:center; gap:16px; font-size:12px; flex-wrap:wrap; }
+    /* Etapa pós-campo: os itens de diagnóstico (contadores + os cinco status)
+       viviam soltos direto no #status-bar. Numa tela estreita, flex-wrap os
+       empurrava para 3-5 linhas — a topbar sozinha passava a ocupar boa parte
+       da tela e, por estar fora do fluxo normal (ver #side-panel logo abaixo),
+       ainda tapava o botão do painel lateral. Agora ficam agrupados em
+       #status-detalhes, que nasce OCULTO em tela estreita (mesmo critério de
+       largura de painel-lateral.js) e se abre pelo botão #status-toggle.
+       #user-bar (turma/nome/Sair) fica FORA do grupo de propósito: sair da
+       turma é a única ação daqui que não pode depender de um toque a mais. */
+    #status-detalhes { display:flex; align-items:center; gap:16px; flex-wrap:wrap; }
+    #status-detalhes.pl-oculto { display:none; }
+    #status-toggle {
+      background:transparent; color:#7a9ab8; border:1px solid #2a4a6b;
+      border-radius:4px; padding:2px 8px; font-size:12px; cursor:pointer;
+      font-family:inherit; line-height:1.6;
+    }
+    #status-toggle:hover { color:#c8d8e8; border-color:#3a6a9b; }
     #last-update { color:#7a9ab8; display:flex; align-items:center; gap:5px; }
     #gps-status { color:#7a9ab8; white-space:nowrap; } /* Etapa 3: status do GPS próprio, atualizado por gps.js */
     #colegas-status { color:#7a9ab8; white-space:nowrap; } /* Etapa 4: status dos colegas em tempo real, atualizado por colegas.js */
@@ -56,8 +73,18 @@
     #map { flex:1; width:100%; }
 
     /* ── Painel lateral ─────────────────────────────────────── */
+    /* `top` era 58px, um chute do tamanho da topbar numa linha só. Como o
+       painel não tinha ancestral posicionado entre ele e o <body>, esse valor
+       era medido a partir do TOPO DA TELA, não do fim da topbar — se a topbar
+       crescesse (que é exatamente o que acontecia no celular, com o
+       #status-bar quebrando em várias linhas), o painel e o botão que o abre
+       ficavam por baixo dela. A correção de verdade não é achar o número
+       certo: é o painel (e o #pl-botao que painel-lateral.js insere do lado
+       dele) terem virado filhos de #mapa-wrap, que já tem `position:relative`
+       e só começa depois que a topbar (de qualquer altura) termina — por isso
+       10px basta, não importa quantas linhas a topbar tiver. */
     #side-panel {
-      position:absolute; top:58px; right:10px; z-index:1000;
+      position:absolute; top:10px; right:10px; z-index:1000;
       display:flex; flex-direction:column; gap:8px;
     }
     .panel-card {
@@ -181,20 +208,27 @@
 <div id="topbar">
   <h1>🗺 WartoolC2</h1>
   <div id="status-bar">
-    <div id="contadores">
-      <span class="cnt cnt-f" id="cnt-f">F: 0</span>
-      <span class="cnt cnt-i" id="cnt-i">I: 0</span>
-      <span class="cnt cnt-n" id="cnt-n">N: 0</span>
-      <span class="cnt cnt-d" id="cnt-d">D: 0</span>
+    <!-- status-detalhes agrupa só o que é diagnóstico (contadores + os cinco
+         status). Nasce oculto em tela estreita — ver #status-toggle no script
+         module do fim do arquivo, mesmo critério de largura de
+         painel-lateral.js (LARGURA_PAINEL_ABERTO). -->
+    <div id="status-detalhes">
+      <div id="contadores">
+        <span class="cnt cnt-f" id="cnt-f">F: 0</span>
+        <span class="cnt cnt-i" id="cnt-i">I: 0</span>
+        <span class="cnt cnt-n" id="cnt-n">N: 0</span>
+        <span class="cnt cnt-d" id="cnt-d">D: 0</span>
+      </div>
+      <span id="last-update">
+        <span id="update-dot"></span>Aguardando dados...
+      </span>
+      <span id="gps-status">GPS: —</span>
+      <span id="colegas-status">Colegas: —</span>
+      <span id="marcacoes-status">Marcações: —</span>
+      <span id="permissoes-status">Permissões: —</span>
+      <span id="camadas-status">Camadas: —</span>
     </div>
-    <span id="last-update">
-      <span id="update-dot"></span>Aguardando dados...
-    </span>
-    <span id="gps-status">GPS: —</span>
-    <span id="colegas-status">Colegas: —</span>
-    <span id="marcacoes-status">Marcações: —</span>
-    <span id="permissoes-status">Permissões: —</span>
-    <span id="camadas-status">Camadas: —</span>
+    <button type="button" id="status-toggle" title="Mostrar/ocultar status">ⓘ</button>
     <div id="user-bar">
       <span id="turma-info"></span>
       <span id="user-nome"></span>
@@ -222,9 +256,13 @@
       </p>
     </div>
   </div>
-</div>
 
-<div id="side-panel">
+  <!-- side-panel mora DENTRO de #mapa-wrap (não mais como irmão dele) desde a
+       correção de mobile pós-campo: #mapa-wrap já tem `position:relative` e só
+       começa depois que a topbar termina, então `position:absolute; top:10px`
+       aqui é sempre relativo ao fim da topbar, não ao topo da tela — ver
+       comentário de #side-panel no <style>. -->
+  <div id="side-panel">
 
   <!-- Seletor de mapa base -->
   <div class="panel-card" id="card-mapa-base">
@@ -298,6 +336,7 @@
     <div id="extra-layers-list"></div>
   </div>
 
+  </div>
 </div>
 
 <div id="footer">
@@ -896,7 +935,30 @@ import { iniciarRastreamentoProprio } from './gps.js';
 import { iniciarColegas } from './colegas.js';
 import { iniciarMarcacoes } from './marcacoes.js';
 import { iniciarCamadas } from './camadas.js';
-import { iniciarPainelRecolhivel, tornarRecolhivel } from './painel-lateral.js';
+import { iniciarPainelRecolhivel, tornarRecolhivel, LARGURA_PAINEL_ABERTO } from './painel-lateral.js';
+
+// Correção de mobile pós-campo: os itens de diagnóstico da topbar
+// (#status-detalhes) nascem ocultos em tela estreita, com o mesmo critério de
+// largura do painel lateral (painel-lateral.js) — não é o "breakpoint certo",
+// é o mesmo já validado para o painel, para não inventar um segundo número.
+// Medido uma vez, na montagem, pelo mesmo motivo de painel-lateral.js: girar
+// o celular no meio do exercício não deve fechar o status na cara de quem
+// acabou de abrir. Fica fora do bloco `if (resultado)` abaixo de propósito —
+// não depende de sessão, então roda mesmo enquanto o body ainda está com
+// visibility:hidden (não é visível até a sessão ser confirmada de qualquer
+// forma).
+(function iniciarStatusRecolhivel() {
+  const detalhes = document.getElementById('status-detalhes');
+  const botao = document.getElementById('status-toggle');
+  if (!detalhes || !botao) return;
+  let aberto = window.innerWidth > LARGURA_PAINEL_ABERTO;
+  function aplicar() {
+    detalhes.classList.toggle('pl-oculto', !aberto);
+    botao.setAttribute('aria-expanded', String(aberto));
+  }
+  botao.addEventListener('click', () => { aberto = !aberto; aplicar(); });
+  aplicar();
+})();
 
 const resultado = await exigirSessao('usuario');
 if (resultado) {

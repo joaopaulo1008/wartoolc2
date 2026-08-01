@@ -74,6 +74,11 @@ import {
 // telas. Nada de segundo caminho de desenho.
 import { iniciarCamadas, definirTurmaCamadas } from './camadas.js';
 import { criarBasemaps, preencherSeletorBasemap, BASEMAP_PADRAO } from './basemaps.js';
+// Mesma correção de colegas.js (bug relatado em campo: avatares empilhados
+// quando duas ou mais pessoas ficam fisicamente próximas). Aqui o instrutor
+// vê a turma INTEIRA de uma vez, então o problema aparece ainda mais — ver o
+// cabeçalho de dispersar-avatares.js.
+import { dispersarPosicoes } from './dispersar-avatares.js';
 
 // ── Mapas base ───────────────────────────────────────────────────────────
 // Vêm de frontend/basemaps.js desde a Etapa 7.1. Até então esta tela tinha a
@@ -283,6 +288,7 @@ function desenharOuAtualizarMarcador(usuarioId) {
     estado.marker.setOpacity(1); // pode ter sido esmaecido pela vigia; voltou a se mover, "está vivo"
   }
   estado.marker.bindPopup(popupPosicao(usuario, row));
+  redistribuirPosicoes();
 }
 
 function removerMarcadorDoMapa(usuarioId) {
@@ -290,6 +296,25 @@ function removerMarcadorDoMapa(usuarioId) {
   if (!estado?.marker || !camadaPosicoes) return;
   camadaPosicoes.removeLayer(estado.marker);
   estado.marker = null;
+  redistribuirPosicoes();
+}
+
+// Mesma lógica de colegas.js: recalcula, a partir da posição CRUA
+// (estado.row.lat/lng, nunca do que um deslocamento anterior já moveu) de
+// todo mundo com marker ainda desenhado, quem precisa sair do lugar por
+// estar empilhado com outro usuário — o instrutor vê a turma inteira de uma
+// vez, então este é o caso onde o problema mais aparece. Determinístico:
+// quem não colide com ninguém sempre volta pra própria posição exata.
+function redistribuirPosicoes() {
+  const pontos = [];
+  for (const [id, estado] of posicoes) {
+    if (!estado.marker) continue; // vigia já tirou do mapa; não participa do arranjo
+    pontos.push({ id, lat: estado.row.latitude, lng: estado.row.longitude });
+  }
+  const posicionado = dispersarPosicoes(pontos);
+  for (const [id, p] of posicionado) {
+    posicoes.get(id)?.marker?.setLatLng([p.lat, p.lng]);
+  }
 }
 
 // A linha some do banco de verdade (DELETE — do próprio instrutor via

@@ -160,6 +160,8 @@ Depois do teste, reúna:
 - [ ] Item 3: os dois celulares se viram?
 - [ ] Item 4a/4b: hostilidade relativa correta, marcação não vazou entre partidos?
 - [ ] Item 4c: instrutor vê Azul e Vermelho com cores diferentes (não os dois azuis)?
+- [ ] Avatares empilhados: com dois ou mais celulares fisicamente próximos (lado a lado), os avatares se separam visualmente no mapa (colegas.js e situacao.js), em vez de ficarem um em cima do outro?
+- [ ] Topbar no celular: ao abrir o app numa tela estreita, a topbar mostra só o título + turma/nome/Sair (sem os status de diagnóstico, que ficam atrás do botão "ⓘ"), o botão do painel lateral (☰) aparece visível e clicável (não escondido atrás da topbar), e o painel de opções (Mapa Base/Forças/Camadas) nasce fechado?
 - [ ] Item 5: status de GPS mudou sem F5?
 - [ ] Item 6: "Voltar ao padrão" propagou sem F5? **(o item mais provável de falhar)**
 - [ ] Item 7: troca de força recarregou sozinho?

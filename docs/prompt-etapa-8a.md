@@ -5,9 +5,12 @@ decisão de arquitetura com modo de falha silencioso (Service Worker, cota de na
 resposta opaca, termos de uso de serviço de terceiro). Não é volume de código; é o tipo de
 coisa em que errar não dá erro.
 
-**A Etapa 11 (deploy) foi ANTECIPADA e vem antes desta** — decidido em 2026-07-31. Sem um
-domínio https, o Service Worker desta etapa não registra no celular e ela não é testável.
-Ver `docs/prompt-etapa-11.md` e a nota no fim deste arquivo.
+**A Etapa 11 (deploy) já está concluída** (GitHub Pages, `https://joaopaulo1008.github.io/wartoolc2/`
+— não Vercel/Netlify como cogitado antes; ver "Decisões da Etapa 11" em `CLAUDE.md`). É o que
+destrava esta etapa: Service Worker só registra em contexto seguro, e agora existe um domínio
+https de verdade para testar no celular. Falta confirmar em campo (roteiro abaixo) se o
+BDGEx — o mapa base mais provável de valer a pena salvar offline — realmente desenha por ali;
+se não desenhar, a decisão do item 3 abaixo muda.
 
 ---
 
@@ -98,42 +101,32 @@ nem a Etapa 2c (seed de usuários).
 **Verificação:** `node --check` nos arquivos novos/alterados (inclusive os blocos `<script>`
 embutidos no HTML — atenção que o `index.html` tem a palavra `<script>` dentro de um
 comentário HTML e ela atrapalha extração por regex ingênua) e os testes existentes
-continuando verdes: `frontend/simbolos.teste.mjs` (20), `frontend/marcacoes.teste.mjs` (40),
-`frontend/rastro.teste.mjs` (64), `frontend/kml.teste.mjs` (116) e
-`frontend/basemaps.teste.mjs` (24). Se houver migration, valide o SQL com
-`backend/testes/valida_sql.py` (parser oficial do Postgres via `pglast`) — mas provavelmente
-não há: esta etapa é toda de navegador.
+continuando verdes: `frontend/simbolos.teste.mjs` (25), `frontend/marcacoes.teste.mjs` (40),
+`frontend/rastro.teste.mjs` (64), `frontend/kml.teste.mjs` (116),
+`frontend/basemaps.teste.mjs` (24) e `frontend/dispersar-avatares.teste.mjs` (14, novo —
+resolve avatares empilhados em colegas.js/situacao.js, achado no teste de campo). Se houver
+migration, valide o SQL com
+`backend/testes/valida_sql.py` (parser oficial do Postgres via `pglast`) e aplique com
+`backend/scripts/aplicar_migrations.sh` — mas provavelmente não há migration nesta etapa: é
+toda de navegador.
 
-**Pendências de teste ao vivo acumuladas**, que valem rodar quando houver ambiente:
-dois celulares vendo a posição um do outro; duas contas do mesmo partido conferindo a
-hostilidade relativa das marcações; instrutor desabilitando `enviar_posicao_gps` e o app do
-aluno reagindo sem F5; instrutor clicando "Voltar ao padrão da turma" (o mais incerto —
-depende do evento `DELETE` casar com o filtro do canal); instrutor trocando a força de um
-aluno e o app dele recarregando sozinho; da Etapa 6b: aplicar a `0005` e conferir
-`prosecdef = false`, o `explain analyze` da RPC usando `idx_hist_usuario_tempo`, e chamar a
-RPC com token de aluno passando o UUID de um colega; da Etapa 7: **com token de aluno do
-Vermelho, baixar pelo caminho direto o objeto de um calco publicado só para o Azul — tem que
-dar erro** (a policy de storage se apoia em `calcos_ler` e o modo de falha seria ABERTO),
-aplicar a `0006` e conferir que o bucket nasceu privado, publicar um calco com a turma toda
-com o app aberto e ver aparecer sem F5; e da 7.1: confirmar que `bdgex.eb.mil.br/mapcache`
-atende em **https**.
-
----
-
-## Nota sobre a ordem: considere fazer a Etapa 11 antes desta
-
-A Etapa 8a depende de **Service Worker**, que **só funciona em HTTPS**. Sem um domínio
-publicado, ela só é testável em `localhost`, no navegador do PC — justamente onde a rede não
-oscila e onde o problema não existe. O celular acessando por IP de rede local
-(`http://192.168.x.x`) **não** é contexto seguro e não vai registrar o Service Worker.
-
-A Etapa 11 (deploy no Vercel/Netlify + domínio) está marcada como complexidade **baixa-média**
-e resolve três coisas de uma vez:
-
-1. dá o HTTPS de que a 8a precisa para ser testada de verdade;
-2. resolve a pendência do GPS acumulada desde a Etapa 3, pelo mesmo motivo (geolocalização
-   também exige contexto seguro);
-3. responde a pendência da 7.1 sobre o BDGEx atender ou não em https — no dia em que a página
-   for https, ou a carta desenha ou não desenha, e aí sabemos.
-
-Trocar a ordem custa pouco e destrava três pendências antigas.
+**Pendências de teste ao vivo acumuladas** — o roteiro completo está em
+`docs/roteiro-teste-campo.md` (Etapa 11); resumo do que ainda falta confirmar em campo:
+dois celulares vendo a posição um do outro; hostilidade relativa nas marcações (mesmo partido
+vs. partidos diferentes) e nos avatares do instrutor (Azul/Vermelho com cores diferentes —
+regressão corrigida depois da entrega da 11, vale reconferir); avatares empilhados se separando
+no mapa (achado e corrigido em campo, `dispersar-avatares.js`); a topbar do celular não cobrir
+mais o painel/botão de opções e nascer colapsada (achado e corrigido em campo — `#side-panel`
+virou filho de `#mapa-wrap`, `#status-detalhes` nasce oculto abaixo de 820px); instrutor desabilitando
+`enviar_posicao_gps` e o app do aluno reagindo sem F5; instrutor clicando "Voltar ao padrão da
+turma" (o mais incerto — depende do evento `DELETE` casar com o filtro do canal); instrutor
+trocando a força de um aluno e o app dele recarregando sozinho; da Etapa 6b: aplicar a `0005`
+e conferir `prosecdef = false`, o `explain analyze` da RPC usando `idx_hist_usuario_tempo`, e
+chamar a RPC com token de aluno passando o UUID de um colega; da Etapa 7: **com token de aluno
+do Vermelho, baixar pelo caminho direto o objeto de um calco publicado só para o Azul — tem
+que dar erro**, aplicar a `0006` e conferir que o bucket nasceu privado, publicar um calco com
+a turma toda com o app aberto e ver aparecer sem F5; da 7.1/11: confirmar que o BDGEx desenha
+em produção e que `bdgex.eb.mil.br/mapcache` atende em **https** — **esta é a pendência mais
+relevante para ABRIR a 8a**, porque decide se vale a pena cachear o BDGEx offline ou se a saída
+é um proxy reverso antes; e da 11: cadastro com código de turma barrando código errado, e a
+migration `0007` aplicada.
