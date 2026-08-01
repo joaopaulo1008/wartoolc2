@@ -223,6 +223,25 @@ supabase stop
 
 > As migrations seguem o padrão numérico `NNNN_descricao.sql`. Ao criar a próxima, siga a sequência (`0003_...`) — o CLI aplica em ordem alfabética.
 
+### Opção C — um comando só, sem reorganizar nada (`backend/scripts/aplicar_migrations.sh`)
+
+A Opção B (CLI) espera as migrations em `backend/supabase/migrations/` com
+nome `AAAAMMDDHHMMSS_nome.sql` e uma tabela de controle própria — como as
+`0001`-`0007` deste projeto sempre foram aplicadas manualmente pelo SQL
+Editor, essa tabela nunca existiu, e `supabase db push` do jeito que os
+arquivos estão hoje não acha nada para aplicar. `aplicar_migrations.sh`
+contorna isso com `psql` puro, aproveitando que toda migration do projeto é
+escrita para ser **idempotente** de propósito — seguro rodar mesmo com
+migrations que já foram aplicadas antes:
+
+```bash
+export DATABASE_URL="postgresql://postgres.<ref>:<SENHA>@aws-0-<regiao>.pooler.supabase.com:5432/postgres"
+bash backend/scripts/aplicar_migrations.sh
+```
+
+Detalhes (onde pegar a connection string do Session pooler, o que fazer se a
+senha tiver caracteres especiais) no cabeçalho do próprio script.
+
 ### Problemas comuns de conexão
 
 **"O dashboard sugeriu `supabase db pull` e eu travei."**
