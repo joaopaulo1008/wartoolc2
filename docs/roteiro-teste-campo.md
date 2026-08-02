@@ -236,6 +236,35 @@ Isto já era possível desde a Etapa 5, mas nunca foi testado ao vivo com o efei
 
 **Esperar:** funciona normalmente e **não** aparece "Corrigido por" (o carimbo só aparece quando quem editou é diferente do autor).
 
+## 14. Vetor de observação — distância e azimute até o alvo (2026-08-02)
+
+Novo, e o item com maior chance de gerar uma decisão de projeto a partir do campo. Se houver alguém no papel de **observador avançado / apoio de fogo**, este é o item para ele.
+
+**14a.** Com o GPS fixado, abra o popup de um elemento marcado a alguns quilômetros. Deve aparecer a linha **"Do meu posto"**, no formato `5003 m · 798 mil (44,9°) vd`.
+
+**Esperar:** distância em metro até 10 km e em quilômetro acima disso; azimute em milésimos (padrão OTAN, 6400 por volta) com o grau entre parênteses.
+
+**Como saber que falhou:** a linha não aparece → ou o GPS ainda não fixou, ou o instrutor desligou `ver_propria_posicao` (nesse caso é o comportamento correto: sem posição própria não há de onde medir). No painel do instrutor a linha **nunca** aparece, também por design — ele não tem posto.
+
+**14b. Confira contra o instrumento.** Meça o mesmo alvo com bússola/goniômetro e com telêmetro (ou contra a carta).
+
+**Esperar:** a distância bate dentro da precisão do GPS (5–15 m em cada ponta, então até ~30 m de diferença é esperado).
+
+**Como saber que falhou:** diferença de centenas de metros → reporte com o par de coordenadas.
+
+**14c. O item que decide escopo: QUAL NORTE vocês querem.** O azimute que o app mostra é o **verdadeiro** (norte geográfico) — é o que o sufixo `vd` indica. Compare com o que o observador está acostumado a usar:
+
+- se ele mede na **carta**, ele usa azimute da **quadrícula** — a diferença é a convergência meridiana, que no Brasil chega a **~1,5°, ou ~27 milésimos**, perto da borda de uma zona UTM;
+- se ele mede com **bússola**, usa o **magnético** — a diferença é a declinação, que varia com o lugar e com o ano.
+
+**Anote qual dos três ele quer ver na tela** (ou se quer os três). Essa resposta é o que define a próxima etapa do apoio de fogo — hoje o app rotula o norte em vez de converter, exatamente para não entregar um número sem referência.
+
+**14d. Medidas de coordenação, sem código.** Antes do exercício, desenhe as medidas de apoio de fogo (LSA, LFAC, área de fogo livre) no Google Earth, exporte como KML e publique como calco **para o partido da artilharia** (aba de calcos do painel do instrutor). Isso já funciona hoje.
+
+**Esperar:** as medidas aparecem no mapa só para aquele partido, com controle de opacidade.
+
+**Por que este item importa mesmo funcionando:** se o KML resolver na prática, o editor de medidas de coordenação (parte (c) no ROADMAP, a mais cara das três) pode não precisar existir. Anote o que faltou.
+
 ## 13. Origem do SIDC quando a Etapa 2c for ativada (Etapa 9b, decisão 3)
 
 **Fazer só quando a Etapa 2c (seed de usuários) sair do adiamento** — hoje não há o que conferir, porque todo mundo entra pelo cadastro aberto e nasce com o símbolo padrão do schema.
@@ -277,5 +306,9 @@ Depois do teste, reúna:
 - [ ] Item 12c: correção do instrutor chega ao aluno **sem F5** e o popup mostra "Corrigido por …"?
 - [ ] Item 12d: aluno editando a própria marcação NÃO gera "Corrigido por"?
 - [ ] Item 13 (só quando a Etapa 2c for ativada): símbolo do seed bate com a planilha; aluno não muda o próprio símbolo?
+- [ ] Item 14a: a linha "Do meu posto" aparece no popup da marcação, com distância e milésimos?
+- [ ] Item 14b: distância bate com telêmetro/carta dentro de ~30 m?
+- [ ] Item 14c: **qual norte o observador quer — verdadeiro, quadrícula ou magnético?** (define a próxima etapa do apoio de fogo)
+- [ ] Item 14d: KML de medidas de coordenação publicado só para o partido da artilharia funcionou? O que faltou?
 
 Qualquer item marcado como falha vira a prioridade do próximo chat — cole este checklist preenchido para retomar com contexto completo.

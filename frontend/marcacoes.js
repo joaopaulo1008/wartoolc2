@@ -30,6 +30,11 @@ import {
   ESCALAO_ROTULO,
 } from './simbolos.js';
 import { formatarCoordenada, observarFormatoCoordenada } from './preferencias.js';
+// Distância e azimute de quem observa até o elemento marcado — o vetor que o
+// observador avançado precisa para pedir fogo. Matemática pura e testável
+// (inversa de Vincenty sobre o elipsoide); ver o cabeçalho de visada.js para
+// por que NÃO reusa o haversine de rastro.js.
+import { visada, formatarVisada } from './visada.js';
 // O desenho do símbolo (resolver a hostilidade relativa + montar o L.divIcon,
 // com fallback) é compartilhado com gps.js e colegas.js desde a Etapa 5 — ver
 // frontend/icones.js para o raciocínio da extração.
@@ -94,6 +99,18 @@ let marcadorTemporario = null; // "fantasma" no ponto clicado, só durante cria�
 // função aqui, para avisar ANTES do clique em vez de deixar o insert falhar.
 // Formato esperado: () => { permitido: boolean, motivo?: string }.
 let avaliarCriacaoExtra = null;
+
+// Função OPCIONAL que devolve { lat, lon } de quem está olhando, ou null.
+// Injetada por quem chama iniciarMarcacoes(), no mesmo padrão de
+// `avaliarCriacaoExtra` logo acima — e pelo mesmo motivo: marcacoes.js não
+// deve saber que gps.js existe.
+//
+// `frontend/index.html` (app do aluno) passa `minhaPosicao` de gps.js;
+// `frontend/situacao.js` (painel do instrutor) NÃO passa nada, porque ali não
+// há GPS próprio rodando — e o vetor "do meu posto até o alvo" não significa
+// nada para quem está olhando o exercício de fora. Sem a função, o popup
+// simplesmente não mostra a linha, sem nenhum tratamento especial.
+let obterMinhaPosicao = null;
 
 // Referência ao handler de clique registrado no mapa, para poder tirá-lo em
 // pararMarcacoes() (Etapa 6c) sem sobrar um segundo listener duplicado numa
@@ -200,6 +217,23 @@ function construirPopupHtml(row, autorPerfil, editorPerfil) {
     `<div class="popup-row"><span class="popup-label">Coordenada</span>` +
     `<span class="popup-value">${escapar(formatarCoordenada(row.latitude, row.longitude))}</span></div>`;
 
+  // Vetor de observação: distância e azimute DAQUI (de quem está olhando a
+  // tela) até o elemento marcado — o dado que o observador avançado precisa
+  // para pedir fogo. Some sozinho quando não há posição própria (instrutor,
+  // GPS ainda sem fixo, ou `ver_propria_posicao` desligada pelo instrutor),
+  // porque `visada()` devolve null e `formatarVisada(null)` devolve ''.
+  //
+  // Calculado na ABERTURA do popup, não a cada leitura de GPS: quem consulta
+  // o vetor está parado olhando a tela naquele instante, e recalcular a cada
+  // 5 s todos os popups fechados seria trabalho jogado fora.
+  const v = obterMinhaPosicao
+    ? visada(obterMinhaPosicao(), { lat: row.latitude, lon: row.longitude })
+    : null;
+  const linhaVisada = v
+    ? `<div class="popup-row"><span class="popup-label">Do meu posto</span>` +
+      `<span class="popup-value">${escapar(formatarVisada(v))}</span></div>`
+    : '';
+
   // Etapa 9b: a linha que existe para o aluno não ver o próprio símbolo mudar
   // sozinho. `editada_por` é carimbado por trigger no banco (migration 0009)
   // e só difere de `autor_id` quando outra pessoa — na prática, o instrutor —
@@ -237,6 +271,7 @@ function construirPopupHtml(row, autorPerfil, editorPerfil) {
       linhaDetalhe +
       `<div class="popup-row"><span class="popup-label">Partido</span><span class="popup-value">${escapar(nomePartido)}</span></div>` +
       linhaCoordenada +
+      linhaVisada +
       `<div class="popup-row"><span class="popup-label">Marcado por</span><span class="popup-value">${escapar(autorNome)} às ${quando}</span></div>` +
       linhaEdicao +
       botoes +
@@ -847,13 +882,18 @@ function ativarCliqueNoMapa(map) {
 //
 // avaliarCriacaoExtra (Etapa 6c, opcional): ver o comentário dela lá em
 // cima. `null`/omitido preserva o comportamento de sempre (app do aluno).
-export async function iniciarMarcacoes({ map, userId, turmaId, perfil, avaliarCriacaoExtra: extra } = {}) {
+export async function iniciarMarcacoes({
+  map, userId, turmaId, perfil,
+  avaliarCriacaoExtra: extra,
+  obterMinhaPosicao: posicao,
+} = {}) {
   mapaRef = map;
   meuUserId = userId;
   turmaIdRef = turmaId;
   meuPartido = perfil?.partido || null;
   meuPapel = perfil?.papel;
   avaliarCriacaoExtra = extra || null;
+  obterMinhaPosicao = posicao || null;
 
   if (!turmaId) {
     // Sem turma, a policy `elementos_criar` rejeitaria o insert mesmo assim

@@ -309,6 +309,17 @@ Sugestão de modelo por etapa: tarefas mecânicas/config → **modelo mais leve*
 
 - [x] **Etapa 9b — Catálogo oficial do MD/EB, autoridade do instrutor e coordenadas** *(concluída — ver a seção "Feito", acima)*
 
+- [ ] **Painel de apoio de fogo** *(nova, proposta em 2026-08-02; a primeira parte já foi feita)*
+
+  Um observador avançado precisa de três coisas que o app hoje não dá juntas: os alvos potenciais com dado de tiro, as medidas de coordenação de apoio de fogo desenhadas na carta, e os planos de fogo. Dividida em três, porque o custo de cada parte é MUITO diferente:
+
+  - [x] **(a) Vetor de observação — distância e azimute até cada alvo.** Feito em 2026-08-02, antes do primeiro teste de campo, porque era a única parte que não exigia tabela, papel nem migration: o dado já existia nas duas pontas. `frontend/visada.js` (novo, puro, inversa de Vincenty) + a linha "Do meu posto" no popup da marcação. Detalhe na seção "Vetor de observação" de `CLAUDE.md`. **Pergunta em aberto, a levar para o campo**: o azimute sai VERDADEIRO — falta decidir se o usuário quer o da quadrícula (convergência meridiana, até ~27 milésimos no Brasil) ou o magnético (exige modelo IGRF/WMM, que o projeto não tem).
+
+  - [ ] **(b) A tela de apoio de fogo em si.** **NÃO é um papel novo.** `perfis.papel` é um enum de dois valores (`instrutor`, `usuario`) e acrescentar um terceiro mexeria no enum, em `fn_meu_papel`/`fn_sou_instrutor`, na view de permissões e em toda policy que assume dois papéis — ou seja, no núcleo de segurança, para resolver o que não é um problema de AUTORIDADE e sim de TELA. O caminho certo é o que a Etapa 1 já previu: **chave de permissão é linha, não migration**. Uma chave nova no `catalogo_permissoes` (ex.: `ver_painel_apoio_fogo`) mais uma aba, sem tocar no enum nem na RLS. Complexidade: média. Modelo sugerido: intermediário.
+
+  - [ ] **(c) Medidas de coordenação de apoio de fogo e planos de fogo.** A parte grande, e maior do que parece: LSA, LFAC, área de fogo livre e afins são **medidas de coordenação** — linhas e áreas, o *symbol set* 25 do APP-6D. Dois problemas concretos: elas **não estão** nos 12 arquivos capturados na Etapa 9b (aqueles são ícones PONTUAIS), e a **`milsymbol` não desenha geometria de controle** — ela faz símbolo de ponto. Exigiria um renderizador próprio (polilinhas/polígonos Leaflet estilizados) e uma fonte de dados nova.
+    **Contorno que já funciona hoje, sem uma linha de código**: a Etapa 7 publica calco KML por partido (`calcos.partido_id`). Desenhar as medidas no Google Earth, exportar KML e publicar para o partido da artilharia já entrega o efeito visual, com controle de opacidade e visível só para eles. Vale testar assim antes de construir o editor — pode ser que resolva. Complexidade: alta. Modelo sugerido: mais forte.
+
 - [ ] **Etapa 10 — Teste de carga (60+ usuários) e ajuste de plano**
   Simular múltiplos usuários simultâneos, medir, decidir se precisa migrar do Supabase Free para o Pro. Complexidade: média (mais QA que desenvolvimento). Modelo sugerido: leve a intermediário.
 

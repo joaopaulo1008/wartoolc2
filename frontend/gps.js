@@ -88,6 +88,21 @@ let jaCentralizou = false;   // o mapa só se centraliza na PRIMEIRA leitura da 
 // remontado quando o formato de coordenada mudar, sem esperar leitura nova.
 let ultimaPosicaoDesenhada = null;
 
+// Onde EU estou agora, para quem precisar medir alguma coisa a partir daqui —
+// hoje só o vetor de observação até uma marcação (visada.js, consumido por
+// marcacoes.js). Devolve { lat, lon } ou `null`.
+//
+// Lê `ultimaPosicaoDesenhada`, e não uma variável nova, de propósito: assim a
+// posição só é oferecida quando o avatar próprio está de fato sendo
+// desenhado. Se o instrutor desligar `ver_propria_posicao`, isto passa a
+// devolver null e o vetor simplesmente some do popup — em vez de o app
+// continuar publicando a própria posição por uma porta lateral que a
+// permissão não cobre.
+export function minhaPosicao() {
+  if (!ultimaPosicaoDesenhada) return null;
+  return { lat: ultimaPosicaoDesenhada.lat, lon: ultimaPosicaoDesenhada.lon };
+}
+
 function popupProprio(perfil, pos) {
   return (
     `<b>${perfil.nome_guerra || 'Você'}</b><br>` +

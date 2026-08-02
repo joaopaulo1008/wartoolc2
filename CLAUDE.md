@@ -441,6 +441,26 @@ Migration nova: **`0009_auditoria_edicao_e_preferencias.sql`** (duas colunas, um
 
 **PENDENTE DE TESTE AO VIVO** (acrescentado a `docs/roteiro-teste-campo.md`): conferir os três formatos contra o GPS do celular e uma referência externa — **principalmente UTM**, que é onde se erra a zona sem perceber; instrutor corrigindo a natureza de uma marcação de aluno em campo real e o aluno vendo a mudança (e o "Corrigido por") sem F5; e conferir que a precedência de origem do SIDC bate com o que o roteiro de cadastro real da Etapa 2c vai produzir, quando ela for ativada.
 
+### Vetor de observação — distância e azimute até o alvo (2026-08-02)
+
+Acréscimo pequeno e deliberadamente isolado, feito **depois** de a Etapa 9b fechar e **antes** do primeiro teste de campo, a pedido do usuário. É o primeiro pedaço do que virá a ser o painel de apoio de fogo (ver "A fazer" no ROADMAP) — escolhido justamente por ser o único pedaço daquela ideia que **não** exige tabela nova, papel novo nem migration: o dado já existe nas duas pontas (a posição de quem observa, em `gps.js`, e a da marcação, em `elementos_marcados`), e faltava só a conta entre elas.
+
+- **`frontend/visada.js` (novo, puro)** devolve distância e azimute de um ponto a outro. Consumido só pelo popup da marcação, via `formatarVisada()`.
+
+- **Inversa de Vincenty, e não o `distanciaMetros()` que `rastro.js` já exporta.** Reusar era o instinto certo, e foi descartado com medida, não por gosto: aquela função é haversine ESFÉRICA, e o comentário dela declara o regime em que vale ("dezenas de metros entre pontos consecutivos"). Contra o PROJ, nas latitudes do Brasil, o erro dela é **+7,6 m em 2 km e +75,5 m em 20 km** (até 0,38%). Para somar rastro, irrelevante. Para um vetor de tiro, 75 m é erro grande — e do pior tipo, porque o número continua plausível. Vincenty resolve distância e azimute juntos sobre o elipsoide, com precisão de milímetro. **`visada.teste.mjs` tem uma seção que executa essa comparação**, para o dia em que alguém quiser "simplificar" de volta.
+
+- **Milésimo NATO (6400 por volta)**, que é a unidade de trabalho do apoio de fogo, com o grau entre parênteses para quem confere com transferidor.
+
+- **O azimute é VERDADEIRO, e a tela diz isso** (sufixo `vd`). Não é o da quadrícula nem o magnético. A diferença não é acadêmica: para a quadrícula, a convergência meridiana chega a ~1,5° (~27 milésimos) perto da borda de uma zona UTM no Brasil; para o magnético, a declinação depende de um modelo (IGRF/WMM) que o projeto não tem. **Converter é decisão de escopo ainda não tomada** — e enquanto não for, é melhor rotular o norte do que entregar o número cru. É uma das perguntas a fazer a quem ocupar o papel de apoio de fogo no primeiro teste de campo.
+
+- **Injeção por parâmetro, não import.** `marcacoes.js` não importa `gps.js`: recebe `obterMinhaPosicao` de quem o inicia, no mesmo padrão de `avaliarCriacaoExtra` (Etapa 6c) e do `map`. `index.html` (aluno) passa `minhaPosicao` de `gps.js`; `situacao.js` (instrutor) não passa nada, e lá a linha some sozinha — sem tratamento especial, porque `visada(null, …)` devolve `null` e `formatarVisada(null)` devolve `''`.
+
+- **`minhaPosicao()` lê a posição JÁ DESENHADA**, não uma variável nova. Consequência deliberada: se o instrutor desligar `ver_propria_posicao`, o vetor some junto — em vez de o app continuar publicando a própria posição por uma porta lateral que a permissão não cobre.
+
+- Calculado na **abertura do popup**, não a cada leitura de GPS: quem consulta o vetor está parado olhando a tela naquele instante.
+
+**Verificação**: `visada.teste.mjs` (novo, 49 casos) com os valores esperados vindos do **PROJ** via `pyproj.Geod` — não de estimativa; as dez suítes 100% verdes, **558 casos**; `node --check` + `acorn`; `npm run build`. Sem migration, sem mudança de RLS, sem chave de permissão nova.
+
 ## Estrutura de pastas
 
 ```
@@ -476,7 +496,9 @@ frontend/       app web (Leaflet + milsymbol + stanag-app6). Login/cadastro/rote
                 DMS (testável em Node, no padrão de rastro.js) e preferencias.js é a FONTE ÚNICA
                 de "qual formato o usuário escolheu" — as quatro telas que mostram coordenada
                 (gps.js, colegas.js, marcacoes.js, situacao.js) chamam formatarCoordenada() de lá,
-                nunca formatam por conta própria
+                nunca formatam por conta própria; visada.js (puro, inversa de Vincenty) é
+                distância + azimute de quem observa até o elemento marcado — NÃO reusa o
+                haversine de rastro.js de propósito (ver a seção "Vetor de observação" acima)
 data/           GeoJSON publicados (saída do pipeline atual; pode servir de seed pro backend novo)
 data/simbologia-eb/  extrato do Portal de Simbologia Militar do MD/EB (Etapa 9b) + PROCEDENCIA.md
                 (URL, SHA-256 e data de cada um dos 12 arquivos originais, e como recapturar)

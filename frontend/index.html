@@ -400,7 +400,11 @@ import {
   observarFormatoCoordenada, formatarCoordenada,
 } from './preferencias.js';
 import { iniciarPerfilAoVivo } from './perfil-ao-vivo.js';
-import { iniciarRastreamentoProprio } from './gps.js';
+// `minhaPosicao` (Etapa 9b+) é passada adiante para marcacoes.js, que a usa
+// para calcular distância e azimute daqui até cada elemento marcado — o vetor
+// do observador avançado. gps.js é o dono de "onde eu estou"; marcacoes.js
+// não o importa, recebe a função por parâmetro (mesmo padrão de `map`).
+import { iniciarRastreamentoProprio, minhaPosicao } from './gps.js';
 import { iniciarColegas } from './colegas.js';
 import { iniciarMarcacoes } from './marcacoes.js';
 import { iniciarCamadas } from './camadas.js';
@@ -1086,6 +1090,10 @@ if (resultado) {
       userId: session.user.id,
       turmaId: perfil.turma_id,
       perfil,
+      // Só o app do ALUNO passa isto: é ele que tem GPS próprio rodando.
+      // O painel do instrutor (situacao.js) não passa, e lá a linha "Do meu
+      // posto" simplesmente não aparece.
+      obterMinhaPosicao: minhaPosicao,
     });
 
     // Etapa 6a: o instrutor também move o aluno de força pelo painel. Isso
