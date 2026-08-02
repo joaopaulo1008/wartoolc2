@@ -333,6 +333,10 @@
       Grau, minuto, segundo
     </label>
     <div id="coordenada-exemplo" style="font-size:11px;color:#5f7f9f;margin-top:6px;font-variant-numeric:tabular-nums"></div>
+    <!-- Nota que só aparece em UTM (ver ligarSeletorDeCoordenada no script).
+         Relatado em campo em 2026-08-02: "estamos a W e S, e está escrito E e
+         N". Não estava errado — mas se confundiu uma vez, confunde de novo. -->
+    <div id="coordenada-nota" style="font-size:10px;color:#4a6a8a;margin-top:5px;line-height:1.4"></div>
   </div>
 
   <!-- Camadas COP -->
@@ -914,7 +918,15 @@ document.addEventListener('DOMContentLoaded', () => {
 function ligarSeletorDeCoordenada() {
   const radios = [...document.querySelectorAll('input[name="formato-coordenada"]')];
   const exemplo = document.getElementById('coordenada-exemplo');
+  const nota = document.getElementById('coordenada-nota');
   if (!radios.length) return;
+
+  // Só em UTM, porque só lá `E`/`N` significam outra coisa que não hemisfério.
+  // Em grau decimal e GMS, S e W SÃO hemisfério — explicar ali seria criar a
+  // dúvida em vez de tirá-la.
+  const NOTA_UTM =
+    'mE / mN são metros nos eixos da quadrícula (leste e norte), não hemisfério. ' +
+    'O hemisfério está na letra da zona.';
 
   function atualizarExemplo() {
     if (!exemplo) return;
@@ -934,6 +946,7 @@ function ligarSeletorDeCoordenada() {
   // hora com o valor atual — daí o rádio nascer no formato gravado.
   observarFormatoCoordenada((formato) => {
     radios.forEach((r) => { r.checked = (r.value === formato); });
+    if (nota) nota.textContent = (formato === 'utm') ? NOTA_UTM : '';
     atualizarExemplo();
   });
 

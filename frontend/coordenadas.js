@@ -222,17 +222,48 @@ export function paraGms(lat, lon) {
 // usavam para campos ausentes antes desta etapa.
 const SEM_VALOR = '—';
 
-// "23K 683478E 7460686N" — a zona e a letra da faixa juntas na frente são o
-// que torna a leitura inequívoca (a letra já diz o hemisfério, então não
-// precisa de um "S" solto que se confunde com a coordenada sul).
+// "23K 683478 mE 7460686 mN"
+//
+// POR QUE "mE"/"mN" E NÃO "E"/"N" (relatado em campo, 2026-08-02)
+// ----------------------------------------------------------------
+// A primeira versão desta função escrevia "683478E 7460686N", que é a
+// notação mais comum em GIS e no MGRS. Ela foi lida como HEMISFÉRIO — "mas
+// nós estamos a oeste e ao sul, e está escrito E e N". A leitura errada é
+// compreensível: num app que mostra também grau decimal e GMS, onde S e W
+// SÃO hemisfério, um "E" colado no fim de um número puxa para o mesmo
+// sentido.
+//
+// Em UTM, `E` e `N` nunca são hemisfério: são os nomes dos dois EIXOS da
+// quadrícula — *easting* e *northing* —, medidos em metros, e valem E e N em
+// qualquer lugar do planeta. Um ponto em Curitiba tem easting positivo
+// porque a origem falsa da zona fica 500 km a OESTE do meridiano central
+// (é para isso que existe o falso este: ninguém tem coordenada negativa); e
+// tem northing ~7.200.000 porque no hemisfério sul o equador vale
+// 10.000.000 (falso norte), então 7,2 milhões são ~2,8 milhões de metros AO
+// SUL do equador.
+//
+// O "m" resolve isso sem alongar muito a linha: "584770 mE" lê-se "584.770
+// metros no eixo E", não "584.770 leste". É também a convenção impressa nas
+// cartas, que é a referência que o instrutor tem na mão.
+//
+// O HEMISFÉRIO continua na letra da faixa (`J` = 32°S a 24°S). Deliberadamente
+// NÃO se escreve "22 S" no lugar: essa convenção colide com a faixa MGRS `S`,
+// que é do hemisfério NORTE (Mediterrâneo/Iraque) — é justamente o tipo de
+// ambiguidade que faz alguém plotar no hemisfério errado.
+//
 // Metro inteiro: a precisão do GPS de celular é de 5 a 15 m (ver "Pontos de
 // atenção conhecidos" em CLAUDE.md), então casa decimal aqui seria precisão
 // falsa.
+//
+// Espaço simples entre os grupos, e não dois: estas strings vão para dentro
+// de HTML (popups do Leaflet), que colapsa espaço em branco repetido — o
+// alinhamento viria errado de qualquer jeito. Quem separa os grupos são os
+// próprios sufixos `mE`/`mN`.
 export function formatarUtm(lat, lon) {
   const u = paraUtm(lat, lon);
   if (!u) return formatarDecimal(lat, lon);  // fora da faixa do UTM (polos): melhor grau decimal que nada
   const banda = u.banda || u.hemisferio;
-  return `${u.zona}${banda} ${Math.round(u.este)}E ${Math.round(u.norte)}N`;
+  return `${u.zona}${banda} ${Math.round(u.este)} mE ${Math.round(u.norte)} mN`;
 }
 
 // "-22.951916, -43.210487" — seis casas ≈ 0,1 m no equador, que é mais do

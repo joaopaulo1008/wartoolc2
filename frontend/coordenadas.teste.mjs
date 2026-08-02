@@ -185,7 +185,7 @@ ok('minuto sempre com dois dígitos e segundo sempre com uma casa',
 // ── 7. formatar(): o ponto único que as três telas chamam ──────────────────
 console.log('\nformatar() — o despachante que gps.js, colegas.js e marcacoes.js usam');
 const LAT = -22.951916, LON = -43.210487;
-ok('formato utm', formatar(LAT, LON, 'utm'), '23K 683478E 7460686N');
+ok('formato utm', formatar(LAT, LON, 'utm'), '23K 683478 mE 7460686 mN');
 ok('formato decimal', formatar(LAT, LON, 'decimal'), '-22.951916, -43.210487');
 ok('formato dms', formatar(LAT, LON, 'dms'), '22°57\'06.9"S 43°12\'37.8"W');
 ok('formato desconhecido cai no padrão em vez de quebrar o popup',
@@ -200,6 +200,40 @@ ok('todo formato anunciado tem rótulo em português para o seletor',
 ok('formatoValido() aceita os três e recusa o resto',
   [...FORMATOS.map(formatoValido), formatoValido('utm2'), formatoValido(''), formatoValido(null)],
   [true, true, true, false, false, false]);
+
+// ── 7b. "E"/"N" do UTM NÃO são hemisfério ──────────────────────────────────
+// Relatado em campo em 2026-08-02: "a coordenada está errada, estamos a W e S
+// e está escrito E e N". Não estava errada — E e N são os nomes dos EIXOS
+// (easting/northing), não direções, e valem E e N em qualquer lugar do
+// planeta. A resposta foi trocar o sufixo para `mE`/`mN` (convenção das
+// cartas), que lê como "metros no eixo E" em vez de "leste".
+//
+// Estas asserções existem para ninguém "consertar" isto de volta: trocar mE
+// por mW no hemisfério oeste produziria uma coordenada que NÃO é UTM e que
+// nenhuma carta aceita.
+console.log('\nUTM — "E"/"N" são os eixos (easting/northing), nunca hemisfério');
+// O caso exato relatado: Tibagi/Ponta Grossa (PR), sul E oeste.
+const CAMPO = { lat: -25.100916, lon: -50.159274 };
+ok('o caso relatado em campo continua na zona 22, faixa J',
+  [zonaUtm(CAMPO.lat, CAMPO.lon), bandaUtm(CAMPO.lat)], [22, 'J']);
+ok('e sai com mE/mN, apesar de o ponto estar a oeste e ao sul',
+  formatarUtm(CAMPO.lat, CAMPO.lon), '22J 584770 mE 7223614 mN');
+ok('o easting é positivo no hemisfério OESTE (é para isso que existe o falso este)',
+  paraUtm(CAMPO.lat, CAMPO.lon).este > 0, true);
+ok('o northing no hemisfério SUL é ~10.000.000 menos a distância ao equador',
+  Math.round(10000000 - paraUtm(CAMPO.lat, CAMPO.lon).norte), 2776386);
+ok('nenhum dos três formatos usa "mW" ou "mS" — isso não existe em UTM',
+  /m[WS]\b/.test(formatarUtm(CAMPO.lat, CAMPO.lon)), false);
+ok('quem carrega o hemisfério é a LETRA da faixa: sul dá J, norte dá N no mesmo meridiano',
+  [bandaUtm(-25.100916), bandaUtm(25.100916)], ['J', 'R']);
+ok('e os dois hemisférios escrevem os eixos igual — só a faixa muda',
+  [formatarUtm(-25.100916, -50.159274).includes('mE mE'),
+   formatarUtm(25.100916, -50.159274).endsWith('mN')], [false, true]);
+// O contraste com os outros dois formatos, onde S e W SÃO hemisfério.
+ok('em GMS, ao contrário, S e W são hemisfério de verdade',
+  formatarGms(CAMPO.lat, CAMPO.lon).match(/[NSEW]/g), ['S', 'W']);
+ok('e em grau decimal o hemisfério é o sinal negativo',
+  formatarDecimal(CAMPO.lat, CAMPO.lon), '-25.100916, -50.159274');
 
 // ── 8. Entrada inválida não pode quebrar um popup ──────────────────────────
 console.log('\nEntrada inválida — o popup mostra "—", nunca "NaN" e nunca lança');

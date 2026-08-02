@@ -174,6 +174,19 @@ Authorization: Bearer <token do aluno Vermelho>
 
 **11d. GMS e decimal.** Confira que grau decimal bate dígito a dígito com o que o GPS do celular mostra nativamente, e que o GMS mostra **hemisfério S e W** (não sinal negativo).
 
+**11e. `mE`/`mN` não são hemisfério — leia isto antes de reportar "coordenada errada".** Aconteceu em campo em 2026-08-02: o app mostrou `22J 584770 mE 7223614 mN` e a leitura foi "está errado, estamos a oeste e ao sul, e está escrito E e N".
+
+Não estava errado. Em UTM, `E` e `N` são os nomes dos dois **eixos** da quadrícula — *easting* e *northing* — medidos em metros, e são E e N em qualquer lugar do planeta:
+
+- o **easting** é positivo mesmo no hemisfério oeste porque a origem da zona fica 500 km a oeste do meridiano central (é para isso que existe o "falso este": ninguém tem coordenada negativa);
+- o **northing** no hemisfério sul conta a partir de 10.000.000 no equador (o "falso norte"), então `7 223 614` significa `10 000 000 − 7 223 614 = 2 776 386` m **ao sul** do equador ≈ 25,1° S.
+
+**O hemisfério está na letra da faixa.** `J` cobre de 32° S a 24° S. Se fosse norte, a letra seria N, P, Q…
+
+Foi por isso que o app mostra `22J` e não `22 S`: a convenção "22 S" (zona 22, hemisfério sul) colide com a faixa MGRS `S`, que é do hemisfério **norte** — é exatamente o tipo de ambiguidade capaz de fazer alguém plotar do outro lado do mundo.
+
+Para conferir de verdade, use o item 11b: compare com um GPS em UTM e com a carta, e olhe **zona + letra**, não as siglas dos eixos.
+
 ## 12. Instrutor corrige a simbologia de um aluno, em campo real (Etapa 9b)
 
 Isto já era possível desde a Etapa 5, mas nunca foi testado ao vivo com o efeito no aparelho do aluno — e o formulário mudou nesta etapa.
@@ -235,6 +248,7 @@ Depois do teste, reúna:
 - [ ] Item 11b: **zona UTM** bate com o GPS do celular e com a carta? **(o item silencioso desta etapa)** — anote os três valores e o datum da carta
 - [ ] Item 11c: perto de fronteira de zona, a zona muda quando deve?
 - [ ] Item 11d: decimal bate com o GPS nativo; GMS mostra S/W em vez de sinal negativo?
+- [x] Item 11e: `mE`/`mN` entendidos como eixos, não hemisfério. **Confundiu em campo em 2026-08-02; sufixo trocado de `E`/`N` para `mE`/`mN` e nota acrescentada ao cartão "Coordenada".**
 - [ ] Item 12a: formulário novo é navegável no celular, nomes em português, lista filtrada pela categoria?
 - [ ] Item 12b: Editar abre já preenchido com a escolha do aluno?
 - [ ] Item 12c: correção do instrutor chega ao aluno **sem F5** e o popup mostra "Corrigido por …"?
