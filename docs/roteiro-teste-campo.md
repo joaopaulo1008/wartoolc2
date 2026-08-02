@@ -240,7 +240,7 @@ Isto já era possível desde a Etapa 5, mas nunca foi testado ao vivo com o efei
 
 Novo, e o item com maior chance de gerar uma decisão de projeto a partir do campo. Se houver alguém no papel de **observador avançado / apoio de fogo**, este é o item para ele.
 
-**14a.** Com o GPS fixado, abra o popup de um elemento marcado a alguns quilômetros. Deve aparecer a linha **"Do meu posto"**, no formato `5003 m · 798 mil (44,9°) vd`.
+**14a.** Com o GPS fixado, abra o popup de um elemento marcado a alguns quilômetros. Deve aparecer a linha **"Do meu posto"**, no formato `5003 m · 804 mil (45,3°) qd`.
 
 **Esperar:** distância em metro até 10 km e em quilômetro acima disso; azimute em milésimos (padrão OTAN, 6400 por volta) com o grau entre parênteses.
 
@@ -252,12 +252,13 @@ Novo, e o item com maior chance de gerar uma decisão de projeto a partir do cam
 
 **Como saber que falhou:** diferença de centenas de metros → reporte com o par de coordenadas.
 
-**14c. O item que decide escopo: QUAL NORTE vocês querem.** O azimute que o app mostra é o **verdadeiro** (norte geográfico) — é o que o sufixo `vd` indica. Compare com o que o observador está acostumado a usar:
+**14c. Confira o NORTE — o app mostra lançamento de quadrícula.** O sufixo `qd` indica azimute da **quadrícula**, que é o que o apoio de fogo usa (definido em 2026-08-02). Meça o mesmo alvo na carta, com transferidor sobre a quadrícula.
 
-- se ele mede na **carta**, ele usa azimute da **quadrícula** — a diferença é a convergência meridiana, que no Brasil chega a **~1,5°, ou ~27 milésimos**, perto da borda de uma zona UTM;
-- se ele mede com **bússola**, usa o **magnético** — a diferença é a declinação, que varia com o lugar e com o ano.
+**Esperar:** bate dentro de poucos milésimos.
 
-**Anote qual dos três ele quer ver na tela** (ou se quer os três). Essa resposta é o que define a próxima etapa do apoio de fogo — hoje o app rotula o norte em vez de converter, exatamente para não entregar um número sem referência.
+**Como saber que falhou:** se der uma diferença **constante** em todos os alvos, na casa de 5 a 30 milésimos, o app pode estar mostrando o azimute **verdadeiro** em vez do de quadrícula — é exatamente essa a ordem de grandeza da convergência meridiana no Brasil. Confirme olhando o sufixo: tem que ser `qd`, não `vd`.
+
+**Se o observador usar bússola**, a diferença para o magnético é a **declinação**, que o app **não** aplica (exigiria um modelo IGRF/WMM que o projeto não tem). Anote se isso faz falta na prática — é o que decidiria uma etapa futura.
 
 **14d. Medidas de coordenação, sem código.** Antes do exercício, desenhe as medidas de apoio de fogo (LSA, LFAC, área de fogo livre) no Google Earth, exporte como KML e publique como calco **para o partido da artilharia** (aba de calcos do painel do instrutor). Isso já funciona hoje.
 
@@ -308,7 +309,7 @@ Depois do teste, reúna:
 - [ ] Item 13 (só quando a Etapa 2c for ativada): símbolo do seed bate com a planilha; aluno não muda o próprio símbolo?
 - [ ] Item 14a: a linha "Do meu posto" aparece no popup da marcação, com distância e milésimos?
 - [ ] Item 14b: distância bate com telêmetro/carta dentro de ~30 m?
-- [ ] Item 14c: **qual norte o observador quer — verdadeiro, quadrícula ou magnético?** (define a próxima etapa do apoio de fogo)
+- [ ] Item 14c: lançamento de quadrícula bate com o transferidor na carta? (diferença constante de 5-30 milésimos = pode estar mostrando o verdadeiro — confira o sufixo `qd`). Faz falta o magnético?
 - [ ] Item 14d: KML de medidas de coordenação publicado só para o partido da artilharia funcionou? O que faltou?
 
 Qualquer item marcado como falha vira a prioridade do próximo chat — cole este checklist preenchido para retomar com contexto completo.

@@ -451,7 +451,15 @@ Acréscimo pequeno e deliberadamente isolado, feito **depois** de a Etapa 9b fec
 
 - **Milésimo NATO (6400 por volta)**, que é a unidade de trabalho do apoio de fogo, com o grau entre parênteses para quem confere com transferidor.
 
-- **O azimute é VERDADEIRO, e a tela diz isso** (sufixo `vd`). Não é o da quadrícula nem o magnético. A diferença não é acadêmica: para a quadrícula, a convergência meridiana chega a ~1,5° (~27 milésimos) perto da borda de uma zona UTM no Brasil; para o magnético, a declinação depende de um modelo (IGRF/WMM) que o projeto não tem. **Converter é decisão de escopo ainda não tomada** — e enquanto não for, é melhor rotular o norte do que entregar o número cru. É uma das perguntas a fazer a quem ocupar o papel de apoio de fogo no primeiro teste de campo.
+- **O azimute é o de QUADRÍCULA, que é o lançamento** (sufixo `qd` na tela). A primeira versão entregava o VERDADEIRO, e foi corrigida no mesmo dia com a resposta de quem usa: *"lançamento é sempre em relação ao norte de quadrícula"*. Não é detalhe de nomenclatura — em Tibagi/PR a convergência meridiana é 0,357°, então um alvo exatamente ao norte verdadeiro tem lançamento **6 milésimos**, não 0. Na borda de uma zona UTM chega a ~1,45°, ou **26 milésimos**: mais de 25 m de desvio a 1 km.
+
+  `convergenciaMeridiana()` usa a expressão esférica exata `atan(tan Δλ · sen φ)`, com Δλ a partir do meridiano central da zona **do observador** (é ele que tem a carta com a quadrícula impressa). Conferida contra o `meridian_convergence` do PROJ em oito pontos, do meridiano central às duas bordas: concorda dentro de **0,01 mili-grau**. A forma de primeira ordem `Δλ · sen φ`, comum em manuais, erra até 0,94 mili-grau na borda — pequeno, mas o `atan` custa o mesmo e não tem resíduo.
+
+  O relacionamento `quadrícula = verdadeiro − convergência` (e o sinal) foi verificado **numericamente**, não assumido de convenção: projetando os dois pontos em UTM e comparando `atan2(ΔE, ΔN)` com o azimute geodésico. O resíduo entre os dois métodos (a correção arco-corda) é **0,02 milésimo a 20 km** — irrelevante.
+
+  `azimuteVerdadeiroGraus` continua sendo devolvido junto, para conferência contra fonte geodésica externa e como ponto de partida se um dia entrar o magnético (que exigiria um modelo IGRF/WMM que o projeto não tem).
+
+- **A distância é a do ELIPSOIDE (chão), não a da quadrícula.** É a que a peça precisa. A distância medida na quadrícula traz junto o fator de escala do UTM (até ~4 m em 10 km) e seria a resposta errada.
 
 - **Injeção por parâmetro, não import.** `marcacoes.js` não importa `gps.js`: recebe `obterMinhaPosicao` de quem o inicia, no mesmo padrão de `avaliarCriacaoExtra` (Etapa 6c) e do `map`. `index.html` (aluno) passa `minhaPosicao` de `gps.js`; `situacao.js` (instrutor) não passa nada, e lá a linha some sozinha — sem tratamento especial, porque `visada(null, …)` devolve `null` e `formatarVisada(null)` devolve `''`.
 

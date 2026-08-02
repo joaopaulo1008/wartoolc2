@@ -38,26 +38,35 @@
 // esperados do teste vieram do PROJ (via `pyproj.Geod`), não de estimativa —
 // ver o cabeçalho de `visada.teste.mjs`.
 //
-// QUAL NORTE (importa, e não é detalhe)
-// --------------------------------------
-// O azimute daqui é o AZIMUTE VERDADEIRO — medido a partir do norte
-// geográfico, que é o que a geodésia devolve. Não é o azimute da QUADRÍCULA
-// (o norte das linhas verticais da carta) nem o MAGNÉTICO (o da bússola). As
-// três referências diferem:
+// QUAL NORTE: QUADRÍCULA (definido pelo usuário em 2026-08-02)
+// -------------------------------------------------------------
+// Existem três nortes possíveis, e um azimute sem dizer qual deles usa é um
+// número perigoso:
 //
-//   * verdadeiro x quadrícula: a diferença é a convergência meridiana, que
-//     depende de quão longe se está do meridiano central da zona UTM. No
-//     Brasil chega a ~1,5° perto da borda de uma zona — cerca de 27
-//     milésimos, o suficiente para importar em apoio de fogo.
-//   * verdadeiro x magnético: é a declinação magnética, que varia com o
-//     lugar e com o ANO (o campo magnético se move). Depende de um modelo
-//     (IGRF/WMM) que este projeto não tem.
+//   * VERDADEIRO — norte geográfico. É o que a geodésia (Vincenty, abaixo)
+//     devolve naturalmente.
+//   * QUADRÍCULA — o norte das linhas verticais da carta. Difere do
+//     verdadeiro pela CONVERGÊNCIA MERIDIANA, que cresce com a distância ao
+//     meridiano central da zona UTM: no Brasil chega a ~1,45° na borda de uma
+//     zona, ou seja **~26 milésimos**.
+//   * MAGNÉTICO — o da bússola. Difere pela declinação magnética, que varia
+//     com o lugar e com o ANO. Exige um modelo (IGRF/WMM) que este projeto
+//     não tem.
 //
-// Por isso tudo que sai daqui é rotulado "verdadeiro", sempre e
-// explicitamente — um azimute sem referência de norte é um número perigoso.
-// Converter para quadrícula/magnético é decisão de escopo ainda não tomada
-// (ver "Decisões da etapa" em CLAUDE.md); enquanto não for, é melhor dizer
-// qual norte é do que entregar o número cru.
+// **Em apoio de fogo, lançamento é SEMPRE em relação ao norte de quadrícula**
+// — é assim que se mede na carta e é o que a peça recebe. Então é isso que
+// este módulo entrega e é isso que a tela mostra (sufixo `qd`). A primeira
+// versão mostrava o verdadeiro; foi corrigido no mesmo dia, com a resposta de
+// quem usa.
+//
+// O verdadeiro continua sendo devolvido junto (`azimuteVerdadeiroGraus`), por
+// dois motivos: é o que se compara com uma fonte geodésica externa quando se
+// quer conferir a conta, e é o ponto de partida se um dia entrar o magnético.
+
+// eslint-disable-next-line -- coordenadas.js é puro (não importa nada), então
+// não há risco de ciclo; é de lá que vem a zona UTM que define o meridiano
+// central usado na convergência.
+import { zonaUtm } from './coordenadas.js';
 
 // ── Elipsoide WGS84 (o mesmo de coordenadas.js) ─────────────────────────────
 const A = 6378137.0;              // semieixo maior, m
@@ -91,12 +100,51 @@ export function grausParaMilesimos(graus) {
   return (graus / 360) * MILESIMOS_POR_VOLTA;
 }
 
+// ── Convergência meridiana ──────────────────────────────────────────────────
+// O ângulo entre o norte VERDADEIRO e o norte da QUADRÍCULA no ponto dado.
+// Positivo quando o norte da quadrícula está a leste do verdadeiro.
+//
+//     azimute de quadrícula = azimute verdadeiro − convergência
+//
+// A fórmula é a expressão esférica exata, `atan(tan Δλ · sen φ)`, com Δλ
+// medido a partir do meridiano central da zona UTM do ponto. Conferida contra
+// o `meridian_convergence` do PROJ em oito pontos do Brasil (do meridiano
+// central às duas bordas da zona): concorda dentro de **0,01 mili-grau**, ou
+// 0,0002 milésimo. A forma de primeira ordem que muitos manuais trazem
+// (`Δλ · sen φ`) erra até 0,94 mili-grau na borda da zona — ainda pequeno,
+// mas o `atan` é igualmente barato e não tem esse resíduo.
+//
+// Devolve graus, ou `null` se o ponto for inválido.
+//
+// A zona é a do ponto passado — que, em `visada()`, é o do OBSERVADOR. É o
+// correto: quem tem a carta na mão (e a quadrícula impressa nela) é ele. Se o
+// alvo estiver na zona vizinha, o lançamento continua sendo medido na
+// quadrícula do observador, que é o que ele consegue conferir.
+export function convergenciaMeridiana(ponto) {
+  if (!pontoValido(ponto)) return null;
+  const zona = zonaUtm(ponto.lat, ponto.lon);
+  if (zona == null) return null;
+  const meridianoCentral = (zona - 1) * 6 - 180 + 3;
+  const dLambda = (ponto.lon - meridianoCentral) * GRAU;
+  return Math.atan(Math.tan(dLambda) * Math.sin(ponto.lat * GRAU)) / GRAU;
+}
+
 // ── Inversa de Vincenty ─────────────────────────────────────────────────────
 // `de` e `para`: { lat, lon } em grau decimal (o formato que o projeto usa em
 // todo lugar — posicoes_atuais, elementos_marcados, Leaflet).
 //
-// Devolve { distanciaM, azimuteGraus, azimuteMil } ou `null` quando não dá
-// para afirmar nada (ponto inválido, ou não convergiu).
+// Devolve, ou `null` quando não dá para afirmar nada (ponto inválido, ou não
+// convergiu):
+//
+//   distanciaM              distância no ELIPSOIDE (chão), em metros. É a que
+//                           a peça precisa — não a distância na quadrícula,
+//                           que traz junto o fator de escala do UTM (até
+//                           ~4 m em 10 km).
+//   azimuteGraus            azimute de QUADRÍCULA, que é o lançamento.
+//   azimuteMil              o mesmo, em milésimos NATO.
+//   azimuteVerdadeiroGraus  o verdadeiro, para conferência contra fonte
+//                           geodésica externa.
+//   convergenciaGraus       a diferença entre os dois, no ponto do observador.
 //
 // Os dois pontos IGUAIS devolvem distância 0 e azimute 0 — não é erro, é o
 // caso de alguém marcar um elemento exatamente em cima de si.
@@ -121,7 +169,12 @@ export function visada(de, para) {
     );
     // Pontos coincidentes: sem direção a calcular, e dividir por senSigma
     // abaixo daria NaN. Sai cedo com a resposta certa.
-    if (senSigma === 0) return { distanciaM: 0, azimuteGraus: 0, azimuteMil: 0 };
+    if (senSigma === 0) {
+      return {
+        distanciaM: 0, azimuteGraus: 0, azimuteMil: 0,
+        azimuteVerdadeiroGraus: 0, convergenciaGraus: convergenciaMeridiana(de) ?? 0,
+      };
+    }
 
     cosSigma = senU1 * senU2 + cosU1 * cosU2 * cosLambda;
     sigma = Math.atan2(senSigma, cosSigma);
@@ -158,12 +211,22 @@ export function visada(de, para) {
     cosU2 * senLambda,
     cosU1 * senU2 - senU1 * cosU2 * cosLambda
   );
-  const azimuteGraus = (azimuteRad / GRAU + 360) % 360;
+  const azimuteVerdadeiroGraus = (azimuteRad / GRAU + 360) % 360;
+
+  // A conversão para quadrícula. Se a convergência não puder ser calculada
+  // (ponto fora da faixa do UTM — polos), o azimute de quadrícula não existe;
+  // devolvemos o verdadeiro com convergência 0 em vez de `null`, porque perder
+  // o vetor inteiro por causa do NORTE seria pior do que dar o vetor com o
+  // norte que se tem. Não acontece em nenhum exercício no Brasil.
+  const convergenciaGraus = convergenciaMeridiana(de) ?? 0;
+  const azimuteGraus = (azimuteVerdadeiroGraus - convergenciaGraus + 360) % 360;
 
   return {
     distanciaM,
     azimuteGraus,
     azimuteMil: grausParaMilesimos(azimuteGraus),
+    azimuteVerdadeiroGraus,
+    convergenciaGraus,
   };
 }
 
@@ -188,10 +251,11 @@ export function formatarAzimute(graus) {
   return `${mil} mil (${g}°)`;
 }
 
-// A linha inteira, como aparece no popup da marcação. O "vd" ao fim NÃO é
-// enfeite: é a marca de que o azimute é VERDADEIRO e não de quadrícula nem
-// magnético (ver o cabeçalho deste arquivo).
+// A linha inteira, como aparece no popup da marcação. O "qd" ao fim NÃO é
+// enfeite: é a marca de que o lançamento é de QUADRÍCULA — e é o que permite
+// alguém perceber, de relance, se um dia o app voltar a mostrar o verdadeiro
+// (ver o cabeçalho deste arquivo).
 export function formatarVisada(v) {
   if (!v) return '';
-  return `${formatarDistancia(v.distanciaM)} · ${formatarAzimute(v.azimuteGraus)} vd`;
+  return `${formatarDistancia(v.distanciaM)} · ${formatarAzimute(v.azimuteGraus)} qd`;
 }
