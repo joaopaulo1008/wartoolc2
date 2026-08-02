@@ -220,6 +220,12 @@ Isto já era possível desde a Etapa 5, mas nunca foi testado ao vivo com o efei
 
 **Como saber que falhou:** lista gigante com todos os tipos misturados, ou nomes em inglês → o catálogo não está sendo filtrado por categoria.
 
+**12a-bis. O que fica escrito ao lado do símbolo no mapa.** O formulário tem um campo **"Designação da unidade (opcional)"**, no fim. É ele — e só ele — que aparece escrito junto ao símbolo.
+
+**Esperar:** deixando em branco, o símbolo sai **limpo**, sem texto nenhum ao lado. Preenchendo com algo curto (`1º/5º RCC`), é isso que aparece.
+
+**Como saber que falhou:** se aparecer o **nome do tipo** ao lado do símbolo (ex.: "Cavalaria Blindada ou Mecanizada…"), o app está na versão anterior à correção de 2026-08-02 — confira o hash do bundle (item 0.1). Marcações criadas **antes** dessa correção também saem limpas: o app reconhece que o rótulo gravado era o tipo e não o desenha.
+
 **12b.** No painel do instrutor, aba **"Situação atual"**, abra a marcação daquele aluno e clique em **Editar**.
 
 **Esperar:** o formulário abre **já preenchido com o que o aluno escolheu** (categoria, tipo, escalão, modificadores) — não em branco. Corrigir só a natureza e salvar deve ser suficiente.
@@ -303,6 +309,7 @@ Depois do teste, reúna:
 - [ ] Item 11d: decimal bate com o GPS nativo; GMS mostra S/W em vez de sinal negativo?
 - [x] Item 11e: `mE`/`mN` entendidos como eixos, não hemisfério. **Confundiu em campo em 2026-08-02; sufixo trocado de `E`/`N` para `mE`/`mN` e nota acrescentada ao cartão "Coordenada".**
 - [ ] Item 12a: formulário novo é navegável no celular, nomes em português, lista filtrada pela categoria?
+- [ ] Item 12a-bis: sem designação, o símbolo sai LIMPO no mapa (nada de nome de tipo escrito ao lado)?
 - [ ] Item 12b: Editar abre já preenchido com a escolha do aluno?
 - [ ] Item 12c: correção do instrutor chega ao aluno **sem F5** e o popup mostra "Corrigido por …"?
 - [ ] Item 12d: aluno editando a própria marcação NÃO gera "Corrigido por"?

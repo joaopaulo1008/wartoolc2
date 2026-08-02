@@ -28,6 +28,7 @@
 import {
   getSIDC, decomporSidc, descreverSidc, sidcDeFabrica, chaveNatureza,
   nomeDoItem, codigoDoItem, itensDaCategoria, categoriaPorId, categoriaPorSymbolSet,
+  designacaoDoMapa,
   NATUREZA, DIMENSAO, ESCALAO, ESCALAO_ROTULO, CATEGORIAS,
 } from './simbolos.js';
 
@@ -201,6 +202,55 @@ ok('os dois modificadores aparecem quando os dois foram escolhidos',
   'Artilharia de Campanha · Batalhão · Ataque · Rebocado');
 ok('SIDC inválido descreve como string vazia, nunca lança', descreverSidc('xxx'), '');
 ok('symbol set fora do catálogo também descreve vazio', descreverSidc('10019900000000000000'), '');
+
+// ── designacaoDoMapa(): o que vai escrito AO LADO do símbolo ───────────────
+// Regressão vista em campo em 2026-08-02: o mapa aparecia com o nome oficial
+// inteiro do tipo ("Cavalaria Blindada ou Mecanizada, Carros de Combate
+// (código específico apenas para compatibilidade com a OTAN)") atravessando a
+// tela. No APP-6D aquele campo é a DESIGNAÇÃO da unidade, não o tipo — o tipo
+// já está no desenho do símbolo.
+console.log('\ndesignacaoDoMapa() — designação da unidade, nunca o tipo');
+const SIDC_CAV = getSIDC({ dimensao: 'UNIDADES', escalao: 'PEL', natureza_code: '120500' });
+ok('uma designação de verdade passa inteira', designacaoDoMapa('1º/5º RCC', SIDC_CAV), '1º/5º RCC');
+ok('vazio continua vazio (o símbolo sai limpo)', designacaoDoMapa('', SIDC_CAV), '');
+ok('só espaço também', designacaoDoMapa('   ', SIDC_CAV), '');
+ok('null/undefined não viram a string "null"',
+  [designacaoDoMapa(null, SIDC_CAV), designacaoDoMapa(undefined, SIDC_CAV)], ['', '']);
+ok('O CASO RELATADO: o nome do TIPO gravado como título não é designação — some',
+  designacaoDoMapa('Cavalaria Blindada ou Mecanizada, Carros de Combate\n' +
+                   '(código específico apenas para compatibilidade com a OTAN)', SIDC_CAV), '');
+ok('e some também na forma já limpa, sem a nota da planilha',
+  designacaoDoMapa('Cavalaria Blindada ou Mecanizada, Carros de Combate', SIDC_CAV), '');
+ok('vale para qualquer categoria, não só cavalaria',
+  designacaoDoMapa('Morteiro', getSIDC({ dimensao: 'EQUIPAMENTOS_VIATURAS', natureza_code: '111400' })), '');
+ok('"Inimigo", o default de titulo no schema (0001), também não é designação',
+  designacaoDoMapa('Inimigo', SIDC_CAV), '');
+ok('uma designação que POR ACASO parece nome de tipo mas não é o do SIDC passa',
+  designacaoDoMapa('Infantaria', SIDC_CAV), 'Infantaria');
+ok('texto longo é truncado com reticências, não estoura o layout',
+  designacaoDoMapa('12345678901234567890', SIDC_CAV), '12345678901…');
+ok('exatamente no limite não trunca', designacaoDoMapa('123456789012', SIDC_CAV), '123456789012');
+ok('o limite é ajustável (o popup usa 40, o mapa usa 12)',
+  designacaoDoMapa('1º Esqd/5º RCC Mec', SIDC_CAV, { maximo: 40 }), '1º Esqd/5º RCC Mec');
+ok('SIDC inválido não impede mostrar a designação digitada',
+  designacaoDoMapa('1º/5º RCC', 'nao-e-sidc'), '1º/5º RCC');
+
+// A separação nome/observação, feita na geração do catálogo (2026-08-02).
+console.log('\nNome x observação: a nota da planilha não faz parte do nome');
+ok('nenhum nome do catálogo tem quebra de linha embutida',
+  CATEGORIAS.flatMap((c) => c.grupos.flatMap((g) => g.itens))
+    .filter(([, nome]) => nome.includes('\n')).length, 0);
+ok('nenhum rótulo de modificador tem quebra de linha embutida',
+  CATEGORIAS.flatMap((c) => [...c.mod1, ...c.mod2])
+    .filter(([, rotulo]) => rotulo.includes('\n')).length, 0);
+ok('a nota não some do catálogo: vira o terceiro elemento da tupla',
+  nomeDoItem('unidades', '120500') === 'Cavalaria Blindada ou Mecanizada, Carros de Combate' &&
+  CATEGORIAS.find((c) => c.id === 'unidades').grupos
+    .flatMap((g) => g.itens).find(([cod]) => cod === '120500')[2]
+    .includes('compatibilidade com a OTAN'),
+  true);
+ok('e o resumo do popup não arrasta mais a nota junto',
+  descreverSidc(SIDC_CAV), 'Cavalaria Blindada ou Mecanizada, Carros de Combate · Pelotão');
 
 // ── Precedência da origem do SIDC do usuário (Etapa 9b, decisão 3) ─────────
 console.log('\nsidcDeFabrica() — de onde vem o símbolo de um usuário');

@@ -441,6 +441,19 @@ Migration nova: **`0009_auditoria_edicao_e_preferencias.sql`** (duas colunas, um
 
 **PENDENTE DE TESTE AO VIVO** (acrescentado a `docs/roteiro-teste-campo.md`): conferir os três formatos contra o GPS do celular e uma referência externa — **principalmente UTM**, que é onde se erra a zona sem perceber; instrutor corrigindo a natureza de uma marcação de aluno em campo real e o aluno vendo a mudança (e o "Corrigido por") sem F5; e conferir que a precedência de origem do SIDC bate com o que o roteiro de cadastro real da Etapa 2c vai produzir, quando ela for ativada.
 
+### Correção: o que vai escrito AO LADO do símbolo (2026-08-02)
+
+Regressão da Etapa 9b, vista na primeira olhada em campo: o mapa saiu com *"Cavalaria Blindada ou Mecanizada, Carros de Combate (código específico apenas para compatibilidade com a OTAN)"* escrito ao lado do símbolo, atravessando a tela.
+
+**A causa é conceitual, não de layout.** No APP-6D, o campo que a `milsymbol` chama de `uniqueDesignation` é a **designação da unidade** — o número/nome dela ("1º/5º RCC") —, não o **tipo**. O tipo já está dito pelo desenho do símbolo; escrevê-lo ao lado é redundante mesmo quando cabe. A `0001` sempre descreveu `elementos_marcados.titulo` como "rótulo curto exibido no mapa"; a Etapa 9b o repropôs como nome do tipo, e com os nomes oficiais (longos, alguns com nota entre parênteses) o erro ficou visível.
+
+- **`titulo` volta a ser o rótulo curto** — agora a designação que o usuário digita, num campo novo e **opcional** do formulário (`maxlength=12`). Em branco, o símbolo sai limpo, que é o certo para um elemento inimigo cuja unidade não se conhece.
+- **O tipo não é mais gravado**, porque já está no SIDC: sai de lá por `descreverSidc()`. Menos um dado duplicado que poderia divergir.
+- **`designacaoDoMapa()` (nova, pura, em `simbolos.js`) conserta o dado já gravado sem migration.** Quando o `titulo` é exatamente o nome do tipo — que é como ficaram as marcações criadas entre a 9b e esta correção —, não há designação a mostrar e ela devolve `''`. A comparação olha também só a primeira linha, para pegar as linhas gravadas com a nota da planilha colada. Também trata `'Inimigo'` (o default do schema) como "sem designação", e trunca por segurança.
+- **O popup deixou de depender do `titulo`**: o cabeçalho é a designação quando existe, senão o nome do tipo derivado do SIDC. Nunca fica vazio.
+
+**Mesma causa, segundo sintoma, corrigido junto:** 10 nomes do catálogo e 32 modificadores traziam, *dentro* do `NomeBR` e separadas por quebra de linha, anotações da planilha de origem ("código específico apenas para compatibilidade com a OTAN", listas de sinônimos, código OTAN de posto). Isso não é nome, é nota de rodapé — e continuaria poluindo o `<select>` num celular e a linha "Símbolo" do popup mesmo depois de consertado o mapa. O gerador passou a separar: a **primeira linha é o nome**, o resto vira `observacao` (terceiro elemento da tupla), preservada no catálogo e usada só como `title=` da `<option>`. Nenhum código de SIDC mudou.
+
 ### Vetor de observação — distância e azimute até o alvo (2026-08-02)
 
 Acréscimo pequeno e deliberadamente isolado, feito **depois** de a Etapa 9b fechar e **antes** do primeiro teste de campo, a pedido do usuário. É o primeiro pedaço do que virá a ser o painel de apoio de fogo (ver "A fazer" no ROADMAP) — escolhido justamente por ser o único pedaço daquela ideia que **não** exige tabela nova, papel novo nem migration: o dado já existe nas duas pontas (a posição de quem observa, em `gps.js`, e a da marcação, em `elementos_marcados`), e faltava só a conta entre elas.

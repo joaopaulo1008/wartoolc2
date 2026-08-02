@@ -26,7 +26,7 @@ import * as L from 'leaflet';
 import { supabase, traduzirErro, buscarPerfilBasico, buscarPartidosDaTurma } from './auth.js';
 import {
   getSIDC, decomporSidc, descreverSidc,
-  CATEGORIAS, categoriaPorId, itensDaCategoria, nomeDoItem,
+  CATEGORIAS, categoriaPorId, itensDaCategoria, nomeDoItem, designacaoDoMapa,
   ESCALAO_ROTULO,
 } from './simbolos.js';
 import { formatarCoordenada, observarFormatoCoordenada } from './preferencias.js';
@@ -202,11 +202,16 @@ function construirPopupHtml(row, autorPerfil, editorPerfil) {
     ? new Date(row.criada_em).toLocaleTimeString('pt-BR')
     : '—';
 
-  // Etapa 9b: o resumo do SIDC em português oficial. `titulo` é o NomeBR do
-  // ícone central; esta linha acrescenta escalão e modificadores, que o
-  // título sozinho não carrega.
+  // O QUE o elemento é, em português oficial, derivado do SIDC — natureza,
+  // escalão e modificadores. Vem do símbolo gravado, não do `titulo`: desde a
+  // correção de 2026-08-02 o `titulo` guarda a DESIGNAÇÃO da unidade (o
+  // número dela), que é outra coisa.
   const detalhe = descreverSidc(row.sidc);
-  const linhaDetalhe = (detalhe && detalhe !== row.titulo)
+  // O cabeçalho do popup é a designação quando ela existe ("1º/5º RCC"); sem
+  // ela, é o nome do tipo. Nunca fica vazio.
+  const designacao = designacaoDoMapa(row.titulo, row.sidc, { maximo: 40 });
+  const tituloPopup = designacao || detalhe || 'Elemento';
+  const linhaDetalhe = (detalhe && detalhe !== tituloPopup)
     ? `<div class="popup-row"><span class="popup-label">Símbolo</span><span class="popup-value">${escapar(detalhe)}</span></div>`
     : '';
 
@@ -267,7 +272,7 @@ function construirPopupHtml(row, autorPerfil, editorPerfil) {
     : '';
   return (
     `<div class="popup-content">` +
-      `<div class="popup-title">${escapar(row.titulo || 'Elemento')}</div>` +
+      `<div class="popup-title">${escapar(tituloPopup)}</div>` +
       linhaDetalhe +
       `<div class="popup-row"><span class="popup-label">Partido</span><span class="popup-value">${escapar(nomePartido)}</span></div>` +
       linhaCoordenada +
@@ -324,7 +329,13 @@ function criarOuAtualizarMarcador(row, { map }) {
     partidoObservador: meuPartido,
     partidoElemento,
     tamanho: TAMANHO_ICONE,
-    designacao: row.titulo,
+    // A DESIGNAÇÃO da unidade (o número/nome dela), nunca o tipo — o tipo já
+    // está no desenho do símbolo. Ver designacaoDoMapa() em simbolos.js: ela
+    // devolve '' quando o `titulo` gravado é, na verdade, o nome do tipo, que
+    // é como ficaram as marcações criadas entre a Etapa 9b e a correção de
+    // 2026-08-02. Sem isso, o nome oficial inteiro era escrito ao lado do
+    // símbolo e atravessava a tela.
+    designacao: designacaoDoMapa(row.titulo, row.sidc),
     corFallback: COR_FALLBACK,
     tamanhoFallback: 20,
   });
@@ -493,10 +504,12 @@ function injetarEstilos() {
     #marcacao-painel label {
       display:block; font-size:12px; color:#7a9ab8; margin-bottom:10px;
     }
-    #marcacao-painel select {
+    #marcacao-painel select, #marcacao-painel input[type=text] {
       display:block; width:100%; margin-top:4px; padding:5px 6px;
       background:#16263a; color:#e8eaf0; border:1px solid #2a4a6b; border-radius:4px;
+      font-family:inherit; font-size:13px; box-sizing:border-box;
     }
+    #marcacao-painel input[type=text]::placeholder { color:#3f5f7f; }
     #marcacao-painel .mc-acoes {
       display:flex; justify-content:flex-end; gap:8px; margin-top:14px;
     }
@@ -569,9 +582,16 @@ function construirOpcoesCategoria(idSelecionado) {
 function construirOpcoesItem(categoriaId, codigoSelecionado) {
   return itensDaCategoria(categoriaId)
     .map((grupo) => {
+      // O terceiro elemento da tupla, quando existe, é a OBSERVAÇÃO que o
+      // portal trazia colada no nome ("código específico apenas para
+      // compatibilidade com a OTAN", sinônimos, código OTAN de posto). Vai
+      // como `title=`, não no rótulo: num <select> de celular ela empurraria
+      // o nome para fora da tela — que é o mesmo problema que a correção de
+      // 2026-08-02 resolveu no mapa.
       const opcoes = grupo.itens
-        .map(([codigo, nome]) =>
-          `<option value="${codigo}"${codigo === codigoSelecionado ? ' selected' : ''}>${escapar(nome)}</option>`)
+        .map(([codigo, nome, observacao]) =>
+          `<option value="${codigo}"${codigo === codigoSelecionado ? ' selected' : ''}` +
+          `${observacao ? ` title="${escapar(observacao)}"` : ''}>${escapar(nome)}</option>`)
         .join('');
       return `<optgroup label="${escapar(grupo.nome)}">${opcoes}</optgroup>`;
     })
@@ -583,8 +603,9 @@ function construirOpcoesItem(categoriaId, codigoSelecionado) {
 // uma opção vazia aqui.
 function construirOpcoesModificador(lista, codigoSelecionado) {
   return lista
-    .map(([codigo, rotulo]) =>
-      `<option value="${codigo}"${codigo === codigoSelecionado ? ' selected' : ''}>${escapar(rotulo)}</option>`)
+    .map(([codigo, rotulo, observacao]) =>
+      `<option value="${codigo}"${codigo === codigoSelecionado ? ' selected' : ''}` +
+      `${observacao ? ` title="${escapar(observacao)}"` : ''}>${escapar(rotulo)}</option>`)
     .join('');
 }
 
@@ -673,6 +694,14 @@ function abrirFormulario(latlng, { marcacaoExistente } = {}) {
        <b>Escolha o tipo de novo antes de salvar</b> — salvar assim grava o primeiro da lista.</p>`
     : '';
 
+  // A designação já gravada, se houver. Passa pelo mesmo filtro do mapa, para
+  // uma marcação criada entre a Etapa 9b e a correção de 2026-08-02 (cujo
+  // `titulo` é o nome do TIPO) abrir com o campo vazio, em vez de reofertar o
+  // texto errado para ser regravado.
+  const designacaoInicial = marcacaoExistente
+    ? designacaoDoMapa(marcacaoExistente.titulo, marcacaoExistente.sidc, { maximo: 12 })
+    : '';
+
   const painel = document.createElement('div');
   painel.id = 'marcacao-painel';
   painel.innerHTML = `
@@ -690,6 +719,14 @@ function abrirFormulario(latlng, { marcacaoExistente } = {}) {
       <select id="mc-escalao">${construirOpcoesEscalao(preenchido.escalao || 'NONE')}</select>
     </label>
     <div id="mc-modificadores"></div>
+    <!-- Correção de 2026-08-02: é ISTO que vai escrito ao lado do símbolo no
+         mapa — a designação da unidade, não o tipo dela (o tipo já está no
+         desenho). Opcional: em branco, o símbolo sai limpo. O maxlength é o
+         que impede a linha de voltar a atravessar a tela. -->
+    <label>Designação da unidade <span style="color:#4a6a8a">(opcional)</span>
+      <input id="mc-designacao" type="text" maxlength="12" autocomplete="off"
+             placeholder="ex.: 1º/5º RCC" value="${escapar(designacaoInicial)}">
+    </label>
     <label>Partido do elemento observado
       <select id="mc-partido">${construirOpcoesPartido(marcacaoExistente?.partido_id)}</select>
     </label>
@@ -758,6 +795,7 @@ function abrirFormulario(latlng, { marcacaoExistente } = {}) {
       escalao: document.getElementById('mc-escalao').value,
       mod1: document.getElementById('mc-mod1')?.value || '00',
       mod2: document.getElementById('mc-mod2')?.value || '00',
+      designacao: document.getElementById('mc-designacao').value.trim(),
       partidoId: document.getElementById('mc-partido').value || null,
     };
     const ok = await salvarMarcacao({ latlng, marcacaoExistente, valores });
@@ -783,10 +821,13 @@ async function salvarMarcacao({ latlng, marcacaoExistente, valores }) {
     mod1: valores.mod1,
     mod2: valores.mod2,
   });
-  // O título é o NomeBR OFICIAL do ícone central — antes era a chave da
-  // tabela manual ("Blindado (Carro de Combate)"), agora é o rótulo do
-  // portal ("Carro de Combate"). É o que aparece ao lado do símbolo no mapa.
-  const titulo = nomeDoItem(valores.categoriaId, valores.codigoEntidade) || 'Elemento';
+  // `titulo` volta a ser o que a `0001` sempre disse que era — "rótulo curto
+  // exibido no mapa" —, ou seja a DESIGNAÇÃO da unidade digitada pelo
+  // usuário. Pode ser vazio: o tipo do elemento não precisa ser gravado
+  // porque já está no SIDC (e sai de lá por `descreverSidc()`), e escrevê-lo
+  // aqui foi a regressão da Etapa 9b que pôs o nome oficial inteiro ao lado
+  // do símbolo no mapa.
+  const titulo = valores.designacao || '';
 
   if (marcacaoExistente) {
     const { data, error } = await supabase

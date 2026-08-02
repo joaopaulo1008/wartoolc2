@@ -321,6 +321,56 @@ export function descreverSidc(sidc) {
   return partes.join(' · ');
 }
 
+// ── O rótulo que vai AO LADO do símbolo no mapa ─────────────────────────────
+// Corrige uma regressão da Etapa 9b, vista em campo em 2026-08-02: o mapa
+// aparecia com "Cavalaria Blindada ou Mecanizada, Carros de Combate (código
+// específico apenas para compatibilidade com a OTAN)" escrito ao lado do
+// símbolo, atravessando a tela.
+//
+// A causa é conceitual, não de layout. No APP-6D o campo que a `milsymbol`
+// chama de `uniqueDesignation` é a DESIGNAÇÃO da unidade — o número/nome dela
+// ("1º/5º RCC", "Alfa", "2") —, não o TIPO. O tipo já está dito pelo desenho
+// do símbolo; repeti-lo por escrito é redundante mesmo quando cabe. Até a
+// Etapa 9b o `titulo` guardava o rótulo curto e escrito à mão, que era errado
+// pelo mesmo motivo mas passava despercebido por ser curto; com os nomes
+// oficiais do catálogo (alguns com nota entre parênteses), ficou visível.
+//
+// Esta função é a regra de "o que desenhar ali", e ela também CONSERTA O DADO
+// JÁ GRAVADO: quando o `titulo` é exatamente o nome do tipo (que é como as
+// marcações criadas entre a 9b e esta correção ficaram), não há designação
+// nenhuma a mostrar e o símbolo sai limpo. Nada de migration para arrumar
+// linha antiga.
+//
+// `maximo` existe como rede de proteção: designação é curta por natureza, e
+// um texto longo colado ali estoura o layout do mesmo jeito, venha de onde
+// vier.
+export function designacaoDoMapa(titulo, sidc, { maximo = 12 } = {}) {
+  const texto = String(titulo == null ? '' : titulo).trim();
+  if (!texto) return '';
+
+  // O nome do tipo, segundo o próprio SIDC. Se o título for isso, ele não é
+  // designação — é o tipo repetido.
+  //
+  // A comparação olha também só a PRIMEIRA LINHA do que está gravado: as
+  // marcações criadas entre a Etapa 9b e esta correção guardaram o `NomeBR`
+  // com a nota da planilha colada (".. \n(código específico apenas para
+  // compatibilidade com a OTAN)"), e o catálogo, desde a mesma correção, já
+  // separa nome de observação. Sem isso, justamente as linhas que motivaram o
+  // conserto continuariam escapando dele.
+  const d = decomporSidc(sidc);
+  if (d.categoriaId) {
+    const nomeTipo = nomeDoItem(d.categoriaId, d.codigoEntidade);
+    const primeiraLinha = texto.split('\n')[0].trim();
+    if (nomeTipo && (texto === nomeTipo || primeiraLinha === nomeTipo)) return '';
+  }
+  // 'Inimigo' é o default de `elementos_marcados.titulo` no schema (0001):
+  // veio do banco, não de alguém digitando, e também não é designação.
+  if (texto === 'Inimigo' || texto === 'Elemento') return '';
+
+  if (texto.length <= maximo) return texto;
+  return `${texto.slice(0, maximo - 1).trimEnd()}…`;
+}
+
 // ── Hostilidade relativa ────────────────────────────────────────────────────
 // NÃO MEXER sem ler os testes de simbolos.teste.mjs: esta função foi corrigida
 // uma vez em produção (Etapa 11) e a ORDEM DAS GUARDAS é o que a corrigiu.

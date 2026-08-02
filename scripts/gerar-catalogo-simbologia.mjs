@@ -130,6 +130,28 @@ if (problemas.length) {
   process.exit(1);
 }
 
+// ── Nome x observação ─────────────────────────────────────────────────────
+// Alguns `NomeBR` do portal trazem, DENTRO do nome e separada por quebra de
+// linha, uma anotação da planilha de origem:
+//
+//   "Cavalaria Blindada ou Mecanizada, Carros de Combate
+//    (código específico apenas para compatibilidade com a OTAN)"
+//   "Of Subalterno\n(OTAN OF-1)"
+//   "Navio de Pesquisa Hidroceanográfico,\nNavio Hidroceanográfico,\n..."   (sinônimos)
+//
+// Isso não é nome: é nota de rodapé. Deixá-la colada custou caro uma vez — na
+// primeira versão da Etapa 9b o nome inteiro ia parar ao lado do símbolo no
+// mapa e atravessava a tela (relatado em campo em 2026-08-02). Mesmo depois
+// de consertado aquilo, a nota continuaria poluindo o <select> do formulário
+// (num celular) e a linha "Símbolo" do popup.
+//
+// Regra: a PRIMEIRA linha é o nome; o resto vira `observacao`, preservada no
+// catálogo (não se perde informação) e usada só como `title=` da <option>.
+function separarNome(bruto) {
+  const linhas = String(bruto).split('\n').map((s) => s.trim()).filter(Boolean);
+  return { nome: linhas[0] || '', observacao: linhas.slice(1).join(' ') };
+}
+
 // ── Desambiguação de nomes repetidos ──────────────────────────────────────
 // A tabela plana NATUREZA (compatibilidade com quem já importava de
 // simbolos.js) é indexada por NOME, e há nomes que se repetem entre
@@ -139,7 +161,8 @@ if (problemas.length) {
 // formulário mude (o formulário usa o NomeBR puro, dentro da categoria já
 // escolhida).
 const contagem = new Map();
-for (const cat of bruto) for (const g of cat.g) for (const [, nome] of g.i) {
+for (const cat of bruto) for (const g of cat.g) for (const [, bru] of g.i) {
+  const { nome } = separarNome(bru);
   contagem.set(nome, (contagem.get(nome) || 0) + 1);
 }
 const repetidos = new Set([...contagem].filter(([, n]) => n > 1).map(([nome]) => nome));
@@ -181,7 +204,12 @@ L('//               (entidade = rótulo original em inglês do APP-6D;');
 L('//                nome     = rótulo em português, oficial quando o portal');
 L('//                           traz um ícone central para a própria entidade,');
 L('//                           nosso nos demais casos)');
-L('//   itens     — [código de 6 dígitos, NomeBR oficial do portal]');
+L('//   itens     — [código de 6 dígitos, NomeBR oficial, observação?]');
+L('//               A observação é a nota que o portal traz DENTRO do NomeBR,');
+L('//               separada por quebra de linha ("código específico apenas');
+L('//               para compatibilidade com a OTAN", sinônimos, código OTAN');
+L('//               de posto). Não é nome — fica à parte para não ir parar no');
+L('//               rótulo ao lado do símbolo no mapa nem poluir o <select>.');
 L('//   mod1/mod2 — [código de 2 dígitos, rótulo] das colunas "sector 1" e');
 L('//               "sector 2" do portal ("Correspondência no Brasil" quando');
 L('//               existe, senão o rótulo original em inglês)');
@@ -197,10 +225,12 @@ for (const cat of bruto) {
     L(`        entidade: ${aspas(grupo.e)},`);
     L(`        nome: ${aspas(NOME_GRUPO[grupo.e])},`);
     L('        itens: [');
-    for (const [codigo, nome] of grupo.i) {
+    for (const [codigo, bru] of grupo.i) {
+      const { nome, observacao } = separarNome(bru);
       const chave = repetidos.has(nome) ? `${nome} (${NOME_CATEGORIA[cat.id]})` : nome;
       const sufixo = chave === nome ? '' : ` // chave em NATUREZA: ${chave}`;
-      L(`          [${aspas(codigo)}, ${aspas(nome)}],${sufixo}`);
+      const terceiro = observacao ? `, ${aspas(observacao)}` : '';
+      L(`          [${aspas(codigo)}, ${aspas(nome)}${terceiro}],${sufixo}`);
     }
     L('        ],');
     L('      },');
@@ -209,7 +239,11 @@ for (const cat of bruto) {
   for (const [campo, lista] of [['mod1', cat.m1], ['mod2', cat.m2]]) {
     if (!lista.length) { L(`    ${campo}: [],`); continue; }
     L(`    ${campo}: [`);
-    for (const [codigo, rotulo] of lista) L(`      [${aspas(codigo)}, ${aspas(rotulo)}],`);
+    for (const [codigo, bru] of lista) {
+      const { nome, observacao } = separarNome(bru);
+      const terceiro = observacao ? `, ${aspas(observacao)}` : '';
+      L(`      [${aspas(codigo)}, ${aspas(nome)}${terceiro}],`);
+    }
     L('    ],');
   }
   L('  },');
