@@ -305,6 +305,36 @@
     </label>
   </div>
 
+  <!-- Formato de coordenada (Etapa 9b) ─────────────────────────────────────
+       A escolha vale para as TRÊS coordenadas que o app mostra: o popup do
+       próprio avatar (gps.js), o de cada colega (colegas.js) e o de cada
+       marcação (marcacoes.js). Fica gravada em
+       perfis.preferencias_visualizacao.formato_coordenada (coluna criada na
+       Etapa 4.5 e usada pela primeira vez aqui) — no banco, e não no
+       localStorage, para sobreviver a troca de aparelho no meio do
+       exercício.
+
+       UTM nasce marcado por ser o que está impresso na carta do BDGEx que
+       este mesmo painel serve como mapa de fundo, logo acima. O radio marcado
+       de verdade é definido pelo script (o valor gravado manda), este `checked`
+       é só o estado inicial antes de o perfil carregar. -->
+  <div class="panel-card" id="card-coordenada">
+    <h3>Coordenada</h3>
+    <label class="layer-row">
+      <input type="radio" name="formato-coordenada" value="utm" checked>
+      UTM (carta)
+    </label>
+    <label class="layer-row">
+      <input type="radio" name="formato-coordenada" value="decimal">
+      Grau decimal
+    </label>
+    <label class="layer-row">
+      <input type="radio" name="formato-coordenada" value="dms">
+      Grau, minuto, segundo
+    </label>
+    <div id="coordenada-exemplo" style="font-size:11px;color:#5f7f9f;margin-top:6px;font-variant-numeric:tabular-nums"></div>
+  </div>
+
   <!-- Camadas COP -->
   <div class="panel-card" id="card-forcas">
     <h3>Forças</h3>
@@ -358,6 +388,13 @@ import { criarBasemaps, trocarBasemap as trocarCamadaBasemap, BASEMAP_FALLBACK }
 import { CORES_CAMADA, FAIXAS_PANE, escaparHtml } from './kml.js';
 import { exigirSessao, sair, entrarNaTurmaComCodigo } from './auth.js';
 import { iniciarPermissoes, observarPermissao } from './permissoes.js';
+// Etapa 9b: preferências de VISUALIZAÇÃO do próprio usuário (hoje só o
+// formato de coordenada). Não confundir com permissoes.js, que é o que o
+// INSTRUTOR deixa ver — ver o cabeçalho de preferencias.js.
+import {
+  iniciarPreferencias, definirFormatoCoordenada,
+  observarFormatoCoordenada, formatarCoordenada,
+} from './preferencias.js';
 import { iniciarPerfilAoVivo } from './perfil-ao-vivo.js';
 import { iniciarRastreamentoProprio } from './gps.js';
 import { iniciarColegas } from './colegas.js';
@@ -863,6 +900,47 @@ document.addEventListener('DOMContentLoaded', () => {
   setInterval(carregarDados, 120_000);
 });
 
+// ── Seletor de formato de coordenada (Etapa 9b) ──────────────────────────
+// Liga os três <input type=radio> do cartão "Coordenada" a
+// preferencias.js — que é quem sabe o formato atual, quem grava a escolha em
+// perfis.preferencias_visualizacao e quem avisa gps.js/colegas.js/
+// marcacoes.js. Este bloco NÃO formata nada por conta própria: a única coisa
+// que ele desenha (o exemplo abaixo dos rádios) passa por
+// formatarCoordenada(), a mesma função dos três popups.
+//
+// O ponto do exemplo é o CENTRO ATUAL DO MAPA, não uma coordenada inventada:
+// assim quem está trocando de formato vê o efeito num lugar que reconhece, e
+// dá para conferir contra a carta na mão sem esperar o GPS fixar.
+function ligarSeletorDeCoordenada() {
+  const radios = [...document.querySelectorAll('input[name="formato-coordenada"]')];
+  const exemplo = document.getElementById('coordenada-exemplo');
+  if (!radios.length) return;
+
+  function atualizarExemplo() {
+    if (!exemplo) return;
+    const centro = map.getCenter();
+    exemplo.textContent = `Centro do mapa: ${formatarCoordenada(centro.lat, centro.lng)}`;
+  }
+
+  radios.forEach((radio) => {
+    radio.addEventListener('change', () => {
+      if (radio.checked) definirFormatoCoordenada(radio.value);
+    });
+  });
+
+  // Um observador, não uma atribuição direta: o valor pode mudar por outro
+  // caminho que não este seletor (a carga inicial do perfil, e amanhã uma
+  // segunda tela), e o rádio marcado precisa acompanhar. Já é chamado na
+  // hora com o valor atual — daí o rádio nascer no formato gravado.
+  observarFormatoCoordenada((formato) => {
+    radios.forEach((r) => { r.checked = (r.value === formato); });
+    atualizarExemplo();
+  });
+
+  map.on('moveend', atualizarExemplo);
+  atualizarExemplo();
+}
+
 // ── Sessão e roteamento por papel (Etapa 2b) ─────────────────────────────
 // Fica escondido (body com visibility:hidden) até confirmar que há sessão
 // válida e papel = usuario; senão redireciona para login.html. Ver
@@ -923,6 +1001,15 @@ if (resultado) {
   // existe aqui.
   {
     setTimeout(() => map.invalidateSize(), 0);
+
+    // Etapa 9b: as preferências entram ANTES dos módulos que desenham, pelo
+    // mesmo motivo que as permissões (logo abaixo): o primeiro popup montado
+    // já tem que nascer no formato certo, em vez de nascer em UTM e trocar
+    // sozinho um instante depois. Não é `await` porque não há consulta
+    // nenhuma — `perfil.preferencias_visualizacao` já veio no mesmo
+    // round-trip de `buscarPerfil()`, desde a Etapa 4.5.
+    iniciarPreferencias({ userId: session.user.id, perfil });
+    ligarSeletorDeCoordenada();
 
     // Etapa 6a: as permissões entram ANTES dos três módulos e são AGUARDADAS.
     // Sem o await, o primeiro observarPermissao() de cada módulo receberia o

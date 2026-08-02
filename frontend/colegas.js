@@ -40,6 +40,10 @@ import { criarIconeSimbolo } from './icones.js';
 // carga de página, porque o Realtime não faz backfill do que passou enquanto
 // o canal estava fechado.
 import { observarPermissao } from './permissoes.js';
+// Etapa 9b: a coordenada do colega no popup, no formato escolhido pelo
+// usuário. Mesma função que gps.js e marcacoes.js usam — a formatação é UMA
+// só (coordenadas.js, puro) atrás de UMA preferência (preferencias.js).
+import { formatarCoordenada, observarFormatoCoordenada } from './preferencias.js';
 // Etapa 6c: os limiares de "sumiu" (esmaecer/remover) e o cálculo de idade
 // saíram para frontend/vigia-ausencia.js quando a tela ao vivo do instrutor
 // (frontend/situacao.js) passou a precisar do MESMO comportamento — ver o
@@ -121,11 +125,27 @@ function popupColega(perfil, row) {
     ? new Date(row.atualizado_em).toLocaleTimeString('pt-BR')
     : '—';
   const precisao = row.precisao_m != null ? `±${Math.round(row.precisao_m)}m` : '—';
+  // Etapa 9b: a coordenada do colega, no formato que ESTE usuário escolheu.
+  // A mesma função que gps.js e marcacoes.js chamam — ver o comentário do
+  // import lá em cima.
   return (
     `<b>${perfil.nome_guerra || 'Sem nome de guerra'}</b><br>` +
+    `${formatarCoordenada(row.latitude, row.longitude)}<br>` +
     `Precisão: ${precisao}<br>` +
     `Atualizado: ${atualizado}`
   );
+}
+
+// Etapa 9b: remonta o popup de TODOS os colegas já desenhados. Chamado
+// quando o formato de coordenada muda — o popup do colega é montado no
+// upsertAvatar() (a cada posição nova), então sem isto o formato só mudaria
+// quando o colega se mexesse, e um colega parado ficaria com o formato
+// antigo indefinidamente.
+function remontarPopups() {
+  for (const estado of colegas.values()) {
+    if (!estado.ultimaLinha) continue;
+    estado.marker.bindPopup(popupColega(estado.perfil, estado.ultimaLinha));
+  }
 }
 
 // Perfil de um colega: procura no cache; se não achar (colega novo que
@@ -173,6 +193,9 @@ async function upsertAvatar(row, { map }) {
   estado.lat = row.latitude;
   estado.lng = row.longitude;
   estado.ultimaAtualizacaoEm = row.atualizado_em ? new Date(row.atualizado_em).getTime() : Date.now();
+  // Etapa 9b: a linha inteira fica guardada para o popup poder ser remontado
+  // quando o formato de coordenada mudar (ver remontarPopups()).
+  estado.ultimaLinha = row;
   estado.marker.bindPopup(popupColega(perfil, row));
 
   redistribuirAvatares();
@@ -346,6 +369,10 @@ export async function iniciarColegas({ map, userId, turmaId, partido }) {
     if (habilitada) ativar();
     else desativar();
   });
+
+  // Etapa 9b: efeito imediato do seletor de formato de coordenada, também
+  // para os colegas parados (que podem passar minutos sem uma posição nova).
+  observarFormatoCoordenada(() => remontarPopups());
 
   window.addEventListener('beforeunload', desativar);
 }

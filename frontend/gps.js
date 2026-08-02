@@ -25,6 +25,11 @@ import { criarIconeSimbolo } from './icones.js';
 // acompanha. O `watchPosition` só é desligado quando AS DUAS estão desligadas
 // — aí não sobrou motivo para manter o GPS do aparelho ativo gastando bateria.
 import { observarPermissao, pode } from './permissoes.js';
+// Etapa 9b: a coordenada da própria posição, no formato que o usuário
+// escolheu. A formatação NÃO mora aqui — mora em coordenadas.js (conversão
+// pura) atrás de preferencias.js (qual formato) — porque colegas.js e
+// marcacoes.js mostram a mesma coisa e três cópias divergiriam.
+import { formatarCoordenada, observarFormatoCoordenada } from './preferencias.js';
 
 // ── watchPosition ────────────────────────────────────────────────────────
 // `navigator.geolocation.watchPosition(sucesso, erro, opcoes)` é a API do
@@ -76,6 +81,21 @@ let vigiaSinalId      = null;
 // quando o instrutor reabilitar a permissão no meio da sessão.
 let contexto = null;
 let jaCentralizou = false;   // o mapa só se centraliza na PRIMEIRA leitura da sessão
+
+// Etapa 9b: o que está DESENHADO no popup agora — { lat, lon, accuracy,
+// timestamp }. Guardado à parte de `ultimaPosGravada` (que é sobre o
+// throttle de gravação, não sobre o que está na tela) para o popup poder ser
+// remontado quando o formato de coordenada mudar, sem esperar leitura nova.
+let ultimaPosicaoDesenhada = null;
+
+function popupProprio(perfil, pos) {
+  return (
+    `<b>${perfil.nome_guerra || 'Você'}</b><br>` +
+    `${formatarCoordenada(pos.lat, pos.lon)}<br>` +
+    `Precisão: ±${Math.round(pos.accuracy)}m<br>` +
+    `Atualizado: ${new Date(pos.timestamp).toLocaleTimeString('pt-BR')}`
+  );
+}
 
 // Atalhos de leitura: o valor mora em permissoes.js (fonte única), aqui só
 // se pergunta. Ver o comentário de observarPermissao() lá sobre por que NÃO
@@ -183,6 +203,15 @@ export function iniciarRastreamentoProprio({ map, userId, perfil }) {
     avaliarRastreamento();
   });
 
+  // Etapa 9b: trocar UTM/decimal/DMS tem efeito imediato aqui também. Sem
+  // isto, quem estivesse parado (sem leitura nova por até 30s, ou nenhuma se
+  // o sinal caiu) veria o formato antigo continuar no popup e concluiria que
+  // o seletor não funciona.
+  observarFormatoCoordenada(() => {
+    if (!marcadorProprio || !ultimaPosicaoDesenhada) return;
+    marcadorProprio.bindPopup(popupProprio(perfil, ultimaPosicaoDesenhada));
+  });
+
   window.addEventListener('beforeunload', pararWatch);
 }
 
@@ -267,11 +296,13 @@ function aoReceberPosicao(posicao, { map, userId, perfil }) {
     } else {
       marcadorProprio.setLatLng([latitude, longitude]);
     }
-    marcadorProprio.bindPopup(
-      `<b>${perfil.nome_guerra || 'Você'}</b><br>` +
-      `Precisão: ±${Math.round(accuracy)}m<br>` +
-      `Atualizado: ${new Date(posicao.timestamp).toLocaleTimeString('pt-BR')}`
-    );
+    // Etapa 9b: a coordenada entrou no popup. `ultimaPosicaoDesenhada` guarda
+    // o que está na tela para o observador de formato (lá embaixo) conseguir
+    // remontar o popup quando o usuário trocar de UTM para grau decimal sem
+    // esperar a próxima leitura do GPS — que pode demorar 30s (heartbeat) ou
+    // não vir nunca, se a pessoa estiver parada dentro de um prédio.
+    ultimaPosicaoDesenhada = { lat: latitude, lon: longitude, accuracy, timestamp: posicao.timestamp };
+    marcadorProprio.bindPopup(popupProprio(perfil, ultimaPosicaoDesenhada));
   }
 
   if (podeEnviar() && podeVerAvatar()) {

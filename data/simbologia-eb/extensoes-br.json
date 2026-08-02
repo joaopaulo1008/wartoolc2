@@ -1,0 +1,317 @@
+[
+ [
+  "atividades_eventos",
+  "100340000013990000000760000000",
+  "Operação de Engenharia"
+ ],
+ [
+  "atividades_eventos",
+  "100340000013990000000760016384",
+  "Ação Internacional"
+ ],
+ [
+  "equipamentos_viaturas",
+  "100315000020990000000760000000",
+  "Equipamento de comunicações (genérico)"
+ ],
+ [
+  "equipamentos_viaturas",
+  "100315000020990100000760000000",
+  "Equipamento rádio"
+ ],
+ [
+  "equipamentos_viaturas",
+  "100315000020990200000760000000",
+  "Equipamento de radiodifusão"
+ ],
+ [
+  "equipamentos_viaturas",
+  "100315000020990300000760000000",
+  "Equipamento retransmissor rádio"
+ ],
+ [
+  "equipamentos_viaturas",
+  "100315000020990400000760000000",
+  "Equipamento rádio teletipo"
+ ],
+ [
+  "equipamentos_viaturas",
+  "100315000020990500000760000000",
+  "Equipamento Multicanal"
+ ],
+ [
+  "equipamentos_viaturas",
+  "100315000022990000000760000000",
+  "Sensor de GE"
+ ],
+ [
+  "equipamentos_viaturas",
+  "100315000022990100000760000000",
+  "Telêmetro eletrônico"
+ ],
+ [
+  "equipamentos_viaturas",
+  "100315000022990200000760000000",
+  "Radiogoniômetro (DF – direction finder)"
+ ],
+ [
+  "equipamentos_viaturas",
+  "100315000022990300000760000000",
+  "Interceptador"
+ ],
+ [
+  "equipamentos_viaturas",
+  "100315000022990400000760000000",
+  "Interferidor (jammer)"
+ ],
+ [
+  "instalacoes",
+  "100320000011129900000760000000",
+  "Suprimento Classe I"
+ ],
+ [
+  "instalacoes",
+  "100320000011129900000760016384",
+  "Suprimento Classe II"
+ ],
+ [
+  "instalacoes",
+  "100320000011129900000760032768",
+  "Suprimento Classe III"
+ ],
+ [
+  "instalacoes",
+  "100320000011129900000760049152",
+  "Suprimento Classe IV"
+ ],
+ [
+  "instalacoes",
+  "100320000011129900000760065536",
+  "Suprimento Classe V"
+ ],
+ [
+  "instalacoes",
+  "100320000011129900000760081920",
+  "Suprimento Classe VI"
+ ],
+ [
+  "instalacoes",
+  "100320000011129900000760098304",
+  "Suprimento Classe VII"
+ ],
+ [
+  "instalacoes",
+  "100320000011129900000760114688",
+  "Suprimento Classe VIII"
+ ],
+ [
+  "instalacoes",
+  "100320000011129900000760131072",
+  "Suprimento Classe IX"
+ ],
+ [
+  "instalacoes",
+  "100320000011129900000760147456",
+  "Suprimento Classe X"
+ ],
+ [
+  "instalacoes",
+  "100320000011129900000760163840",
+  "Água"
+ ],
+ [
+  "instalacoes",
+  "100320000011129900000760180224",
+  "Suprimento de Outras Classes"
+ ],
+ [
+  "instalacoes",
+  "100320000011199900000760000000",
+  "Mortos"
+ ],
+ [
+  "instalacoes",
+  "100320000011199900000760016384",
+  "Prisioneiros de guerra"
+ ],
+ [
+  "instalacoes",
+  "100320000011199900000760032768",
+  "Salvados"
+ ],
+ [
+  "instalacoes",
+  "100320000011199900000760049152",
+  "Extraviados"
+ ],
+ [
+  "instalacoes",
+  "100320000011199900000760065536",
+  "Civis"
+ ],
+ [
+  "instalacoes",
+  "100320000011199900000760081920",
+  "Centro de recreação"
+ ],
+ [
+  "instalacoes",
+  "100320000011199900000760098304",
+  "Centro de repouso"
+ ],
+ [
+  "instalacoes",
+  "100320000011199900000760114688",
+  "Lavanderia"
+ ],
+ [
+  "instalacoes",
+  "100320000011199900000760131072",
+  "Banho"
+ ],
+ [
+  "instalacoes",
+  "100320000011990100000760000000",
+  "Comunicação Social"
+ ],
+ [
+  "maritimos_superficie",
+  "100330000012039900000760000000",
+  "Navio de Transporte de Tropa"
+ ],
+ [
+  "maritimos_superficie",
+  "100330000012059900000760000000",
+  "Aviso de Patrulha"
+ ],
+ [
+  "maritimos_superficie",
+  "100330000013019900000760000000",
+  "Navio Polar"
+ ],
+ [
+  "maritimos_superficie",
+  "100330000013019900000760016384",
+  "Navio Veleiro"
+ ],
+ [
+  "maritimos_superficie",
+  "100330000013019900000760032768",
+  "Veleiro Oceânico"
+ ],
+ [
+  "maritimos_superficie",
+  "100330000013029900000760000000",
+  "Embarcação Saúde"
+ ],
+ [
+  "maritimos_superficie",
+  "100330000013029900000760016384",
+  "Embarcação Manobra"
+ ],
+ [
+  "maritimos_superficie",
+  "100330000013029900000760032768",
+  "Embarcação Logística de Manutenção"
+ ],
+ [
+  "organizacoes_civis",
+  "100311000011029900000760000000",
+  "Ministério da Justiça e Segurança Pública (MJSP)"
+ ],
+ [
+  "unidades",
+  "100310000012189900000760000000",
+  "Forças Especiais"
+ ],
+ [
+  "unidades",
+  "100310000012189900000760016384",
+  "Precursores Paraquedistas"
+ ],
+ [
+  "unidades",
+  "100310000014129900000760000000",
+  "Polícia do Exército"
+ ],
+ [
+  "unidades",
+  "100310000014129900000760016384",
+  "Polícia da Aeronáutica"
+ ],
+ [
+  "unidades",
+  "100310000014129900000760032768",
+  "Serviço de Polícia de Fuzileiros Navais"
+ ],
+ [
+  "unidades",
+  "100310000015990000000760000000",
+  "Guerra Cibernética"
+ ],
+ [
+  "unidades",
+  "100310000016119900000760000000",
+  "Manutenção e Suprimento"
+ ],
+ [
+  "unidades",
+  "100310000016349900000760000000",
+  "Suprimento Classe IV"
+ ],
+ [
+  "unidades",
+  "100310000016349900000760016384",
+  "Suprimento Classe VI"
+ ],
+ [
+  "unidades",
+  "100310000016349900000760032768",
+  "Suprimento Classe VII"
+ ],
+ [
+  "unidades",
+  "100310000016349900000760049152",
+  "Suprimento Classe X"
+ ],
+ [
+  "unidades",
+  "100310000016349900000760065536",
+  "Suprimento de Outras Classes"
+ ],
+ [
+  "unidades",
+  "100310000016349900000760131072",
+  "Suprimento Classe I e Água"
+ ],
+ [
+  "unidades",
+  "100310000016349900000760147456",
+  "Suprimento Classe I e Outras Classes"
+ ],
+ [
+  "unidades",
+  "100310000016349900000760163840",
+  "Suprimento Classe II e Outras Classes"
+ ],
+ [
+  "unidades",
+  "100310000016349900000760081920",
+  "Suprimento de Material Bélico"
+ ],
+ [
+  "unidades",
+  "100310000016349900000760098304",
+  "Inspeção e Análise Bromatológica"
+ ],
+ [
+  "unidades",
+  "100310000016349900000760114688",
+  "Inspeção e Análise Química"
+ ],
+ [
+  "unidades",
+  "100310000020990000000760000000",
+  "Corpo de Bombeiros"
+ ]
+]

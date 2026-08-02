@@ -1,0 +1,4076 @@
+[
+ {
+  "id": "aeronaves",
+  "ss": "01",
+  "g": [
+   {
+    "e": "Military",
+    "i": [
+     [
+      "110100",
+      "Aeronave de asa fixa (genérica)"
+     ],
+     [
+      "110102",
+      "Ataque – asa fixa"
+     ],
+     [
+      "110104",
+      "Caça – asa fixa"
+     ],
+     [
+      "110107",
+      "Transporte – asa fixa"
+     ],
+     [
+      "110109",
+      "REVO – asa fixa"
+     ],
+     [
+      "110110",
+      "Patrulha – asa fixa"
+     ],
+     [
+      "110111",
+      "Reconhecimento – asa fixa"
+     ],
+     [
+      "110125",
+      "Busca e Salvamento (SAR) – asa fixa"
+     ],
+     [
+      "110131",
+      "Transporte de Passageiros – asa fixa"
+     ],
+     [
+      "110200",
+      "Aeronave de asa rotativa"
+     ],
+     [
+      "110300",
+      "Veículo Aéreo Não Tripulado militar"
+     ],
+     [
+      "110400",
+      "Aeronave Não Tripulada com decolagem vertical"
+     ]
+    ]
+   },
+   {
+    "e": "Civilian",
+    "i": [
+     [
+      "120100",
+      "Aeronave civil de asa fixa"
+     ],
+     [
+      "120200",
+      "Aeronave civil de asa rotativa"
+     ],
+     [
+      "120300",
+      "VANT civil"
+     ]
+    ]
+   }
+  ],
+  "m1": [
+   [
+    "00",
+    "Não especificado"
+   ],
+   [
+    "01",
+    "Ataque"
+   ],
+   [
+    "02",
+    "Bombardeiro"
+   ],
+   [
+    "03",
+    "Transporte"
+   ],
+   [
+    "04",
+    "Caça"
+   ],
+   [
+    "05",
+    "Interceptador"
+   ],
+   [
+    "06",
+    "REVO"
+   ],
+   [
+    "07",
+    "Utilitário"
+   ],
+   [
+    "08",
+    "Aeronave de pouso e decolagem vertical (VSTOL)"
+   ],
+   [
+    "09",
+    "Transporte de passageiros"
+   ],
+   [
+    "10",
+    "Ultraleve"
+   ],
+   [
+    "11",
+    "Posto de Comando Aéreo"
+   ],
+   [
+    "12",
+    "Alarme Aéreo Antecipado (Airborne Early Warning)"
+   ],
+   [
+    "13",
+    "Governamental"
+   ],
+   [
+    "14",
+    "Evacuação Aeromédica (EVAM)"
+   ],
+   [
+    "15",
+    "Escolta"
+   ],
+   [
+    "16",
+    "Interferidor"
+   ],
+   [
+    "17",
+    "Patrulha"
+   ],
+   [
+    "18",
+    "Reconhecimento"
+   ],
+   [
+    "19",
+    "Treinamento"
+   ],
+   [
+    "20",
+    "Reconhecimento Fotográfico"
+   ],
+   [
+    "21",
+    "Resgate de pessoal"
+   ],
+   [
+    "22",
+    "Guerra Antissubmarino"
+   ],
+   [
+    "23",
+    "Comunicações"
+   ],
+   [
+    "24",
+    "Medidas de Apoio de Guerra Eletrônica"
+   ],
+   [
+    "25",
+    "Contramedidas de minagem"
+   ],
+   [
+    "26",
+    "Busca e Salvamento (SAR)"
+   ],
+   [
+    "27",
+    "Operações Especiais"
+   ],
+   [
+    "28",
+    "Guerra de superfície"
+   ],
+   [
+    "29",
+    "VIP"
+   ],
+   [
+    "30",
+    "Busca e Salvamento em Combate (CSAR)"
+   ],
+   [
+    "31",
+    "Supressão de Defesa Antiaérea Inimiga"
+   ],
+   [
+    "32",
+    "Antisurface Warfare"
+   ],
+   [
+    "33",
+    "Caça/bombardeiro"
+   ],
+   [
+    "34",
+    "Intensive Care"
+   ],
+   [
+    "35",
+    "Medidas de Ataque Eletrônico (MAE)"
+   ],
+   [
+    "36",
+    "Multimissão"
+   ],
+   [
+    "37",
+    "Sequestrado"
+   ],
+   [
+    "38",
+    "ASW Helo- LAMPS"
+   ],
+   [
+    "39",
+    "ASW Helo - SH-60R"
+   ]
+  ],
+  "m2": [
+   [
+    "00",
+    "Não especificado"
+   ],
+   [
+    "01",
+    "Pesado"
+   ],
+   [
+    "02",
+    "Médio"
+   ],
+   [
+    "03",
+    "Leve"
+   ],
+   [
+    "04",
+    "Boom-Only"
+   ],
+   [
+    "05",
+    "Cesta"
+   ],
+   [
+    "06",
+    "Boom and Drogue"
+   ],
+   [
+    "07",
+    "Close Range"
+   ],
+   [
+    "08",
+    "Curto Alcance"
+   ],
+   [
+    "09",
+    "Médio Alcance"
+   ],
+   [
+    "10",
+    "Longo Alcance"
+   ],
+   [
+    "11",
+    "Comunicação com estação em solo"
+   ]
+  ]
+ },
+ {
+  "id": "atividades_eventos",
+  "ss": "40",
+  "g": [
+   {
+    "e": "Incident",
+    "i": [
+     [
+      "110000",
+      "Incidente"
+     ],
+     [
+      "110100",
+      "Crime"
+     ],
+     [
+      "110110",
+      "Motim civil / revolta"
+     ],
+     [
+      "110119",
+      "Contrabando"
+     ],
+     [
+      "110122",
+      "Sabotagem"
+     ],
+     [
+      "110123",
+      "Atividade suspeita"
+     ],
+     [
+      "110201",
+      "Ameaça de bomba"
+     ],
+     [
+      "110301",
+      "Explosão de Artefato explosivo improvisado (IED)"
+     ],
+     [
+      "110304",
+      "Homem Bomba"
+     ],
+     [
+      "110400",
+      "Tiroteio"
+     ],
+     [
+      "110501",
+      "Tráfico de drogas"
+     ],
+     [
+      "110601",
+      "Explosão de granada"
+     ],
+     [
+      "110602",
+      "Explosão incendiária"
+     ],
+     [
+      "110603",
+      "Explosão de mina"
+     ],
+     [
+      "110604",
+      "Explosão de morteiro"
+     ],
+     [
+      "110605",
+      "Explosão de foguete"
+     ],
+     [
+      "110606",
+      "Explosão de bomba"
+     ]
+    ]
+   },
+   {
+    "e": "Civil Disturbance",
+    "i": [
+     [
+      "120100",
+      "Manifestação"
+     ]
+    ]
+   },
+   {
+    "e": "Operation",
+    "i": [
+     [
+      "130000",
+      "Operação"
+     ],
+     [
+      "130100",
+      "Patrulhamento"
+     ],
+     [
+      "130200",
+      "Operações psicológicas"
+     ],
+     [
+      "130201",
+      "Propaganda em TV e Rádio"
+     ],
+     [
+      "130500",
+      "Minagem"
+     ],
+     [
+      "130600",
+      "Espionagem"
+     ],
+     [
+      "130800",
+      "Exfiltração"
+     ],
+     [
+      "130900",
+      "Infiltração"
+     ],
+     [
+      "131001",
+      "Garantia de Votação e Apuração"
+     ],
+     [
+      "131500",
+      "Garantia da Lei e da Ordem"
+     ],
+     [
+      "131502",
+      "Ações na Faixa de Fronteira"
+     ],
+     [
+      "131507",
+      "Apoio à Defesa Civil"
+     ]
+    ]
+   },
+   {
+    "e": "Fire Event",
+    "i": [
+     [
+      "140000",
+      "Incêndio"
+     ],
+     [
+      "140500",
+      "Incêndio residencial"
+     ],
+     [
+      "140800",
+      "Incêndio florestal"
+     ]
+    ]
+   },
+   {
+    "e": "Hazardous Materials",
+    "i": [
+     [
+      "150100",
+      "Incidente com material perigoso"
+     ],
+     [
+      "150111",
+      "Incidente com Material radioativo"
+     ],
+     [
+      "150115",
+      "Incidente com munição não explodida"
+     ]
+    ]
+   },
+   {
+    "e": "Natural Event",
+    "i": [
+     [
+      "170102",
+      "Avalanche"
+     ],
+     [
+      "170103",
+      "Terremoto (epicentro)"
+     ],
+     [
+      "170104",
+      "Deslizamento de terra"
+     ],
+     [
+      "170105",
+      "Desmoronamento"
+     ],
+     [
+      "170201",
+      "Seca"
+     ],
+     [
+      "170202",
+      "Inundação"
+     ],
+     [
+      "170203",
+      "Tsunami"
+     ],
+     [
+      "170303",
+      "Infestação microbiana"
+     ]
+    ]
+   }
+  ],
+  "m1": [
+   [
+    "00",
+    "Não especificado"
+   ],
+   [
+    "01",
+    "Assassinato"
+   ],
+   [
+    "02",
+    "Execução"
+   ],
+   [
+    "03",
+    "Sequestro"
+   ],
+   [
+    "04",
+    "De casa em casa"
+   ],
+   [
+    "05",
+    "Rapto"
+   ],
+   [
+    "06",
+    "Homicídio"
+   ],
+   [
+    "07",
+    "Pirataria"
+   ],
+   [
+    "08",
+    "Estupro"
+   ],
+   [
+    "09",
+    "Operações Psicológicas com material impresso"
+   ],
+   [
+    "10",
+    "Pirata"
+   ],
+   [
+    "11",
+    "False"
+   ],
+   [
+    "12",
+    "Find"
+   ],
+   [
+    "13",
+    "Encontrado e desativado"
+   ],
+   [
+    "14",
+    "Despistador"
+   ],
+   [
+    "15",
+    "Tentativa"
+   ],
+   [
+    "16",
+    "Acidente"
+   ],
+   [
+    "17",
+    "Incidente"
+   ],
+   [
+    "18",
+    "Roubo"
+   ]
+  ],
+  "m2": []
+ },
+ {
+  "id": "equipamentos_viaturas",
+  "ss": "15",
+  "g": [
+   {
+    "e": "Weapons/Weapons System",
+    "i": [
+     [
+      "110100",
+      "Fuzil"
+     ],
+     [
+      "110102",
+      "Fuzil de precisão"
+     ],
+     [
+      "110200",
+      "Metralhadora"
+     ],
+     [
+      "110201",
+      "Metralhadora Leve"
+     ],
+     [
+      "110202",
+      "Metralhadora Média"
+     ],
+     [
+      "110203",
+      "Metralhadora Pesada"
+     ],
+     [
+      "110300",
+      "Lançador de Granadas"
+     ],
+     [
+      "110400",
+      "Lança-chamas"
+     ],
+     [
+      "110500",
+      "Canhão Antiaéreo"
+     ],
+     [
+      "110501",
+      "Canhão Antiaéreo Leve"
+     ],
+     [
+      "110502",
+      "Canhão Antiaéreo Médio"
+     ],
+     [
+      "110503",
+      "Canhão Antiaéreo Pesado"
+     ],
+     [
+      "110600",
+      "Arma Anticarro"
+     ],
+     [
+      "110601",
+      "Arma Anticarro Leve"
+     ],
+     [
+      "110602",
+      "Arma Anticarro Média"
+     ],
+     [
+      "110603",
+      "Arma Anticarro Pesada"
+     ],
+     [
+      "110800",
+      "Canhão Sem Recuo"
+     ],
+     [
+      "110900",
+      "Obuseiro"
+     ],
+     [
+      "110901",
+      "Obuseiro Leve"
+     ],
+     [
+      "110902",
+      "Obuseiro Médio"
+     ],
+     [
+      "110903",
+      "Obuseiro Pesado"
+     ],
+     [
+      "111100",
+      "Lançador de Míssil Antiaéreo"
+     ],
+     [
+      "111101",
+      "Lançador de Míssil Antiaéreo Portátil"
+     ],
+     [
+      "111104",
+      "Lançador de Míssil Antiaéreo Médio"
+     ],
+     [
+      "111106",
+      "Lançador de Míssil Antiaéreo Médio (TELAR)"
+     ],
+     [
+      "111200",
+      "Lançador de mísseis anticarro"
+     ],
+     [
+      "111300",
+      "Lançador de míssil superfície-superfície"
+     ],
+     [
+      "111400",
+      "Morteiro"
+     ],
+     [
+      "111401",
+      "Morteiro Leve"
+     ],
+     [
+      "111402",
+      "Morteiro Médio"
+     ],
+     [
+      "111403",
+      "Morteiro Pesado"
+     ],
+     [
+      "111600",
+      "Lançador Múltiplo de Foguetes"
+     ],
+     [
+      "111700",
+      "Lançador de foguetes anticarro"
+     ]
+    ]
+   },
+   {
+    "e": "Vehicles",
+    "i": [
+     [
+      "120101",
+      "Viatura Blindada de Combate"
+     ],
+     [
+      "120102",
+      "Viatura Blindada Especializada Posto de Comando"
+     ],
+     [
+      "120103",
+      "Viatura Blindada de Transporte de Pessoal"
+     ],
+     [
+      "120104",
+      "Viatura Blindada Especializada Ambulância"
+     ],
+     [
+      "120105",
+      "Viatura Blindada genérica"
+     ],
+     [
+      "120106",
+      "Viatura Blindada Especializada de Socorro"
+     ],
+     [
+      "120109",
+      "Viatura Blindada para Apoio Logístico"
+     ],
+     [
+      "120110",
+      "Viatura Blindada Multitarefa Leve Sobre Rodas"
+     ],
+     [
+      "120200",
+      "Carro de Combate"
+     ],
+     [
+      "120201",
+      "Carro de Combate Leve"
+     ],
+     [
+      "120202",
+      "Carro de Combate Médio"
+     ],
+     [
+      "120203",
+      "Carro de Combate Pesado"
+     ],
+     [
+      "120300",
+      "Viatura Blindada Especializada Oficina"
+     ],
+     [
+      "120301",
+      "Viatura Blindada Especializada Oficina - Leve Sobre Rodas"
+     ],
+     [
+      "120302",
+      "Viatura Blindada Especializada Oficina - Média Sobre Rodas"
+     ],
+     [
+      "120303",
+      "Viatura Blindada Especializada Oficina (Sobre Lagartas)"
+     ]
+    ]
+   },
+   {
+    "e": "Engineer Vehicles and Equipment",
+    "i": [
+     [
+      "130200",
+      "Viatura Blindada Especializada Lançadora de Ponte"
+     ],
+     [
+      "130300",
+      "Ponte Fixa (equipagem)"
+     ],
+     [
+      "130400",
+      "Ponte flutuante"
+     ],
+     [
+      "130500",
+      "Ponte Fixa Rápida (lançada por viatura)"
+     ],
+     [
+      "130900",
+      "Equipamento de Desminagem"
+     ],
+     [
+      "130901",
+      "Equipamento de Desminagem Autorrebocado"
+     ],
+     [
+      "130902",
+      "Viatura Blindada Especializada de Desminagem"
+     ],
+     [
+      "131000",
+      "Equipamento Mecânico de Minagem"
+     ],
+     [
+      "131001",
+      "Equipamento Mecânico de Minagem Autorrebocado"
+     ],
+     [
+      "131100",
+      "Trator"
+     ],
+     [
+      "131200",
+      "Viatura Blindada de Combate de Engenharia"
+     ],
+     [
+      "131400",
+      "Escavadeira"
+     ],
+     [
+      "131500",
+      "Viatura de construção"
+     ],
+     [
+      "131600",
+      "Portada"
+     ]
+    ]
+   },
+   {
+    "e": "Utility Vehicles",
+    "i": [
+     [
+      "140100",
+      "Viatura operacional não blindada"
+     ],
+     [
+      "140200",
+      "Viatura de Transporte Especializado Ambulância"
+     ],
+     [
+      "140300",
+      "Viatura de Evacuação Médica"
+     ],
+     [
+      "140500",
+      "Viatura de Transporte de Pessoal tipo ônibus"
+     ],
+     [
+      "140600",
+      "Viatura tipo Caminhão (genérico)"
+     ],
+     [
+      "140601",
+      "Caminhão leve"
+     ],
+     [
+      "140602",
+      "Caminhão médio"
+     ],
+     [
+      "140603",
+      "Caminhão pesado"
+     ],
+     [
+      "140700",
+      "Viatura com mobilidade limitada"
+     ],
+     [
+      "140800",
+      "Viatura QT (qualquer terreno)"
+     ],
+     [
+      "140900",
+      "Viatura cisterna de combustível e óleo"
+     ],
+     [
+      "141000",
+      "Viatura cisterna de água"
+     ],
+     [
+      "141200",
+      "Viatura guincho"
+     ]
+    ]
+   },
+   {
+    "e": "Trains",
+    "i": [
+     [
+      "150100",
+      "Locomotiva"
+     ],
+     [
+      "150200",
+      "Vagão"
+     ]
+    ]
+   },
+   {
+    "e": "Civilian Vehicles",
+    "i": [
+     [
+      "160100",
+      "Automóvel"
+     ],
+     [
+      "160300",
+      "Veículo civil de passageiros"
+     ],
+     [
+      "160301",
+      "Veículo civil de passageiros tipo van"
+     ],
+     [
+      "160302",
+      "Veículo civil de passageiros tipo micro-ônibus"
+     ],
+     [
+      "160303",
+      "Veículo civil de passageiros tipo ônibus"
+     ],
+     [
+      "160400",
+      "Veículo civil utilitário"
+     ],
+     [
+      "160401",
+      "Veículo civil utilitário tipo SUV"
+     ],
+     [
+      "160402",
+      "Veículo civil utilitário tipo caminhão baú pequeno"
+     ],
+     [
+      "160403",
+      "Veículo civil utilitário tipo caminhão baú grande"
+     ],
+     [
+      "160701",
+      "Caminhão Prancha"
+     ]
+    ]
+   },
+   {
+    "e": "Other Equipment",
+    "i": [
+     [
+      "200100",
+      "Antena"
+     ],
+     [
+      "200400",
+      "Equipamento de DQBRN"
+     ]
+    ]
+   },
+   {
+    "e": "Land Mines",
+    "i": [
+     [
+      "210100",
+      "Mina terrestre"
+     ],
+     [
+      "210200",
+      "Mina antipessoal"
+     ],
+     [
+      "210300",
+      "Mina anticarro"
+     ],
+     [
+      "210400",
+      "Artefato Explosivo Improvisado (IED)"
+     ]
+    ]
+   },
+   {
+    "e": "Sensors",
+    "i": [
+     [
+      "220100",
+      "Sensor"
+     ],
+     [
+      "220300",
+      "Radar"
+     ]
+    ]
+   }
+  ],
+  "m1": [
+   [
+    "00",
+    "Não especificado"
+   ],
+   [
+    "01",
+    "Biológico"
+   ],
+   [
+    "02",
+    "Químico"
+   ],
+   [
+    "03",
+    "Radar de Vigilância"
+   ],
+   [
+    "04",
+    "Intrusão"
+   ],
+   [
+    "05",
+    "Nuclear"
+   ],
+   [
+    "06",
+    "Radiológico"
+   ],
+   [
+    "07",
+    "Radar de Vigilância Aprimorado"
+   ],
+   [
+    "08",
+    "Sequestrado"
+   ],
+   [
+    "09",
+    "Civil"
+   ]
+  ],
+  "m2": []
+ },
+ {
+  "id": "espaciais",
+  "ss": "05",
+  "g": [
+   {
+    "e": "Military",
+    "i": [
+     [
+      "110100",
+      "Veículo Espacial"
+     ],
+     [
+      "110200",
+      "Veículo de Reentrada"
+     ],
+     [
+      "110300",
+      "Módulo de Pouso"
+     ],
+     [
+      "110400",
+      "Orbitador Reutilizável"
+     ],
+     [
+      "110500",
+      "Cápsula"
+     ],
+     [
+      "110700",
+      "Satélite militar"
+     ],
+     [
+      "110800",
+      "Arma Anti-Satélite"
+     ],
+     [
+      "111100",
+      "Satélite de Comunicações militar"
+     ],
+     [
+      "111200",
+      "Satélite de Observação da Terra"
+     ],
+     [
+      "111600",
+      "Estação Espacial"
+     ],
+     [
+      "111900",
+      "Veículo Lançado do Espaço"
+     ]
+    ]
+   },
+   {
+    "e": "Civilian",
+    "i": [
+     [
+      "120100",
+      "Orbitador Reutilizável (civil)"
+     ],
+     [
+      "120200",
+      "Cápsula (civil)"
+     ],
+     [
+      "120300",
+      "Satélite civil"
+     ],
+     [
+      "120600",
+      "Satélite de Comunicações (civil)"
+     ],
+     [
+      "120700",
+      "Satélite de Observação da Terra (civil)"
+     ],
+     [
+      "121000",
+      "Estação Espacial (civil)"
+     ]
+    ]
+   }
+  ],
+  "m1": [
+   [
+    "00",
+    "Não especificado"
+   ],
+   [
+    "01",
+    "Órbita Baixa"
+   ],
+   [
+    "02",
+    "Órbita Média"
+   ],
+   [
+    "03",
+    "Órbita Alta"
+   ],
+   [
+    "04",
+    "Órbita Geossíncrona"
+   ],
+   [
+    "05",
+    "Órbita Geoestacionária"
+   ],
+   [
+    "06",
+    "Molniya Orbit (MO)"
+   ]
+  ],
+  "m2": [
+   [
+    "00",
+    "Não especificado"
+   ],
+   [
+    "01",
+    "Óptico"
+   ],
+   [
+    "02",
+    "Infravermelho"
+   ],
+   [
+    "03",
+    "Radar"
+   ],
+   [
+    "04",
+    "Inteligência de Sinais (SIGINT)"
+   ]
+  ]
+ },
+ {
+  "id": "guerra_minas",
+  "ss": "36",
+  "g": [
+   {
+    "e": "Sea Mine, General",
+    "i": [
+     [
+      "110000",
+      "Mina Naval, genérico"
+     ],
+     [
+      "110100",
+      "Mina de Fundo"
+     ],
+     [
+      "110200",
+      "Mina de fundeio"
+     ],
+     [
+      "110300",
+      "Mina derivante"
+     ],
+     [
+      "110400",
+      "Mina propulsada"
+     ],
+     [
+      "110600",
+      "Sonar Caça mina"
+     ],
+     [
+      "110700",
+      "Objeto, possível Mina"
+     ],
+     [
+      "110800",
+      "Mina de exercício"
+     ],
+     [
+      "110801",
+      "Mina de exercício de fundo"
+     ],
+     [
+      "110802",
+      "Mina de exercício de fundeio"
+     ],
+     [
+      "110803",
+      "Mina de exercício derivante"
+     ],
+     [
+      "110804",
+      "Mina de exercício propulsada"
+     ],
+     [
+      "110900",
+      "Mina neutralizada"
+     ],
+     [
+      "110901",
+      "Mina de fundo neutralizada"
+     ],
+     [
+      "110902",
+      "Mina de fundeio neutralizada"
+     ],
+     [
+      "110903",
+      "Mina derivante neutralizada"
+     ],
+     [
+      "110904",
+      "Mina propulsada neutralizada"
+     ]
+    ]
+   },
+   {
+    "e": "Sea Mine Decoy",
+    "i": [
+     [
+      "130000",
+      "Despistador"
+     ]
+    ]
+   },
+   {
+    "e": "Mine-Like Contact (MILCO)",
+    "i": [
+     [
+      "140100",
+      "Contato classificado como Provável Mina, genérico"
+     ],
+     [
+      "140101",
+      "Contato classificado como Provável Mina, nível de confiabilidade 1"
+     ],
+     [
+      "140102",
+      "Contato classificado como Provável Mina, nível de confiabilidade 2"
+     ],
+     [
+      "140103",
+      "Contato classificado como Provável Mina, nível de confiabilidade 3"
+     ],
+     [
+      "140104",
+      "Contato classificado como Provável Mina, nível de confiabilidade 4"
+     ],
+     [
+      "140105",
+      "Contato classificado como Provável Mina, nível de confiabilidade 5"
+     ],
+     [
+      "140200",
+      "Contato classificado como Provável Mina de fundo"
+     ],
+     [
+      "140201",
+      "Contato classificado como Provável Mina de fundo,nível de confiança 1"
+     ],
+     [
+      "140202",
+      "Contato classificado como Provável Mina de fundo,nível de confiança 2"
+     ],
+     [
+      "140203",
+      "Contato classificado como Provável Mina de fundo,nível de confiança 3"
+     ],
+     [
+      "140204",
+      "Contato classificado como Provável Mina de fundo,nível de confiança 4"
+     ],
+     [
+      "140205",
+      "Contato classificado como Provável Mina de fundo,nível de confiança 5"
+     ],
+     [
+      "140300",
+      "Contato classificado como Provável Mina de fundeio"
+     ],
+     [
+      "140301",
+      "Contato classificado como Provável Mina de fundeio, nível de confiabilidade 1"
+     ],
+     [
+      "140302",
+      "Contato classificado como Provável Mina de fundeio, nível de confiabilidade 2"
+     ],
+     [
+      "140303",
+      "Contato classificado como Provável Mina de fundeio, nível de confiabilidade 3"
+     ],
+     [
+      "140304",
+      "Contato classificado como Provável Mina de fundeio, nível de confiabilidade 4"
+     ],
+     [
+      "140305",
+      "Contato classificado como Provável Mina de fundeio, nível de confiabilidade 5"
+     ],
+     [
+      "140400",
+      "Contato classificado como Provável Mina flutuante"
+     ],
+     [
+      "140401",
+      "Contato classificado como Provável Mina flutuante, nível de confiabilidade 1"
+     ],
+     [
+      "140402",
+      "Contato classificado como Provável Mina flutuante, nível de confiabilidade 2"
+     ],
+     [
+      "140403",
+      "Contato classificado como Provável Mina flutuante, nível de confiabilidade 3"
+     ],
+     [
+      "140404",
+      "Contato classificado como Provável Mina flutuante, nível de confiabilidade 4"
+     ],
+     [
+      "140405",
+      "Contato classificado como Provável Mina flutuante, nível de confiabilidade 5"
+     ]
+    ]
+   },
+   {
+    "e": "Mine-Like Echo (MILEC), General",
+    "i": [
+     [
+      "150000",
+      "Contato classificado como Possível Mina, geral"
+     ],
+     [
+      "150100",
+      "Contato classificado como Possível Mina de fundo"
+     ],
+     [
+      "150200",
+      "Contato classificado como Possível Mina de fundeio"
+     ],
+     [
+      "150300",
+      "Contato classificado como Possível Mina derivante"
+     ]
+    ]
+   },
+   {
+    "e": "Obstructor",
+    "i": [
+     [
+      "170000",
+      "Obstrutor"
+     ],
+     [
+      "170100",
+      "Obstrutor neutralizado"
+     ]
+    ]
+   },
+   {
+    "e": "General Mine Anchor",
+    "i": [
+     [
+      "180000",
+      "Ferro"
+     ]
+    ]
+   },
+   {
+    "e": "Non-Mine Mine-Like Object (NMLO), General",
+    "i": [
+     [
+      "190000",
+      "Contato Classificado como “não mina”"
+     ],
+     [
+      "190100",
+      "Contato Classificado como “não mina” de fundo"
+     ],
+     [
+      "190200",
+      "Contato Classificado como “não mina” de fundeio"
+     ],
+     [
+      "190300",
+      "Contato Classificado como “não mina” flutuante"
+     ]
+    ]
+   }
+  ],
+  "m1": [],
+  "m2": []
+ },
+ {
+  "id": "individuos_desembarcados",
+  "ss": "27",
+  "g": [
+   {
+    "e": "Military",
+    "i": [
+     [
+      "110101",
+      "Fuzileiro"
+     ],
+     [
+      "110102",
+      "Médico"
+     ],
+     [
+      "110202",
+      "Observador Avançado de Artilharia"
+     ],
+     [
+      "110207",
+      "Observador"
+     ],
+     [
+      "110209",
+      "Caçador"
+     ],
+     [
+      "110301",
+      "Combatente dotado de Fuzil"
+     ],
+     [
+      "110302",
+      "Combatente dotado de Fuzil de repetição"
+     ],
+     [
+      "110303",
+      "Combatente dotado de Fuzil Semiautomático"
+     ],
+     [
+      "110304",
+      "Combatente dotado de Fuzil Automático"
+     ],
+     [
+      "110305",
+      "Combatente dotado de Metralhadora"
+     ],
+     [
+      "110306",
+      "Combatente dotado de Metralhadora Leve"
+     ],
+     [
+      "110307",
+      "Combatente dotado de Metralhadora Média"
+     ],
+     [
+      "110308",
+      "Combatente dotado de Metralhadora Pesada"
+     ],
+     [
+      "110309",
+      "Combatente dotado de Lançador de granadas"
+     ],
+     [
+      "110310",
+      "Combatente dotado de Lançador de granadas Leve"
+     ],
+     [
+      "110311",
+      "Combatente dotado de Lançador de granadas Médio"
+     ],
+     [
+      "110312",
+      "Combatente dotado de Lançador de granadas Pesado"
+     ],
+     [
+      "110313",
+      "Combatente dotado de Lança-chamas"
+     ],
+     [
+      "110314",
+      "Combatente dotado de Morteiro"
+     ],
+     [
+      "110315",
+      "Combatente dotado de Lançador de Foguetes Portátil"
+     ],
+     [
+      "110316",
+      "Combatente dotado de Arma Leve Anticarro"
+     ]
+    ]
+   },
+   {
+    "e": "Civilian",
+    "i": [
+     [
+      "120101",
+      "Policial"
+     ]
+    ]
+   }
+  ],
+  "m1": [
+   [
+    "00",
+    "Não especificado"
+   ],
+   [
+    "01",
+    "Proteção aproximada"
+   ],
+   [
+    "02",
+    "Controle de Distúrbios Civis (CDC)"
+   ],
+   [
+    "03",
+    "Neutralização de artefatos explosivos"
+   ],
+   [
+    "04",
+    "Segurança"
+   ],
+   [
+    "05",
+    "Caçador"
+   ],
+   [
+    "06",
+    "Special Weapons and Tactics"
+   ],
+   [
+    "07",
+    "Membro de ONG"
+   ],
+   [
+    "08",
+    "Multinational"
+   ],
+   [
+    "09",
+    "Multinational Specialized Unit"
+   ],
+   [
+    "10",
+    "Membro de organização governamental"
+   ],
+   [
+    "11",
+    "Dotação de câmera tática"
+   ],
+   [
+    "12",
+    "1ª Seç EM"
+   ],
+   [
+    "13",
+    "2ª Seç EM"
+   ],
+   [
+    "14",
+    "3ª Seç EM"
+   ],
+   [
+    "15",
+    "4ª Seç EM"
+   ],
+   [
+    "16",
+    "5ª Seç EM"
+   ],
+   [
+    "17",
+    "6ª Seç EM"
+   ],
+   [
+    "18",
+    "7ª Seç EM"
+   ],
+   [
+    "19",
+    "8ª Seç EM"
+   ],
+   [
+    "20",
+    "9ª Seç EM"
+   ],
+   [
+    "21",
+    "Of Subalterno\n(OTAN OF-1)"
+   ],
+   [
+    "22",
+    "Of Intermediário\n(OTAN OF-2)"
+   ],
+   [
+    "23",
+    "Maj / CC\n(OTAN OF-3)"
+   ],
+   [
+    "24",
+    "Ten Cel / CF\n(OTAN OF-4)"
+   ],
+   [
+    "25",
+    "Cel / CMG\n(OTAN OF-5)"
+   ],
+   [
+    "26",
+    "Gen Bda/ Brig/ Contra-Almte\n(OTAN OF-6 – Comandante de tropas de valor Brigada)"
+   ],
+   [
+    "27",
+    "Gen Div/ Maj Brig/ Vice-Almte\n(OTAN OF-7 – Comandante de tropas de valor Divisão)"
+   ],
+   [
+    "28",
+    "OTAN OF-8 (Comandante de tropas de valor Corpo de Exército)"
+   ],
+   [
+    "29",
+    "Gen Ex/ Almte Esqd/ Ten Brig\n(OTAN OF-9 – Of Gen de 4 estrelas)"
+   ],
+   [
+    "30",
+    "Marechal\n(OTAN OF-10)"
+   ],
+   [
+    "31",
+    "Cadete"
+   ],
+   [
+    "32",
+    "Recruta"
+   ],
+   [
+    "33",
+    "Sd Ev / S1 / Marinheiro"
+   ],
+   [
+    "34",
+    "Sd NB / S2"
+   ],
+   [
+    "35",
+    "Cb"
+   ],
+   [
+    "36",
+    "3º Sgt"
+   ],
+   [
+    "37",
+    "2º Sgt"
+   ],
+   [
+    "38",
+    "1º Sgt"
+   ],
+   [
+    "39",
+    "ST"
+   ],
+   [
+    "40",
+    "OTAN OR-9 (Praça de maior graduação)"
+   ],
+   [
+    "41",
+    "Rank Code WO-1"
+   ],
+   [
+    "42",
+    "Rank Code WO-2"
+   ],
+   [
+    "43",
+    "Rank Code WO-3"
+   ],
+   [
+    "44",
+    "Rank Code WO-4"
+   ],
+   [
+    "45",
+    "Rank Code WO-5"
+   ],
+   [
+    "46",
+    "Indivíduo"
+   ],
+   [
+    "47",
+    "Membro de Equipe/Guarnição"
+   ],
+   [
+    "48",
+    "Membro de unidade valor Esquadra"
+   ],
+   [
+    "49",
+    "Membro de unidade valor Grupo de Combate"
+   ],
+   [
+    "50",
+    "Membro de unidade valor Pelotão"
+   ],
+   [
+    "51",
+    "Membro de unidade valor Companhia"
+   ],
+   [
+    "52",
+    "Membro de unidade valor Batalhão"
+   ],
+   [
+    "53",
+    "Membro de unidade valor Regimento"
+   ],
+   [
+    "54",
+    "Membro de unidade valor Brigada"
+   ],
+   [
+    "55",
+    "Membro de unidade valor Divisão"
+   ]
+  ],
+  "m2": [
+   [
+    "00",
+    "Não especificado"
+   ],
+   [
+    "01",
+    "Paraquedista"
+   ],
+   [
+    "02",
+    "Bicycle Equipped"
+   ],
+   [
+    "03",
+    "Especialista em demolição"
+   ],
+   [
+    "04",
+    "1ª Seç EM"
+   ],
+   [
+    "05",
+    "2ª Seç EM"
+   ],
+   [
+    "06",
+    "3ª Seç EM"
+   ],
+   [
+    "07",
+    "4ª Seç EM"
+   ],
+   [
+    "08",
+    "5ª Seç EM"
+   ],
+   [
+    "09",
+    "6ª Seç EM"
+   ],
+   [
+    "10",
+    "7ª Seç EM"
+   ],
+   [
+    "11",
+    "8ª Seç EM"
+   ],
+   [
+    "12",
+    "9ª Seç EM"
+   ],
+   [
+    "13",
+    "Combatente de Montanha"
+   ],
+   [
+    "14",
+    "Of Subalterno\n(OTAN OF-1)"
+   ],
+   [
+    "15",
+    "Of Intermediário\n(OTAN OF-2)"
+   ],
+   [
+    "16",
+    "Maj / CC\n(OTAN OF-3)"
+   ],
+   [
+    "17",
+    "Ten Cel / CF\n(OTAN OF-4)"
+   ],
+   [
+    "18",
+    "Cel / CMG\n(OTAN OF-5)"
+   ],
+   [
+    "19",
+    "Gen Bda/ Brig/ Contra-Almte\n(OTAN OF-6 – Comandante de tropas de valor Brigada)"
+   ],
+   [
+    "20",
+    "Gen Div/ Maj Brig/ Vice-Almte\n(OTAN OF-7 – Comandante de tropas de valor Divisão)"
+   ],
+   [
+    "21",
+    "OTAN OF-8 (Comandante de tropas de valor Corpo de Exército)"
+   ],
+   [
+    "22",
+    "Gen Ex/ Almte Esqd/ Ten Brig\n(OTAN OF-9 – Of Gen de 4 estrelas)"
+   ],
+   [
+    "23",
+    "Marechal\n(OTAN OF-10)"
+   ],
+   [
+    "24",
+    "Cadete"
+   ],
+   [
+    "25",
+    "Recruta"
+   ],
+   [
+    "26",
+    "Sd Ev / S1 / Marinheiro"
+   ],
+   [
+    "27",
+    "Sd NB / S2"
+   ],
+   [
+    "28",
+    "Cb"
+   ],
+   [
+    "29",
+    "3º Sgt"
+   ],
+   [
+    "30",
+    "2º Sgt"
+   ],
+   [
+    "31",
+    "1º Sgt"
+   ],
+   [
+    "32",
+    "ST"
+   ],
+   [
+    "33",
+    "OTAN OR-9 (Praça de maior graduação)"
+   ],
+   [
+    "34",
+    "Rank Code WO-1"
+   ],
+   [
+    "35",
+    "Rank Code WO-2"
+   ],
+   [
+    "36",
+    "Rank Code WO-3"
+   ],
+   [
+    "37",
+    "Rank Code WO-4"
+   ],
+   [
+    "38",
+    "Rank Code WO-5"
+   ],
+   [
+    "39",
+    "SKI"
+   ]
+  ]
+ },
+ {
+  "id": "instalacoes",
+  "ss": "20",
+  "g": [
+   {
+    "e": "Installation",
+    "i": [
+     [
+      "110600",
+      "Instalação QBRN"
+     ],
+     [
+      "111100",
+      "Cemitério"
+     ],
+     [
+      "111300",
+      "Mina"
+     ],
+     [
+      "111901",
+      "Campo de refugiados"
+     ],
+     [
+      "112107",
+      "Delegacia"
+     ],
+     [
+      "112108",
+      "Prisão"
+     ],
+     [
+      "112201",
+      "Corpo de Bombeiros"
+     ],
+     [
+      "112202",
+      "Instalação temporária de Saúde"
+     ]
+    ]
+   },
+   {
+    "e": "Infrastructure",
+    "i": [
+     [
+      "120302",
+      "Produção de armas de fogo"
+     ],
+     [
+      "120303",
+      "Venda de armas de fogo"
+     ],
+     [
+      "120304",
+      "Produção de Material Perigoso"
+     ],
+     [
+      "120305",
+      "Armazenagem de Material Perigoso"
+     ],
+     [
+      "120402",
+      "Escola"
+     ],
+     [
+      "120501",
+      "Geração de energia"
+     ],
+     [
+      "120702",
+      "Hospital"
+     ],
+     [
+      "120801",
+      "Reserva de armamento"
+     ],
+     [
+      "120802",
+      "Aquartelamento"
+     ],
+     [
+      "120900",
+      "Infraestrutura de correio"
+     ],
+     [
+      "121004",
+      "Instituição religiosa"
+     ],
+     [
+      "121200",
+      "Infraestrutura de telecomunicações (genérica)"
+     ],
+     [
+      "121201",
+      "Antena omnidirecional"
+     ],
+     [
+      "121202",
+      "Telecomunicações militares"
+     ],
+     [
+      "121203",
+      "Torre de telecomunicações"
+     ],
+     [
+      "121301",
+      "Aeródromo ou Base Aérea"
+     ],
+     [
+      "121305",
+      "Área de pouso de helicópteros"
+     ],
+     [
+      "121309",
+      "Porto ou Base Naval"
+     ],
+     [
+      "121402",
+      "Represa"
+     ],
+     [
+      "121406",
+      "Reservatório"
+     ],
+     [
+      "121409",
+      "Estação de tratamento de esgoto"
+     ],
+     [
+      "121411",
+      "Estação de tratamento de água"
+     ]
+    ]
+   }
+  ],
+  "m1": [
+   [
+    "00",
+    "Não especificado"
+   ],
+   [
+    "01",
+    "Biológica"
+   ],
+   [
+    "02",
+    "Química"
+   ],
+   [
+    "03",
+    "Nuclear"
+   ],
+   [
+    "04",
+    "Radiológica"
+   ],
+   [
+    "05",
+    "Descontaminação"
+   ],
+   [
+    "06",
+    "Carvão"
+   ],
+   [
+    "07",
+    "Geotérmica"
+   ],
+   [
+    "08",
+    "Hidrelétrica"
+   ],
+   [
+    "09",
+    "Gás Natural"
+   ],
+   [
+    "10",
+    "Petróleo"
+   ],
+   [
+    "11",
+    "Civil"
+   ],
+   [
+    "12",
+    "Telefonia civil"
+   ],
+   [
+    "13",
+    "Televisão civil"
+   ],
+   [
+    "14",
+    "Sítio de retransmissão"
+   ],
+   [
+    "15",
+    "Centro de Operações de Rede Conjunto"
+   ],
+   [
+    "16",
+    "Comunicações de Posto de Comando"
+   ]
+  ],
+  "m2": [
+   [
+    "00",
+    "Não especificado"
+   ],
+   [
+    "01",
+    "Guerra Química e Biológica"
+   ],
+   [
+    "02",
+    "Produção de Armas Químicas"
+   ],
+   [
+    "03",
+    "Produção de Armas Nucleares"
+   ],
+   [
+    "04",
+    "Produção de Armas Radiológicas"
+   ],
+   [
+    "05",
+    "Reator de energia atômica"
+   ],
+   [
+    "06",
+    "Produção de material nuclear"
+   ],
+   [
+    "07",
+    "Armazenamento de material nuclear"
+   ],
+   [
+    "08",
+    "Material propenso à fabricação de armamento"
+   ]
+  ]
+ },
+ {
+  "id": "maritimos_superficie",
+  "ss": "30",
+  "g": [
+   {
+    "e": "Military",
+    "i": [
+     [
+      "110000",
+      "Navio militar genérico"
+     ]
+    ]
+   },
+   {
+    "e": "Military Combatant",
+    "i": [
+     [
+      "120000",
+      "Navio de Guerra genérico"
+     ],
+     [
+      "120100",
+      "Navio Aeródromo"
+     ],
+     [
+      "120200",
+      "Navio de Guerra de Superfície (não especificado)"
+     ],
+     [
+      "120202",
+      "Cruzador"
+     ],
+     [
+      "120203",
+      "Contratorpedeiro"
+     ],
+     [
+      "120204",
+      "Fragata"
+     ],
+     [
+      "120205",
+      "Corveta"
+     ],
+     [
+      "120206",
+      "Navio de Combate Litoral"
+     ],
+     [
+      "120300",
+      "Navio de Guerra Anfíbio (não especificado)"
+     ],
+     [
+      "120303",
+      "Navio de Assalto Anfíbio (não especificado)"
+     ],
+     [
+      "120304",
+      "Navio de Assalto Anfíbio Multipropósito"
+     ],
+     [
+      "120305",
+      "Navio de Assalto Anfíbio – Porta Helicópteros"
+     ],
+     [
+      "120306",
+      "Navio de Desembarque de Doca"
+     ],
+     [
+      "120307",
+      "Navio de Desembarque para Carros de Combate"
+     ],
+     [
+      "120308",
+      "Embarcação de Desembarque de Viatura e Pessoal"
+     ],
+     [
+      "120400",
+      "Navio de Guerra de Minas Genérico"
+     ],
+     [
+      "120401",
+      "Navio Lança Minas"
+     ],
+     [
+      "120402",
+      "Navio Varredor"
+     ],
+     [
+      "120700",
+      "Veículo Aquático Não Tripulado"
+     ],
+     [
+      "120404",
+      "Navio Caça-minas"
+     ],
+     [
+      "120405",
+      "Navio de Contramedidas de Minagem"
+     ],
+     [
+      "120500",
+      "Navio Patrulha"
+     ],
+     [
+      "120501",
+      "Embarcação Patrulha"
+     ],
+     [
+      "120600",
+      "Despistador"
+     ],
+     [
+      "120800",
+      "Lancha Rápida"
+     ],
+     [
+      "120801",
+      "Embarcação de Casco Semi Rígido, Bote Inflável"
+     ],
+     [
+      "120900",
+      "Moto aquática, Embarcação de Assalto e Escolta"
+     ],
+     [
+      "121000",
+      "Organização por Tarefa genérica"
+     ],
+     [
+      "121001",
+      "Elemento Tarefa"
+     ],
+     [
+      "121002",
+      "Força Tarefa"
+     ],
+     [
+      "121003",
+      "Grupo Tarefa"
+     ],
+     [
+      "121004",
+      "Unidade Tarefa"
+     ],
+     [
+      "121005",
+      "Comboio"
+     ],
+     [
+      "121100",
+      "Radar banda X baseado no mar"
+     ]
+    ]
+   },
+   {
+    "e": "Military Non Combatant",
+    "i": [
+     [
+      "130000",
+      "Navio militar não combatente"
+     ],
+     [
+      "130100",
+      "Navio Auxiliar genérico"
+     ],
+     [
+      "130101",
+      "Navio de Apoio Logístico – Transporte de Munição"
+     ],
+     [
+      "130102",
+      "Navio de Apoio"
+     ],
+     [
+      "130104",
+      "Navio Coletor de Inteligência"
+     ],
+     [
+      "130105",
+      "Navio Oceanográfico"
+     ],
+     [
+      "130106",
+      "Navio de Pesquisa Hidroceanográfico,\nNavio Hidroceanográfico,\nNavio Hidrográfico,\nAviso de Pesquisa Hidroceanográfico,\nAviso Hidroceanográfico"
+     ],
+     [
+      "130107",
+      "Navio de Assistência Hospitalar"
+     ],
+     [
+      "130108",
+      "Navio de Carga"
+     ],
+     [
+      "130110",
+      "Navio Tanque"
+     ],
+     [
+      "130111",
+      "Navio Oficina"
+     ],
+     [
+      "130112",
+      "Navio de Socorro Submarino"
+     ],
+     [
+      "130113",
+      "Rebocador de Alto-mar"
+     ],
+     [
+      "130200",
+      "Embarcação de apoio portuário (genérico)"
+     ],
+     [
+      "130201",
+      "Barca, não autopropulsada"
+     ],
+     [
+      "130202",
+      "Barca, autopropulsada"
+     ],
+     [
+      "130203",
+      "Rebocador Portuário, Empurrador-rebocador"
+     ]
+    ]
+   },
+   {
+    "e": "Civilian",
+    "i": [
+     [
+      "140000",
+      "Navio Civil (genérico)"
+     ],
+     [
+      "140100",
+      "Navio Mercante (genérico)"
+     ],
+     [
+      "140101",
+      "Navio Mercante, carga seca, carga fracionada"
+     ],
+     [
+      "140102",
+      "Navio Mercante, Porta Container"
+     ],
+     [
+      "140103",
+      "Draga"
+     ],
+     [
+      "140104",
+      "Navio Mercante Roll-On/Roll-Off (RO/RO)"
+     ],
+     [
+      "140105",
+      "Navio Mercante, Ferry Boat"
+     ],
+     [
+      "140106",
+      "Navio Mercante de Carga Pesada"
+     ],
+     [
+      "140107",
+      "Aerobarco / Hovercraft"
+     ],
+     [
+      "140108",
+      "LASH"
+     ],
+     [
+      "140109",
+      "Navio Tanque civil"
+     ],
+     [
+      "140110",
+      "Navio de Passageiros civil"
+     ],
+     [
+      "140111",
+      "Empurrador civil"
+     ],
+     [
+      "140112",
+      "Rebocador civil"
+     ],
+     [
+      "140114",
+      "Veleiros"
+     ],
+     [
+      "140115",
+      "Barca não propulsada civil"
+     ],
+     [
+      "140116",
+      "Navio Hospital civil"
+     ],
+     [
+      "140200",
+      "Navio Pesqueiro (genérico)"
+     ],
+     [
+      "140201",
+      "Embarcação de pesca artesanal"
+     ],
+     [
+      "140400",
+      "Embarcação a vela de esporte e recreio"
+     ],
+     [
+      "140500",
+      "Embarcação de esporte e recreio motorizada"
+     ],
+     [
+      "140501",
+      "Bote inflável de casco rígido (civil)"
+     ],
+     [
+      "140502",
+      "Lancha Rápida (civil)"
+     ],
+     [
+      "140600",
+      "Moto aquática (civil)"
+     ]
+    ]
+   },
+   {
+    "e": "Fused Track",
+    "i": [
+     [
+      "160000",
+      "Track Radar / automático"
+     ]
+    ]
+   },
+   {
+    "e": "Manual Track",
+    "i": [
+     [
+      "170000",
+      "Track Manual"
+     ]
+    ]
+   }
+  ],
+  "m1": [
+   [
+    "00",
+    "Não especificado"
+   ],
+   [
+    "01",
+    "Navio próprio"
+   ],
+   [
+    "02",
+    "Guerra Antiaérea"
+   ],
+   [
+    "03",
+    "Guerra Antissubmarino"
+   ],
+   [
+    "04",
+    "Escolta"
+   ],
+   [
+    "05",
+    "Guerra Eletrônica"
+   ],
+   [
+    "06",
+    "Inteligência, Vigilância e Reconhecimento"
+   ],
+   [
+    "07",
+    "Contramedidas de Minas"
+   ],
+   [
+    "08",
+    "Defesa de mísseis"
+   ],
+   [
+    "09",
+    "Médico"
+   ],
+   [
+    "10",
+    "Guerra de Minas"
+   ],
+   [
+    "11",
+    "Veículo Multimissão Remoto"
+   ],
+   [
+    "12",
+    "Operações Especiais"
+   ],
+   [
+    "13",
+    "Guerra de Superfície"
+   ],
+   [
+    "14",
+    "Equipado com míssil balístico"
+   ],
+   [
+    "15",
+    "Equipado com míssil guiado"
+   ],
+   [
+    "16",
+    "Other Guided Missile"
+   ],
+   [
+    "17",
+    "Equipado com torpedo"
+   ],
+   [
+    "18",
+    "Equipado com drone"
+   ],
+   [
+    "19",
+    "Equipado com helicóptero e/ou Anv turbohélice de pouso vertical (VSTOL)"
+   ],
+   [
+    "20",
+    "Defesa contra mísseis balísticos, lançador / atirador"
+   ],
+   [
+    "21",
+    "Defesa contra mísseis balísticos, vigilância de longo alcance e rastreamento"
+   ],
+   [
+    "22",
+    "Radar de banda X baseado no mar"
+   ],
+   [
+    "23",
+    "Meio sequestrado"
+   ]
+  ],
+  "m2": [
+   [
+    "00",
+    "Não especificado"
+   ],
+   [
+    "01",
+    "Propulsão nuclear"
+   ],
+   [
+    "02",
+    "Pesado"
+   ],
+   [
+    "03",
+    "Leve"
+   ],
+   [
+    "04",
+    "Médio"
+   ],
+   [
+    "05",
+    "Doca"
+   ],
+   [
+    "06",
+    "Logística"
+   ],
+   [
+    "07",
+    "Tanque"
+   ],
+   [
+    "08",
+    "Veículo"
+   ],
+   [
+    "09",
+    "Rápido"
+   ],
+   [
+    "10",
+    "Hovercraft"
+   ],
+   [
+    "11",
+    "Hovercraft"
+   ],
+   [
+    "12",
+    "Hidrofólio"
+   ],
+   [
+    "13",
+    "Controle Autônomo"
+   ],
+   [
+    "14",
+    "Pilotado remotamente"
+   ],
+   [
+    "15",
+    "Expendable"
+   ]
+  ]
+ },
+ {
+  "id": "misseis",
+  "ss": "02",
+  "g": [
+   {
+    "e": "Missile",
+    "i": [
+     [
+      "110000",
+      "Míssil"
+     ]
+    ]
+   }
+  ],
+  "m1": [
+   [
+    "00",
+    "Não especificado"
+   ],
+   [
+    "01",
+    "Ar (origem)"
+   ],
+   [
+    "02",
+    "Superfície (origem)"
+   ],
+   [
+    "03",
+    "Submarino (origem)"
+   ],
+   [
+    "04",
+    "Espaço (origem)"
+   ],
+   [
+    "05",
+    "Antibalístico"
+   ],
+   [
+    "06",
+    "Balístico"
+   ],
+   [
+    "07",
+    "Cruzeiro"
+   ],
+   [
+    "08",
+    "Interceptador"
+   ]
+  ],
+  "m2": [
+   [
+    "00",
+    "Não especificado"
+   ],
+   [
+    "01",
+    "Ar (destino)"
+   ],
+   [
+    "02",
+    "Superfície (destino)"
+   ],
+   [
+    "03",
+    "Submarino (destino)"
+   ],
+   [
+    "04",
+    "Espaço (destino)"
+   ],
+   [
+    "05",
+    "Lançado"
+   ],
+   [
+    "07",
+    "Patriot"
+   ],
+   [
+    "08",
+    "Standard Missile-2 (SM-2)"
+   ],
+   [
+    "09",
+    "Standard Missile-6 (SM-6)"
+   ],
+   [
+    "10",
+    "Evolved Sea Sparrow Missile (ESSM)"
+   ],
+   [
+    "11",
+    "Rolling Airframe Missile (RAM)"
+   ],
+   [
+    "12",
+    "Curto alcance"
+   ],
+   [
+    "13",
+    "Médio alcance"
+   ],
+   [
+    "14",
+    "Alcance intermediário"
+   ],
+   [
+    "15",
+    "Longo alcance"
+   ],
+   [
+    "16",
+    "Intercontinental"
+   ]
+  ]
+ },
+ {
+  "id": "organizacoes_civis",
+  "ss": "11",
+  "g": [
+   {
+    "e": "Civilian",
+    "i": [
+     [
+      "110100",
+      "Proteção Ambiental"
+     ],
+     [
+      "110400",
+      "Organização ou Grupo"
+     ]
+    ]
+   }
+  ],
+  "m1": [
+   [
+    "00",
+    "Não especificado"
+   ],
+   [
+    "01",
+    "Assassination"
+   ],
+   [
+    "02",
+    "Execution (Wrongful Killing)"
+   ],
+   [
+    "03",
+    "Murder Victims"
+   ],
+   [
+    "04",
+    "Hijacking"
+   ],
+   [
+    "05",
+    "Kidnapping"
+   ],
+   [
+    "06",
+    "Piracy"
+   ],
+   [
+    "07",
+    "Rape"
+   ],
+   [
+    "08",
+    "Civilian"
+   ],
+   [
+    "09",
+    "Displaced Person(s), Refugee(s) and Evacuee(s)"
+   ],
+   [
+    "10",
+    "Foreign Fighter(s)"
+   ],
+   [
+    "11",
+    "Gang Member or Gang"
+   ],
+   [
+    "12",
+    "Organização governamental"
+   ],
+   [
+    "13",
+    "Leader or Leadership"
+   ],
+   [
+    "14",
+    "Organização não governamental (ONG)"
+   ],
+   [
+    "15",
+    "Coerced/Impressed Recruit"
+   ],
+   [
+    "16",
+    "Willing Recruit"
+   ],
+   [
+    "17",
+    "Organização religiosa"
+   ],
+   [
+    "18",
+    "Targeted Individual or Organization"
+   ],
+   [
+    "19",
+    "Organização terrorista"
+   ],
+   [
+    "20",
+    "Speaker"
+   ],
+   [
+    "21",
+    "Accident"
+   ],
+   [
+    "22",
+    "Combat"
+   ],
+   [
+    "23",
+    "Other"
+   ],
+   [
+    "24",
+    "Loot"
+   ]
+  ],
+  "m2": [
+   [
+    "00",
+    "Não especificado"
+   ],
+   [
+    "01",
+    "Líder ou liderança"
+   ]
+  ]
+ },
+ {
+  "id": "submarinos",
+  "ss": "35",
+  "g": [
+   {
+    "e": "Military",
+    "i": [
+     [
+      "110000",
+      "Submersível Militar genérico"
+     ],
+     [
+      "110100",
+      "Submarino com propulsão independente de ar"
+     ],
+     [
+      "110101",
+      "Submarino na superfície"
+     ],
+     [
+      "110102",
+      "Submarino esnorqueando"
+     ],
+     [
+      "110103",
+      "Submarino submerso"
+     ],
+     [
+      "110200",
+      "Outro submersíveis"
+     ],
+     [
+      "110300",
+      "Não submarino"
+     ],
+     [
+      "110400",
+      "Veículo Autônomo Submarino (militar)"
+     ],
+     [
+      "110500",
+      "Mergulhador militar"
+     ]
+    ]
+   },
+   {
+    "e": "Civilian",
+    "i": [
+     [
+      "120000",
+      "Civil"
+     ],
+     [
+      "120100",
+      "Submersível comercial"
+     ],
+     [
+      "120200",
+      "Veículo Autônomo Submarino (civil)"
+     ],
+     [
+      "120300",
+      "Mergulhador civil"
+     ]
+    ]
+   },
+   {
+    "e": "Weapon",
+    "i": [
+     [
+      "130000",
+      "Armamento submarino genérico"
+     ],
+     [
+      "130100",
+      "Torpedo"
+     ],
+     [
+      "130200",
+      "Artefato explosivo improvisado submarino"
+     ],
+     [
+      "130300",
+      "Despistador"
+     ]
+    ]
+   },
+   {
+    "e": "Fused Track",
+    "i": [
+     [
+      "150000",
+      "Track automático"
+     ]
+    ]
+   },
+   {
+    "e": "Manual Track",
+    "i": [
+     [
+      "160000",
+      "Track manual"
+     ]
+    ]
+   },
+   {
+    "e": "Sea Bed Installation Man-Made Military",
+    "i": [
+     [
+      "200000",
+      "Instalação artificial no leito marinho – Militar"
+     ]
+    ]
+   },
+   {
+    "e": "Sea Bed Installation Man-Made Non-Military",
+    "i": [
+     [
+      "210000",
+      "Instalação artificial no leito marinho – Não militar"
+     ]
+    ]
+   }
+  ],
+  "m1": [
+   [
+    "00",
+    "Não especificado"
+   ],
+   [
+    "01",
+    "Guerra Antissubmarino"
+   ],
+   [
+    "02",
+    "Auxiliar"
+   ],
+   [
+    "03",
+    "Comando e Controle"
+   ],
+   [
+    "04",
+    "Inteligência, Vigilância e Reconhecimento"
+   ],
+   [
+    "05",
+    "Contramedidas de Minagem"
+   ],
+   [
+    "06",
+    "Guerra de Minas"
+   ],
+   [
+    "07",
+    "Guerra de Superfície"
+   ],
+   [
+    "08",
+    "Ataque"
+   ],
+   [
+    "09",
+    "Equipado com Míssil Balístico\n(aplicável apenas a submarinos militares)"
+   ],
+   [
+    "10",
+    "Equipado com Míssil Guiado\n(aplicável apenas a submarinos militares)"
+   ],
+   [
+    "11",
+    "Equipado com outros mísseis guiados\n(aplicável apenas a submarinos militares)"
+   ],
+   [
+    "12",
+    "Operações Especiais"
+   ],
+   [
+    "13",
+    "Possível Submarino\n(aplicável apenas a submarinos militares)"
+   ],
+   [
+    "14",
+    "Possible Submarine Low 2"
+   ],
+   [
+    "15",
+    "Possible Submarine High 3"
+   ],
+   [
+    "16",
+    "Possible Submarine High 4"
+   ],
+   [
+    "17",
+    "Provável Submarino\n(aplicável apenas a submarinos militares)"
+   ],
+   [
+    "18",
+    "Positivo Submarino\n(aplicável apenas a submarinos militares)"
+   ],
+   [
+    "19",
+    "Torpedo Anti-torpedo\n(aplicável apenas a submarinos militares)"
+   ],
+   [
+    "20",
+    "Sequestrado"
+   ]
+  ],
+  "m2": [
+   [
+    "00",
+    "Não especificado"
+   ],
+   [
+    "01",
+    "Propulsão Independente do Ar\n(aplicável apenas a submarinos militares)"
+   ],
+   [
+    "02",
+    "Diesel Elétrico\n(aplicável apenas a submarinos militares)"
+   ],
+   [
+    "03",
+    "Diesel - Type 1"
+   ],
+   [
+    "04",
+    "Diesel - Type 2"
+   ],
+   [
+    "05",
+    "Diesel - Type 3"
+   ],
+   [
+    "06",
+    "Propulsão nuclear\n(aplicável apenas a submarinos militares)"
+   ],
+   [
+    "07",
+    "Nuclear - Type 1"
+   ],
+   [
+    "08",
+    "Nuclear - Type 2"
+   ],
+   [
+    "09",
+    "Nuclear - Type 3"
+   ],
+   [
+    "10",
+    "Nuclear - Type 4"
+   ],
+   [
+    "11",
+    "Nuclear - Type 5"
+   ],
+   [
+    "12",
+    "Nuclear - Type 6"
+   ],
+   [
+    "13",
+    "Nuclear - Type 7"
+   ],
+   [
+    "14",
+    "Controle Autônomo\n(aplicável apenas a veículos não tripulados)"
+   ],
+   [
+    "15",
+    "Remotamente Pilotado\n(aplicável apenas a veículos não tripulados)"
+   ],
+   [
+    "16",
+    "Expendable"
+   ]
+  ]
+ },
+ {
+  "id": "unidades",
+  "ss": "10",
+  "g": [
+   {
+    "e": "Unspecified Command and Control",
+    "i": [
+     [
+      "000000",
+      "Comando Nomeado (sigla do Comando no setor central)"
+     ]
+    ]
+   },
+   {
+    "e": "Command and Control",
+    "i": [
+     [
+      "110200",
+      "Assuntos Civis"
+     ],
+     [
+      "110600",
+      "Operações Psicológicas"
+     ],
+     [
+      "111000",
+      "Comunicações"
+     ],
+     [
+      "111001",
+      "Rádio"
+     ],
+     [
+      "111004",
+      "Comunicações Satelitais"
+     ]
+    ]
+   },
+   {
+    "e": "Movement and Manoeuvre",
+    "i": [
+     [
+      "120200",
+      "Controle Aerotático, Controle de Tráfego Aéreo"
+     ],
+     [
+      "120300",
+      "Anfíbio"
+     ],
+     [
+      "120400",
+      "Anticarro"
+     ],
+     [
+      "120500",
+      "Cavalaria Blindada ou Mecanizada, Carros de Combate\n(código específico apenas para compatibilidade com a OTAN)"
+     ],
+     [
+      "120501",
+      "Reconhecimento Blindado\n(código específico apenas para compatibilidade com a OTAN)"
+     ],
+     [
+      "120502",
+      "Carros sobre Lagartas Anfíbios"
+     ],
+     [
+      "120600",
+      "Aviação de Asa Rotativa, Aviação do Exército"
+     ],
+     [
+      "120601",
+      "Aviação de Reconhecimento – Asa Rotativa (código específico apenas para compatibilidade com a OTAN)"
+     ],
+     [
+      "120700",
+      "Aviação de Asa Fixa e Asas Rotativas"
+     ],
+     [
+      "120800",
+      "Aviação de Asa Fixa"
+     ],
+     [
+      "120801",
+      "Aviação de Reconhecimento – Asa Fixa (código específico apenas para compatibilidade com a OTAN)"
+     ],
+     [
+      "121100",
+      "Infantaria"
+     ],
+     [
+      "121101",
+      "Infantaria Anfíbia\n(código específico apenas para compatibilidade com a OTAN)"
+     ],
+     [
+      "121102",
+      "Infantaria Blindada ou Mecanizada\n(código específico apenas para compatibilidade com a OTAN)"
+     ],
+     [
+      "121103",
+      "Apoio de Fogo Orgânico"
+     ],
+     [
+      "121104",
+      "Infantaria Motorizada\n(código específico apenas para compatibilidade com a OTAN)"
+     ],
+     [
+      "121300",
+      "Cavalaria"
+     ],
+     [
+      "121700",
+      "Ações de Comandos"
+     ],
+     [
+      "121800",
+      "Operações Especiais"
+     ],
+     [
+      "121900",
+      "Aeronaves Remotamente Pilotadas"
+     ]
+    ]
+   },
+   {
+    "e": "Fires",
+    "i": [
+     [
+      "130100",
+      "Artilharia Antiaérea"
+     ],
+     [
+      "130300",
+      "Artilharia de Campanha"
+     ],
+     [
+      "130301",
+      "Artilharia de Campanha Autopropulsada\n(código específico apenas para compatibilidade com a OTAN)"
+     ],
+     [
+      "130302",
+      "Busca de Alvos\n(código específico apenas para compatibilidade com a OTAN)"
+     ],
+     [
+      "130700",
+      "Artilharia de Mísseis"
+     ],
+     [
+      "130800",
+      "Morteiros\n(o calibre é especificado por meio de amplificador textual)"
+     ]
+    ]
+   },
+   {
+    "e": "Protection",
+    "i": [
+     [
+      "140100",
+      "Defesa QBRN"
+     ],
+     [
+      "140700",
+      "Engenharia"
+     ],
+     [
+      "140701",
+      "Engenharia Blindada ou Mecanizada\n(código específico apenas para compatibilidade com a OTAN)"
+     ],
+     [
+      "141800",
+      "Busca e Salvamento (SAR)"
+     ]
+    ]
+   },
+   {
+    "e": "Intelligence",
+    "i": [
+     [
+      "150500",
+      "Guerra Eletrônica"
+     ],
+     [
+      "151000",
+      "Inteligência Militar"
+     ]
+    ]
+   },
+   {
+    "e": "Sustainment",
+    "i": [
+     [
+      "160000",
+      "Logística"
+     ],
+     [
+      "160600",
+      "Apoio de Serviços ao Combate (código específico apenas para compatibilidade com a OTAN)"
+     ],
+     [
+      "161100",
+      "Manutenção"
+     ],
+     [
+      "161300",
+      "Saúde"
+     ],
+     [
+      "162400",
+      "Recursos Humanos"
+     ],
+     [
+      "162800",
+      "Comunicação Social"
+     ],
+     [
+      "163400",
+      "Suprimento"
+     ],
+     [
+      "163700",
+      "Suprimento Classe I"
+     ],
+     [
+      "163800",
+      "Suprimento Classe II"
+     ],
+     [
+      "163900",
+      "Suprimento Classe III"
+     ],
+     [
+      "164100",
+      "Suprimento Classe V"
+     ],
+     [
+      "164400",
+      "Suprimento Classe VIII"
+     ],
+     [
+      "164500",
+      "Suprimento Classe IX"
+     ],
+     [
+      "164700",
+      "Suprimento de Água"
+     ],
+     [
+      "163600",
+      "Transporte"
+     ]
+    ]
+   },
+   {
+    "e": "Naval",
+    "i": [
+     [
+      "170100",
+      "Naval"
+     ]
+    ]
+   },
+   {
+    "e": "Law Enforcement",
+    "i": [
+     [
+      "200700",
+      "Órgão de Segurança Pública"
+     ]
+    ]
+   }
+  ],
+  "m1": [
+   [
+    "00",
+    "Não especificado"
+   ],
+   [
+    "01",
+    "Aeromóvel"
+   ],
+   [
+    "02",
+    "Área"
+   ],
+   [
+    "03",
+    "Ataque"
+   ],
+   [
+    "04",
+    "Biológico"
+   ],
+   [
+    "05",
+    "Fronteira"
+   ],
+   [
+    "06",
+    "Pontes"
+   ],
+   [
+    "07",
+    "Químico"
+   ],
+   [
+    "08",
+    "Proteção aproximada"
+   ],
+   [
+    "09",
+    "Combate"
+   ],
+   [
+    "10",
+    "Comando e Controle"
+   ],
+   [
+    "11",
+    "Communications Contingency Package"
+   ],
+   [
+    "12",
+    "Construção"
+   ],
+   [
+    "13",
+    "Cross Cultural Communication"
+   ],
+   [
+    "14",
+    "Controle de Distúrbios Civis (CDC)"
+   ],
+   [
+    "15",
+    "Descontaminação"
+   ],
+   [
+    "16",
+    "Detenção"
+   ],
+   [
+    "17",
+    "Comunicações diretas"
+   ],
+   [
+    "18",
+    "Mergulho"
+   ],
+   [
+    "19",
+    "Apoio a elemento de valor Divisão"
+   ],
+   [
+    "20",
+    "Cães-de-Guerra"
+   ],
+   [
+    "21",
+    "Perfuração"
+   ],
+   [
+    "22",
+    "Eletro-ótico"
+   ],
+   [
+    "23",
+    "Aprimorado"
+   ],
+   [
+    "24",
+    "Neutralização de Artefatos Explosivos (Explosive Ordnance Disposal – EOD)"
+   ],
+   [
+    "25",
+    "Centro de Direção de Tiro"
+   ],
+   [
+    "26",
+    "Force"
+   ],
+   [
+    "27",
+    "Avançado"
+   ],
+   [
+    "28",
+    "Estação de Comunicações de Solo"
+   ],
+   [
+    "29",
+    "Apoio de pouso"
+   ],
+   [
+    "30",
+    "Centro nodal de grande extensão"
+   ],
+   [
+    "31",
+    "Manutenção"
+   ],
+   [
+    "32",
+    "Meteorológico"
+   ],
+   [
+    "33",
+    "Contramedidas de Minagem"
+   ],
+   [
+    "34",
+    "Mísseis"
+   ],
+   [
+    "35",
+    "Mobile Advisor and Support"
+   ],
+   [
+    "36",
+    "Sistema de Assinantes Móveis (SAM)"
+   ],
+   [
+    "37",
+    "Apoio à mobilidade"
+   ],
+   [
+    "38",
+    "Movement Control Centre"
+   ],
+   [
+    "39",
+    "Combinado"
+   ],
+   [
+    "40",
+    "Multinational Specialized Unit"
+   ],
+   [
+    "41",
+    "Lançadora de Múltiplos Foguetes"
+   ],
+   [
+    "42",
+    "NATO Medical Role 1"
+   ],
+   [
+    "43",
+    "NATO Medical Role 2"
+   ],
+   [
+    "44",
+    "NATO Medical Role 3"
+   ],
+   [
+    "45",
+    "NATO Medical Role 4"
+   ],
+   [
+    "46",
+    "Naval"
+   ],
+   [
+    "47",
+    "Centro nodal"
+   ],
+   [
+    "48",
+    "Nuclear"
+   ],
+   [
+    "49",
+    "Operações"
+   ],
+   [
+    "50",
+    "Radar"
+   ],
+   [
+    "51",
+    "Radio Frequency Identification (RFID) Interrogator / Sensor"
+   ],
+   [
+    "52",
+    "Radiológico"
+   ],
+   [
+    "53",
+    "Busca e Salvamento (SAR)"
+   ],
+   [
+    "54",
+    "Segurança"
+   ],
+   [
+    "55",
+    "Sensor"
+   ],
+   [
+    "56",
+    "Sensor Control Module (SCM)"
+   ],
+   [
+    "57",
+    "Inteligência de Sinais (SIGINT)"
+   ],
+   [
+    "58",
+    "Single Shelter Switch"
+   ],
+   [
+    "59",
+    "Lança-foguete"
+   ],
+   [
+    "60",
+    "Fumígeno"
+   ],
+   [
+    "61",
+    "Caçador"
+   ],
+   [
+    "62",
+    "Medidor sonoro"
+   ],
+   [
+    "63",
+    "Operações Especiais"
+   ],
+   [
+    "64",
+    "Special Weapons and Tactics"
+   ],
+   [
+    "65",
+    "Levantamento topográfico"
+   ],
+   [
+    "66",
+    "Exploração tática (Op Psico)"
+   ],
+   [
+    "67",
+    "Busca de Alvos"
+   ],
+   [
+    "68",
+    "Topografia"
+   ],
+   [
+    "69",
+    "Utilitário"
+   ],
+   [
+    "70",
+    "Equipado com câmera de vídeo"
+   ],
+   [
+    "74",
+    "Patrulha / Guerra Antissubmarino"
+   ],
+   [
+    "75",
+    "Evacuação médica (MEDEVAC)"
+   ],
+   [
+    "76",
+    "Ranger"
+   ],
+   [
+    "77",
+    "Apoio"
+   ],
+   [
+    "78",
+    "Aviação"
+   ],
+   [
+    "79",
+    "Pioneiros"
+   ],
+   [
+    "80",
+    "Comunicações de Posto de Comando"
+   ],
+   [
+    "81",
+    "Nó de acesso Conjunto"
+   ],
+   [
+    "82",
+    "Retransmissão"
+   ],
+   [
+    "94",
+    "Apoio a elemento de valor Teatro de Operações"
+   ],
+   [
+    "95",
+    "Apoio a elemento de valor Exército"
+   ],
+   [
+    "96",
+    "Apoio a elemento de valor Corpo de Exército"
+   ],
+   [
+    "97",
+    "Apoio a elemento de valor Brigada"
+   ],
+   [
+    "98",
+    "Elemento de Comando\n(código específico apenas para compatibilidade com a OTAN)"
+   ]
+  ],
+  "m2": [
+   [
+    "00",
+    "Não especificado"
+   ],
+   [
+    "01",
+    "Paraquedista"
+   ],
+   [
+    "02",
+    "Arctic"
+   ],
+   [
+    "03",
+    "Battle Damage Repair"
+   ],
+   [
+    "04",
+    "Bicycle Equipped"
+   ],
+   [
+    "05",
+    "Triagem"
+   ],
+   [
+    "06",
+    "Desobstrução"
+   ],
+   [
+    "07",
+    "Aproximado"
+   ],
+   [
+    "08",
+    "Controle de Sistemas"
+   ],
+   [
+    "09",
+    "Descontaminação"
+   ],
+   [
+    "10",
+    "Demolição"
+   ],
+   [
+    "11",
+    "Dental"
+   ],
+   [
+    "12",
+    "Digital"
+   ],
+   [
+    "13",
+    "Enhanced Position Location Reporting System (EPLRS)"
+   ],
+   [
+    "14",
+    "Equipamento"
+   ],
+   [
+    "15",
+    "Pesado"
+   ],
+   [
+    "16",
+    "Grande altura"
+   ],
+   [
+    "17",
+    "Intermodal"
+   ],
+   [
+    "18",
+    "Cuidados intensivos"
+   ],
+   [
+    "19",
+    "Leve"
+   ],
+   [
+    "20",
+    "Laboratório"
+   ],
+   [
+    "21",
+    "Lançador"
+   ],
+   [
+    "22",
+    "Longo alcance (long range)"
+   ],
+   [
+    "23",
+    "Baixa altura"
+   ],
+   [
+    "24",
+    "Médio"
+   ],
+   [
+    "25",
+    "Média altura"
+   ],
+   [
+    "26",
+    "Médio alcance (medium range)"
+   ],
+   [
+    "27",
+    "Montanha"
+   ],
+   [
+    "28",
+    "Alta a média altitude"
+   ],
+   [
+    "29",
+    "Multicanal"
+   ],
+   [
+    "30",
+    "Óptico"
+   ],
+   [
+    "31",
+    "Tração animal"
+   ],
+   [
+    "32",
+    "Evacuação de Pacientes"
+   ],
+   [
+    "33",
+    "Manutenção preventiva"
+   ],
+   [
+    "34",
+    "Psicológico"
+   ],
+   [
+    "35",
+    "Retransmissor de linha de visada"
+   ],
+   [
+    "36",
+    "Ferroviário"
+   ],
+   [
+    "37",
+    "Socorro de sistemas não tripulados"
+   ],
+   [
+    "38",
+    "Socorro (manutenção)"
+   ],
+   [
+    "39",
+    "Centro de Coordenação de Salvamento (Rescue Coordination Center)"
+   ],
+   [
+    "40",
+    "Ribeirinho"
+   ],
+   [
+    "41",
+    "Canal simples"
+   ],
+   [
+    "42",
+    "Ski"
+   ],
+   [
+    "43",
+    "Curto alcance (short range)"
+   ],
+   [
+    "44",
+    "Estratégico"
+   ],
+   [
+    "45",
+    "Apoio"
+   ],
+   [
+    "46",
+    "Tático"
+   ],
+   [
+    "47",
+    "Rebocado"
+   ],
+   [
+    "48",
+    "Esquadrão"
+   ],
+   [
+    "49",
+    "Decolagem e pouso verticais ou curtos (VSTOL)"
+   ],
+   [
+    "50",
+    "Veterinário"
+   ],
+   [
+    "51",
+    "Sobre Rodas\n(código específico apenas para compatibilidade com a OTAN)"
+   ],
+   [
+    "52",
+    "Alta a baixa altitude"
+   ],
+   [
+    "53",
+    "Média a baixa altitude"
+   ],
+   [
+    "54",
+    "Ataque"
+   ],
+   [
+    "55",
+    "Reabastecimento"
+   ],
+   [
+    "56",
+    "Utilitário"
+   ],
+   [
+    "57",
+    "Busca e Salvamento em Combate (CSAR)"
+   ]
+  ]
+ }
+]

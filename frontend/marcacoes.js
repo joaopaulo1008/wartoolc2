@@ -16,9 +16,20 @@
 // verdade (leaflet pinado em package.json na mesma versão que já se usava).
 // (marcacoes.teste.mjs continua sem importar este arquivo — só simbolos.js —
 // então este import não afeta o teste em Node.)
+// Etapa 9b: o formulário deixou de ser quatro <select> planos sobre tabelas
+// escritas à mão e passou a navegar o CATÁLOGO OFICIAL do MD/EB —
+// categoria -> ícone central (agrupado por entidade APP-6D) -> modificadores.
+// Ver o cabeçalho de simbolos.js e data/simbologia-eb/PROCEDENCIA.md.
+// A coordenada do elemento passou a aparecer no popup, no formato que o
+// usuário escolheu (preferencias.js).
 import * as L from 'leaflet';
 import { supabase, traduzirErro, buscarPerfilBasico, buscarPartidosDaTurma } from './auth.js';
-import { getSIDC, decomporSidc, DIMENSAO, ESCALAO, NATUREZA } from './simbolos.js';
+import {
+  getSIDC, decomporSidc, descreverSidc,
+  CATEGORIAS, categoriaPorId, itensDaCategoria, nomeDoItem,
+  ESCALAO_ROTULO,
+} from './simbolos.js';
+import { formatarCoordenada, observarFormatoCoordenada } from './preferencias.js';
 // O desenho do símbolo (resolver a hostilidade relativa + montar o L.divIcon,
 // com fallback) é compartilhado com gps.js e colegas.js desde a Etapa 5 — ver
 // frontend/icones.js para o raciocínio da extração.
@@ -143,10 +154,13 @@ function statusContagem() {
 // buscarPerfisDaTurma em colegas.js, a turma de exercício é pequena, então um
 // round-trip só no início é mais simples do que buscar sob demanda.
 
-async function obterPerfilAutor(autorId) {
-  if (perfisAutorCache.has(autorId)) return perfisAutorCache.get(autorId);
-  const perfil = await buscarPerfilBasico(autorId); // pode devolver null (RLS, conta removida) — cacheia mesmo assim
-  perfisAutorCache.set(autorId, perfil);
+// Serve tanto para o AUTOR quanto para quem EDITOU por último (Etapa 9b): o
+// cache é por id de usuário, não por papel na marcação.
+async function obterPerfilDe(usuarioId) {
+  if (!usuarioId) return null;
+  if (perfisAutorCache.has(usuarioId)) return perfisAutorCache.get(usuarioId);
+  const perfil = await buscarPerfilBasico(usuarioId); // pode devolver null (RLS, conta removida) — cacheia mesmo assim
+  perfisAutorCache.set(usuarioId, perfil);
   return perfil;
 }
 
@@ -157,17 +171,59 @@ async function obterPerfilAutor(autorId) {
 const TAMANHO_ICONE = 26;
 const COR_FALLBACK = '#e05252';
 
-function construirPopupHtml(row, autorPerfil) {
+function escapar(texto) {
+  return String(texto == null ? '' : texto)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+function construirPopupHtml(row, autorPerfil, editorPerfil) {
   const partido = row.partido_id ? partidosPorId.get(row.partido_id) : null;
   const nomePartido = partido ? partido.nome : 'Não identificado';
   const autorNome = autorPerfil ? (autorPerfil.nome_guerra || 'Sem nome de guerra') : '…';
   const quando = row.criada_em
     ? new Date(row.criada_em).toLocaleTimeString('pt-BR')
     : '—';
+
+  // Etapa 9b: o resumo do SIDC em português oficial. `titulo` é o NomeBR do
+  // ícone central; esta linha acrescenta escalão e modificadores, que o
+  // título sozinho não carrega.
+  const detalhe = descreverSidc(row.sidc);
+  const linhaDetalhe = (detalhe && detalhe !== row.titulo)
+    ? `<div class="popup-row"><span class="popup-label">Símbolo</span><span class="popup-value">${escapar(detalhe)}</span></div>`
+    : '';
+
+  // Etapa 9b: a coordenada, no formato que ESTE usuário escolheu. Vem de
+  // preferencias.js (que combina a preferência com coordenadas.js) — nunca
+  // formatada aqui, para as três telas não divergirem.
+  const linhaCoordenada =
+    `<div class="popup-row"><span class="popup-label">Coordenada</span>` +
+    `<span class="popup-value">${escapar(formatarCoordenada(row.latitude, row.longitude))}</span></div>`;
+
+  // Etapa 9b: a linha que existe para o aluno não ver o próprio símbolo mudar
+  // sozinho. `editada_por` é carimbado por trigger no banco (migration 0009)
+  // e só difere de `autor_id` quando outra pessoa — na prática, o instrutor —
+  // corrigiu a marcação. Ver a decisão do item 4 da etapa.
+  let linhaEdicao = '';
+  if (row.editada_em && row.editada_por && row.editada_por !== row.autor_id) {
+    const editorNome = editorPerfil ? (editorPerfil.nome_guerra || 'Sem nome de guerra') : '…';
+    const quandoEdicao = new Date(row.editada_em).toLocaleTimeString('pt-BR');
+    linhaEdicao =
+      `<div class="popup-row mc-corrigida"><span class="popup-label">Corrigido por</span>` +
+      `<span class="popup-value">${escapar(editorNome)} às ${quandoEdicao}</span></div>`;
+  }
+
   // Etapa 6a: o autor só vê Editar/Remover se `editar_marcacao_propria`
   // estiver habilitada. O instrutor não depende dessa chave (a própria view
   // já devolve tudo habilitado para ele, mas a policy
   // `elementos_editar_instrutor` é o que realmente vale).
+  //
+  // Etapa 9b: esta linha É a autoridade do instrutor sobre a simbologia da
+  // turma, e ela NÃO mudou nesta etapa — só o formulário que ela abre. Um
+  // instrutor abrindo a aba "Situação atual" (situacao.js) continua vendo
+  // Editar em QUALQUER marcação de QUALQUER aluno, e o `abrirFormulario(...,
+  // { marcacaoExistente })` logo abaixo é o mesmo caminho de código de
+  // sempre, agora com o catálogo oficial por trás.
   const podeMexer = meuPapel === 'instrutor' || (row.autor_id === meuUserId && podeEditarPropria());
   const botoes = podeMexer
     ? `<div class="mc-botoes">
@@ -177,9 +233,12 @@ function construirPopupHtml(row, autorPerfil) {
     : '';
   return (
     `<div class="popup-content">` +
-      `<div class="popup-title">${row.titulo || 'Elemento'}</div>` +
-      `<div class="popup-row"><span class="popup-label">Partido</span><span class="popup-value">${nomePartido}</span></div>` +
-      `<div class="popup-row"><span class="popup-label">Marcado por</span><span class="popup-value">${autorNome} às ${quando}</span></div>` +
+      `<div class="popup-title">${escapar(row.titulo || 'Elemento')}</div>` +
+      linhaDetalhe +
+      `<div class="popup-row"><span class="popup-label">Partido</span><span class="popup-value">${escapar(nomePartido)}</span></div>` +
+      linhaCoordenada +
+      `<div class="popup-row"><span class="popup-label">Marcado por</span><span class="popup-value">${escapar(autorNome)} às ${quando}</span></div>` +
+      linhaEdicao +
       botoes +
     `</div>`
   );
@@ -192,11 +251,15 @@ function construirPopupHtml(row, autorPerfil) {
 async function aoAbrirPopup(id, marker) {
   const estado = marcadores.get(id);
   if (!estado) return;
-  const autor = await obterPerfilAutor(estado.row.autor_id);
+  // Os dois perfis (autor e, se houver, quem corrigiu) numa rodada só.
+  const [autor, editor] = await Promise.all([
+    obterPerfilDe(estado.row.autor_id),
+    obterPerfilDe(estado.row.editada_por),
+  ]);
   // A marcação pode ter mudado (ou sumido) enquanto a busca do autor corria.
   const estadoAtual = marcadores.get(id);
   if (!estadoAtual) return;
-  marker.getPopup()?.setContent(construirPopupHtml(estadoAtual.row, autor));
+  marker.getPopup()?.setContent(construirPopupHtml(estadoAtual.row, autor, editor));
 
   // Os botões só existem no DOM depois que o Leaflet renderiza o conteúdo do
   // popup — setTimeout(0) empurra a ligação dos eventos para depois disso.
@@ -244,7 +307,9 @@ function criarOuAtualizarMarcador(row, { map }) {
   } else {
     estado.marker.setIcon(icon);
     if (estado.marker.isPopupOpen()) {
-      estado.marker.getPopup().setContent(construirPopupHtml(row, perfisAutorCache.get(row.autor_id)));
+      estado.marker.getPopup().setContent(construirPopupHtml(
+        row, perfisAutorCache.get(row.autor_id), perfisAutorCache.get(row.editada_por)
+      ));
     }
   }
   estado.row = row;
@@ -381,7 +446,8 @@ function injetarEstilos() {
     #marcacao-painel {
       position:fixed; top:50%; left:50%; transform:translate(-50%,-50%);
       z-index:2000; background:#0d1b2a; border:1px solid #2a4a6b;
-      border-radius:8px; padding:16px 20px; min-width:260px;
+      border-radius:8px; padding:16px 20px; min-width:280px; max-width:min(92vw,380px);
+      max-height:88vh; overflow-y:auto;
       box-shadow:0 4px 24px rgba(0,0,0,.5); font-family:'Segoe UI',Arial,sans-serif;
       color:#e8eaf0;
     }
@@ -404,20 +470,97 @@ function injetarEstilos() {
     }
     #marcacao-painel .mc-salvar { background:#1a3a5c; color:#7ab8f5; }
     #marcacao-painel .mc-cancelar { background:transparent; color:#c8d8e8; border-color:#3a5a7a; }
+    #marcacao-painel optgroup { background:#0d1b2a; color:#7a9ab8; font-style:normal; }
+    #marcacao-painel option { background:#16263a; color:#e8eaf0; }
+    #marcacao-painel .mc-dica {
+      font-size:11px; color:#5f7f9f; margin:-6px 0 10px; line-height:1.35;
+    }
+    #marcacao-painel .mc-aviso {
+      color:#f5c842; background:#2a2412; border:1px solid #5a4a1a;
+      border-radius:4px; padding:6px 8px; margin:0 0 10px;
+    }
+    #marcacao-painel .mc-coord {
+      font-size:11px; color:#7a9ab8; margin-bottom:12px; padding:5px 7px;
+      background:#16263a; border:1px solid #23405e; border-radius:4px;
+      font-variant-numeric:tabular-nums;
+    }
     .mc-botoes { display:flex; gap:6px; margin-top:8px; }
     .mc-btn { padding:3px 10px; border-radius:4px; font-size:11px; cursor:pointer; border:1px solid #999; background:#f0f0f0; }
     .mc-btn-remover { border-color:#c0392b; color:#c0392b; }
+    .mc-corrigida .popup-value { color:#f5c842; }
   `;
   document.head.appendChild(style);
 }
 
-function construirOpcoes(tabela, valorSelecionado) {
-  // ESCALAO tem uma chave '' sinônima de NONE (mesmo valor '00') — só serve
-  // para aceitar entrada vazia vinda de dados antigos, não para aparecer como
-  // uma opção sem rótulo no <select>. As demais tabelas não têm chave vazia.
-  return Object.keys(tabela)
-    .filter((chave) => chave !== '')
-    .map((chave) => `<option value="${chave}"${chave === valorSelecionado ? ' selected' : ''}>${chave}</option>`)
+// ── Montagem dos <select> a partir do catálogo (Etapa 9b) ────────────────
+// A estrutura escolhida (item 1 da etapa) é a HIERÁRQUICA, fiel a como o
+// próprio portal do MD/EB organiza os 12 arquivos:
+//
+//     categoria  ->  ícone central (agrupado por entidade APP-6D)
+//                ->  modificador 1  ->  modificador 2
+//
+// A alternativa era manter a forma antiga (um <select> plano por campo,
+// só trocando os VALORES pelos oficiais). Foi descartada por um motivo
+// prático e um conceitual:
+//
+//   * PRÁTICO: um <select> plano com 434 opções, num celular, em campo, com
+//     luva. As 18 naturezas escritas à mão da Etapa 5 cabiam numa lista; o
+//     catálogo oficial não cabe. Filtrar por categoria primeiro corta a lista
+//     para 1 a 96 itens, e o <optgroup> por entidade dá o segundo nível de
+//     leitura sem exigir um terceiro clique.
+//   * CONCEITUAL: a "dimensão" do formulário antigo E a categoria do catálogo
+//     são a MESMA COISA — os dígitos 5-6 do SIDC (symbol set). Manter os dois
+//     campos separados seria pedir duas vezes o mesmo dado e deixar o usuário
+//     combiná-los de forma inválida (uma "Fragata" com dimensão "UNIDADE"
+//     produz um SIDC que a milsymbol desenha errado, e o formulário antigo
+//     permitia exatamente isso). Com a hierarquia, escolher a categoria já
+//     fixa o symbol set, e só aparecem itens que existem nele — a combinação
+//     inválida deixa de ser possível de digitar.
+//
+// O que NÃO virou hierarquia: escalão e partido. Escalão é amplificador
+// (dígitos 9-10), vale para qualquer categoria e tem 13 opções — continua um
+// <select> plano. Partido nunca foi simbologia: é o fato do banco que a
+// hostilidade relativa consome (Etapa 4.5).
+function construirOpcoesCategoria(idSelecionado) {
+  return CATEGORIAS
+    .map((c) => `<option value="${c.id}"${c.id === idSelecionado ? ' selected' : ''}>${escapar(c.nome)}</option>`)
+    .join('');
+}
+
+// Os ícones centrais de UMA categoria, com <optgroup> por entidade APP-6D.
+// O rótulo mostrado é o `NomeBR` puro — sem o sufixo de desambiguação que a
+// tabela plana NATUREZA usa, porque aqui a categoria já foi escolhida (ver o
+// comentário de `chaveNatureza()` em simbolos.js).
+function construirOpcoesItem(categoriaId, codigoSelecionado) {
+  return itensDaCategoria(categoriaId)
+    .map((grupo) => {
+      const opcoes = grupo.itens
+        .map(([codigo, nome]) =>
+          `<option value="${codigo}"${codigo === codigoSelecionado ? ' selected' : ''}>${escapar(nome)}</option>`)
+        .join('');
+      return `<optgroup label="${escapar(grupo.nome)}">${opcoes}</optgroup>`;
+    })
+    .join('');
+}
+
+// Modificador é opcional: o código '00' ("Não especificado") já vem do
+// catálogo como primeira linha de toda tabela, então não é preciso inventar
+// uma opção vazia aqui.
+function construirOpcoesModificador(lista, codigoSelecionado) {
+  return lista
+    .map(([codigo, rotulo]) =>
+      `<option value="${codigo}"${codigo === codigoSelecionado ? ' selected' : ''}>${escapar(rotulo)}</option>`)
+    .join('');
+}
+
+function construirOpcoesEscalao(chaveSelecionada) {
+  // ESCALAO tem chaves sinônimas (CIA/BIA/ESC valem '14') e uma chave ''
+  // sinônima de NONE — as duas coisas existem para aceitar entrada vinda de
+  // dados antigos e do CSV do seed, não para virarem opções repetidas no
+  // <select>. Mostramos só as que têm rótulo próprio em ESCALAO_ROTULO.
+  return Object.keys(ESCALAO_ROTULO)
+    .map((chave) =>
+      `<option value="${chave}"${chave === chaveSelecionada ? ' selected' : ''}>${escapar(ESCALAO_ROTULO[chave])}</option>`)
     .join('');
 }
 
@@ -431,6 +574,10 @@ function construirOpcoesPartido(partidoIdSelecionado) {
 
 function fecharFormulario() {
   if (painelAberto) {
+    // Avisa o observador de formato de coordenada registrado em
+    // abrirFormulario() para se desligar — sem isto, cada abertura de
+    // formulário deixaria um callback vivo apontando para um DOM removido.
+    painelAberto.dispatchEvent(new Event('mc-fechou'));
     painelAberto.remove();
     painelAberto = null;
   }
@@ -455,21 +602,59 @@ function abrirFormulario(latlng, { marcacaoExistente } = {}) {
     }).addTo(mapaRef);
   }
 
+  // Pré-preenchimento na EDIÇÃO. `decomporSidc()` (simbolos.js) devolve, além
+  // dos três campos que já devolvia desde a Etapa 5, a categoria, o código de
+  // entidade e os dois modificadores — que é exatamente o que o formulário
+  // hierárquico precisa para reabrir na escolha que estava gravada.
+  //
+  // Isto é o que faz a EDIÇÃO PELO INSTRUTOR funcionar: ele abre a marcação
+  // de um aluno já com o que o aluno escolheu selecionado, troca só o que
+  // está errado e salva. Um pré-preenchimento que perdesse a escolha original
+  // transformaria "corrigir a natureza" em "refazer a marcação do zero".
   const preenchido = marcacaoExistente ? decomporSidc(marcacaoExistente.sidc) : {};
+  // SIDC gravado por um caminho que o catálogo não conhece (dado anterior à
+  // 9b com natureza que saiu das tabelas manuais, ou symbol set exótico):
+  // abre na primeira categoria em vez de num <select> vazio.
+  const categoriaInicial = categoriaPorId(preenchido.categoriaId)
+    ? preenchido.categoriaId
+    : CATEGORIAS[0].id;
+
+  // AVISO PARA DADO ANTERIOR À 9b, e é importante que ele exista.
+  // As tabelas manuais da Etapa 5 tinham códigos que o catálogo oficial não
+  // usa (ex.: '121200', que era "Blindado (Carro de Combate)" na tabela
+  // escrita à mão e não existe nas unidades do MD/EB). Quando um desses é
+  // reaberto para edição, o <select> cai no primeiro item da categoria — e
+  // salvar sem perceber TROCARIA o tipo da marcação em silêncio. Com o aviso,
+  // quem edita vê que precisa reescolher, em vez de descobrir depois.
+  //
+  // Note que o SÍMBOLO DESENHADO nunca dependeu do rótulo: a milsymbol sempre
+  // desenhou a partir do código. O que muda ao reabrir é só o rótulo, que
+  // agora é o oficial.
+  const codigoNaoReconhecido = !!marcacaoExistente &&
+    !nomeDoItem(categoriaInicial, preenchido.codigoEntidade);
+  const avisoLegado = codigoNaoReconhecido
+    ? `<p class="mc-dica mc-aviso">Esta marcação foi criada antes do catálogo oficial e o tipo
+       dela (código ${escapar(preenchido.codigoEntidade || '?')}) não existe nele.
+       <b>Escolha o tipo de novo antes de salvar</b> — salvar assim grava o primeiro da lista.</p>`
+    : '';
 
   const painel = document.createElement('div');
   painel.id = 'marcacao-painel';
   painel.innerHTML = `
     <h3>${marcacaoExistente ? 'Editar marcação' : 'Nova marcação'}</h3>
+    <div class="mc-coord" id="mc-coordenada">${escapar(formatarCoordenada(latlng.lat, latlng.lng))}</div>
+    <label>Categoria
+      <select id="mc-categoria">${construirOpcoesCategoria(categoriaInicial)}</select>
+    </label>
     <label>Tipo / natureza
-      <select id="mc-natureza">${construirOpcoes(NATUREZA, preenchido.natureza)}</select>
+      <select id="mc-item">${construirOpcoesItem(categoriaInicial, preenchido.codigoEntidade)}</select>
     </label>
-    <label>Dimensão
-      <select id="mc-dimensao">${construirOpcoes(DIMENSAO, preenchido.dimensao)}</select>
-    </label>
+    <p class="mc-dica">Nomes oficiais do Portal de Simbologia Militar (MD33-M-02).</p>
+    ${avisoLegado}
     <label>Escalão
-      <select id="mc-escalao">${construirOpcoes(ESCALAO, preenchido.escalao)}</select>
+      <select id="mc-escalao">${construirOpcoesEscalao(preenchido.escalao || 'NONE')}</select>
     </label>
+    <div id="mc-modificadores"></div>
     <label>Partido do elemento observado
       <select id="mc-partido">${construirOpcoesPartido(marcacaoExistente?.partido_id)}</select>
     </label>
@@ -481,12 +666,63 @@ function abrirFormulario(latlng, { marcacaoExistente } = {}) {
   document.body.appendChild(painel);
   painelAberto = painel;
 
+  const selCategoria = document.getElementById('mc-categoria');
+  const selItem = document.getElementById('mc-item');
+  const caixaModificadores = document.getElementById('mc-modificadores');
+
+  // Os dois <select> de modificador dependem da categoria e são REMONTADOS a
+  // cada troca dela — cada categoria tem a própria tabela "sector 1"/"sector
+  // 2", e algumas (guerra de minas) não têm nenhuma. Categoria sem
+  // modificador simplesmente não mostra o campo, em vez de mostrar um
+  // <select> com uma opção só.
+  function montarModificadores(categoriaId, mod1Selecionado, mod2Selecionado) {
+    const cat = categoriaPorId(categoriaId);
+    if (!cat) { caixaModificadores.innerHTML = ''; return; }
+    const blocos = [];
+    if (cat.mod1.length) {
+      blocos.push(
+        `<label>Modificador 1
+           <select id="mc-mod1">${construirOpcoesModificador(cat.mod1, mod1Selecionado)}</select>
+         </label>`
+      );
+    }
+    if (cat.mod2.length) {
+      blocos.push(
+        `<label>Modificador 2
+           <select id="mc-mod2">${construirOpcoesModificador(cat.mod2, mod2Selecionado)}</select>
+         </label>`
+      );
+    }
+    caixaModificadores.innerHTML = blocos.join('');
+  }
+
+  montarModificadores(categoriaInicial, preenchido.mod1, preenchido.mod2);
+
+  selCategoria.addEventListener('change', () => {
+    // Trocar de categoria zera a escolha de item e de modificador — não há
+    // como "manter" nada: os códigos de entidade e os modificadores são
+    // definidos POR symbol set, e o mesmo código significa outra coisa em
+    // outra categoria.
+    selItem.innerHTML = construirOpcoesItem(selCategoria.value, '');
+    montarModificadores(selCategoria.value, '00', '00');
+  });
+
+  // Trocar o formato de coordenada com o formulário aberto atualiza a linha
+  // de cima na hora (a mesma promessa de "efeito imediato" dos popups).
+  const pararDeObservarFormato = observarFormatoCoordenada(() => {
+    const el = document.getElementById('mc-coordenada');
+    if (el) el.textContent = formatarCoordenada(latlng.lat, latlng.lng);
+  });
+  painel.addEventListener('mc-fechou', pararDeObservarFormato);
+
   document.getElementById('mc-cancelar').addEventListener('click', fecharFormulario);
   document.getElementById('mc-salvar').addEventListener('click', async () => {
     const valores = {
-      natureza: document.getElementById('mc-natureza').value,
-      dimensao: document.getElementById('mc-dimensao').value,
+      categoriaId: selCategoria.value,
+      codigoEntidade: selItem.value,
       escalao: document.getElementById('mc-escalao').value,
+      mod1: document.getElementById('mc-mod1')?.value || '00',
+      mod2: document.getElementById('mc-mod2')?.value || '00',
       partidoId: document.getElementById('mc-partido').value || null,
     };
     const ok = await salvarMarcacao({ latlng, marcacaoExistente, valores });
@@ -500,13 +736,22 @@ function abrirFormulario(latlng, { marcacaoExistente } = {}) {
 // (o fato que a Etapa 4.5 corrigiu). Quem lê depois, lê através de
 // sidcParaObservador(), nunca deste SIDC cru.
 async function salvarMarcacao({ latlng, marcacaoExistente, valores }) {
-  const naturezaCodigo = NATUREZA[valores.natureza] || NATUREZA['Desconhecido / Não identificado'];
+  // Etapa 9b: o SIDC é montado a partir da CATEGORIA (que é o symbol set) e
+  // do código de entidade escolhidos no catálogo, mais os dois modificadores.
+  // Continua sendo `getSIDC()` de simbolos.js montando um SIDC NOVO e
+  // completo — nunca splicing de dígitos do SIDC antigo (decisão da Etapa 5,
+  // mantida: `decomporSidc()` serve só para PRÉ-PREENCHER).
   const sidc = getSIDC({
-    dimensao: valores.dimensao,
+    dimensao: valores.categoriaId,
     escalao: valores.escalao,
-    natureza_code: naturezaCodigo,
+    natureza_code: valores.codigoEntidade,
+    mod1: valores.mod1,
+    mod2: valores.mod2,
   });
-  const titulo = valores.natureza || 'Elemento';
+  // O título é o NomeBR OFICIAL do ícone central — antes era a chave da
+  // tabela manual ("Blindado (Carro de Combate)"), agora é o rótulo do
+  // portal ("Carro de Combate"). É o que aparece ao lado do símbolo no mapa.
+  const titulo = nomeDoItem(valores.categoriaId, valores.codigoEntidade) || 'Elemento';
 
   if (marcacaoExistente) {
     const { data, error } = await supabase
@@ -644,6 +889,22 @@ export async function iniciarMarcacoes({ map, userId, turmaId, perfil, avaliarCr
   desligarObservadores.push(observarPermissao('editar_marcacao_propria', () => map.closePopup()));
 
   desligarObservadores.push(observarPermissao('ver_marcacoes_outros', () => reavaliarVisibilidade(ctx)));
+
+  // Etapa 9b: trocar o formato de coordenada tem que valer NA HORA, sem F5.
+  // O popup só é montado quando abre (ver aoAbrirPopup), então os que ainda
+  // não abriram já vão nascer certos; o que pode estar aberto neste instante
+  // é redesenhado aqui. Mesmo padrão do observador de
+  // `editar_marcacao_propria` logo acima.
+  desligarObservadores.push(observarFormatoCoordenada(() => {
+    for (const estado of marcadores.values()) {
+      if (!estado.marker.isPopupOpen()) continue;
+      estado.marker.getPopup().setContent(construirPopupHtml(
+        estado.row,
+        perfisAutorCache.get(estado.row.autor_id),
+        perfisAutorCache.get(estado.row.editada_por)
+      ));
+    }
+  }));
 
   await carregarEstadoInicial(turmaId, ctx);
   assinarCanal(turmaId, ctx);

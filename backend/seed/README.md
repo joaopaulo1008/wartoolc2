@@ -37,7 +37,14 @@ cp usuarios_exercicio.exemplo.csv usuarios_exercicio.csv
 | `escalao` | `NONE`, `SQD`, `SEC`, `PEL`, `CIA`, `BIA`, `ESC`, `BN`, `GRU`, `BDA`, `DIV`, `CRP`, `EX` |
 | `natureza_code` | Código de natureza APP-6D (10 dígitos). Pode deixar **vazio** — vira símbolo genérico, que já é legível no mapa |
 
-As três últimas colunas existem para você não ter que escrever o SIDC de 20 dígitos na mão: o script monta o código usando exatamente as mesmas tabelas de conversão que o `getSIDC()` em `frontend/index.html` já usa. Os valores permitidos são os das constantes `HOSTILIDADE`, `DIMENSAO` e `ESCALAO` daquele arquivo.
+As três últimas colunas existem para você não ter que escrever o SIDC de 20 dígitos na mão: o script monta o código com o **mesmo `getSIDC()`** que o app usa, importado de `frontend/simbolos.js` (era `frontend/index.html` até a Etapa 4.5). Os valores permitidos são as chaves das constantes `HOSTILIDADE`, `DIMENSAO` e `ESCALAO` daquele arquivo.
+
+**Duas coisas mudaram na Etapa 9b, e nenhuma delas quebra um CSV já escrito:**
+
+- `DIMENSAO` passou a ser derivada do catálogo oficial do MD/EB, com uma chave por categoria (`UNIDADES`, `EQUIPAMENTOS_VIATURAS`, `INSTALACOES`, `INDIVIDUOS_DESEMBARCADOS`, `AERONAVES`, …). As cinco chaves antigas continuam valendo como **aliases**, com exatamente os mesmos valores de antes — há teste garantindo que uma linha de CSV escrita antes da 9b produz o mesmo SIDC de sempre.
+- **Cuidado com `AEREO`**: ele vale `05`, que no APP-6D é *espacial*, não aeronave. É um erro que veio da tabela manual antiga e foi **preservado de propósito**, para não reescrever o significado de dados já gravados. Para aeronave de verdade, use `AERONAVES` (`01`).
+
+`natureza_code` aceita agora qualquer código de entidade do catálogo oficial — 434 opções, com o nome em português. Para descobrir o código de um tipo, procure o `NomeBR` em `frontend/simbolos-catalogo.js` (ou consulte `data/simbologia-eb/catalogo-extraido.json`).
 
 ## Como rodar
 

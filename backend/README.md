@@ -13,6 +13,10 @@ Aqui só existe o **backend**: o frontend que consome isto vem nas Etapas 2 em d
 | `supabase/0003_partidos.sql` | Partidos por turma, hostilidade relativa e `fn_usuarios_visiveis()` (Etapa 4.5) |
 | `supabase/0004_perfis_realtime.sql` | Publica `perfis` no Realtime, para a troca de força feita pelo instrutor chegar ao app do aluno (Etapa 6a) |
 | `supabase/0005_rastro_historico.sql` | `fn_rastro_historico()`: leitura amostrada de `posicoes_historico` para o debriefing (Etapa 6b) |
+| `supabase/0006_calcos.sql` | `calcos` + bucket privado no Storage: KML/KMZ publicados pelo instrutor (Etapa 7) |
+| `supabase/0007_codigo_turma_valido.sql` | `entrar_na_turma()` passa a exigir um código de turma que exista (revisão da Etapa 11) |
+| `supabase/0008_imagem_geo.sql` | `calcos` aceita também `jpg`/`png` com bounds: imagem georreferenciada (Etapa 8b) |
+| `supabase/0009_auditoria_edicao_e_preferencias.sql` | `editada_em`/`editada_por` em `elementos_marcados` (carimbados por trigger) e o `check` de `preferencias_visualizacao.formato_coordenada` (Etapa 9b) |
 | `testes/00_stub_supabase.sql` | Recria o mínimo do ambiente Supabase para rodar as migrations num Postgres cru. **Não rodar no Supabase** |
 | `testes/01_teste_partidos.sql` | Teste de RLS com dois partidos: 43 verificações |
 
@@ -44,6 +48,10 @@ Espelha `auth.users` (Supabase Auth) com os dados de domínio: `papel` (`instrut
 
 Criado automaticamente por trigger em `auth.users`: quando alguém se cadastra, o perfil aparece sozinho, lendo `nome_completo` e `papel` dos metadados do `signUp`.
 
+**De onde vem o `sidc` de um usuário** (decisão da Etapa 9b, resolvida numa função só — `sidcDeFabrica()` em `frontend/simbolos.js`): ORBAT (Etapa 6.5, adiada — o ponto de extensão está marcado lá) → seed do exercício (Etapa 2c, adiada; escreve nesta mesma coluna) → o que estiver em `perfis.sidc`, que é o default do schema quando a conta veio do cadastro aberto. **O aluno não escolhe o próprio símbolo** e `login.html` não pergunta: símbolo é atribuição, não preferência — mesma lógica que tirou o partido da mão dele na 4.5. `sidc` deliberadamente não está na lista de campos que `fn_proteger_campos_do_perfil` libera para o dono.
+
+`preferencias_visualizacao` (jsonb, criada na `0003`) ganhou a primeira chave em uso na `0009`: **`formato_coordenada`** (`utm` | `decimal` | `dms`), com `check` no banco. É FILTRO, não permissão — em que formato alguém lê a própria tela não muda o que ninguém enxerga nem o que é gravado (posição continua sendo lat/lon em grau decimal, sempre). Ausente = o padrão do cliente (`utm`). O `check` valida só essa chave e ignora o resto do objeto, de propósito: a interface de filtros de camadas continua pendente e cada preferência nova não deve virar uma migration.
+
 ### `posicoes_atuais` + `posicoes_historico`
 
 Divisão deliberada:
@@ -72,6 +80,8 @@ Consequência para quem for ler esta tabela: **os dígitos 3-4 do `sidc` gravado
 `partido_id` nulo é legítimo: significa "vi alguém, não sei de quem é" e renderiza como DESCONHECIDO.
 
 Exclusão é **lógica** (`removida_em` / `removida_por`), para o instrutor auditar depois o que foi apagado durante o exercício.
+
+**Edição também é auditada, desde a `0009` (Etapa 9b)**: `editada_em` / `editada_por`, carimbados por **trigger** (`fn_carimbar_edicao_do_elemento`), não pelo cliente. Só carimbam quando muda CONTEÚDO (sidc, partido, título, descrição, posição, efetivo, confiança) — uma exclusão lógica não conta como edição, porque já tem a própria auditoria. `editada_por` diferente de `autor_id` significa, na prática, que **o instrutor corrigiu a marcação de um aluno**: é o que permite o app dizer isso na tela em vez de o símbolo do aluno mudar sozinho sem explicação. `editada_por` nulo com `editada_em` preenchido = alterado fora de uma sessão de usuário (SQL Editor, `service_role`).
 
 ### Permissões — três camadas
 

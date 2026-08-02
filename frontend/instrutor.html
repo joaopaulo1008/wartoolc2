@@ -618,6 +618,12 @@
 import 'leaflet/dist/leaflet.css';
 import { exigirSessao, sair } from './auth.js';
 import { iniciarPermissoes } from './permissoes.js';
+// Etapa 9b: o formato de coordenada do próprio instrutor, lido de
+// perfis.preferencias_visualizacao. Não há seletor nesta tela (o painel do
+// instrutor não tem cartão de preferências) — o valor vem do que ele
+// escolheu no app do aluno, ou do padrão UTM. Sem esta chamada, os popups de
+// situacao.js cairiam sempre no padrão, ignorando a escolha dele.
+import { iniciarPreferencias } from './preferencias.js';
 import { iniciarPainelPermissoes, observarTurma } from './instrutor-permissoes.js';
 import { iniciarDebriefing, aoAbrirDebriefing, definirTurmaDebriefing, abrirRastroDoAluno } from './debriefing.js';
 import { iniciarSituacao, aoAbrirSituacao, definirTurmaSituacao } from './situacao.js';
@@ -649,6 +655,10 @@ if (resultado) {
   } catch (e) {
     console.error('Falha ao iniciar permissões no painel — seguindo com os padrões:', e);
   }
+
+  // Etapa 9b: antes de qualquer aba que desenhe coordenada (Situação atual).
+  // Nenhuma consulta nova — `preferencias_visualizacao` já vem no perfil.
+  iniciarPreferencias({ userId: session.user.id, perfil });
 
   // Toda a lógica do painel de permissões (lista da turma, grade lida de
   // vw_permissoes_efetivas, escrita nas duas camadas) está em

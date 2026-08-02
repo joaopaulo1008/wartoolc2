@@ -152,6 +152,66 @@ Authorization: Bearer <token do aluno Vermelho>
 
 **9d. `carregar_kml` desligada por padrão:** com um aluno cuja chave `carregar_kml` esteja no padrão (`false`), confira que o botão de carregar arquivo local aparece **desabilitado, com explicação** (não escondido). Ligue a chave no painel — o botão libera sem F5.
 
+## 11. Formato de coordenada — os três, conferidos contra uma referência externa (Etapa 9b)
+
+**Por que este é o item mais fácil de dar errado sem ninguém notar:** UTM depende de acertar a **zona** a partir da longitude. Se a zona sair errada, o par de números continua parecendo perfeitamente plausível — só aponta para umas centenas de quilômetros de distância. Diferente de uma coordenada malformada, isso não "quebra" nada na tela: só mente. O Brasil vai da zona 18 à 25, e boa parte da área de instrução fica **perto de uma fronteira de zona** (o meridiano de 48°W, por exemplo, separa a 22 da 23 e corta Goiás e São Paulo).
+
+**11a. Os três formatos, no próprio avatar.** Com o GPS fixado, abra o cartão **"Coordenada"** no painel lateral e alterne entre **UTM (carta)**, **Grau decimal** e **Grau, minuto, segundo**.
+
+**Esperar:** o popup do próprio avatar muda **na hora**, sem F5 e sem esperar a próxima leitura do GPS (que pode levar até 30s parado). O exemplo abaixo dos rádios ("Centro do mapa: …") muda junto.
+
+**Como saber que falhou:** o popup continua no formato anterior até você se mexer → o observador de formato de `gps.js` não está sendo chamado. **Fique parado de propósito ao testar isto** — é exatamente o caso que o bug esconde.
+
+**11b. UTM contra referência externa — o item que fecha a etapa.** No MESMO ponto, compare o UTM que o app mostra com **duas** fontes independentes:
+1. um aplicativo de GPS do celular configurado para UTM/MGRS (a maioria tem essa opção nas configurações de formato de coordenada);
+2. a **carta impressa** da área, se houver — é para ela que este formato existe.
+
+**Esperar:** a **zona e a letra da faixa** batem exatamente (ex.: `23K`), e easting/northing batem dentro da precisão do GPS (5–15 m). Anote os valores das três fontes.
+
+**Como saber que falhou:** a zona diverge (`22K` num, `23K` no outro) → **pare e reporte com prioridade alta**, é o modo de falha silencioso descrito acima. Diferença de dezenas de metros com a zona certa é precisão de GPS, não erro de conversão. Diferença de centenas de metros com a zona certa pode ser **datum**: o app usa WGS84 (que é o que o GPS entrega); cartas antigas do EB podem estar em SAD69 ou Córrego Alegre, e aí a diferença é real e esperada — anote qual datum está na legenda da carta.
+
+**11c. Perto de uma fronteira de zona.** Se a área de instrução estiver a menos de ~50 km de um meridiano múltiplo de 6° (48°W, 54°W, 42°W…), ande de um lado para o outro dele e confira que a zona **muda** no app quando deve, e que o easting salta de ~800.000 para ~200.000 (ou o contrário) sem descontinuidade no northing.
+
+**11d. GMS e decimal.** Confira que grau decimal bate dígito a dígito com o que o GPS do celular mostra nativamente, e que o GMS mostra **hemisfério S e W** (não sinal negativo).
+
+## 12. Instrutor corrige a simbologia de um aluno, em campo real (Etapa 9b)
+
+Isto já era possível desde a Etapa 5, mas nunca foi testado ao vivo com o efeito no aparelho do aluno — e o formulário mudou nesta etapa.
+
+**12a.** Com o aluno em campo, peça a ele para marcar um elemento **de propósito com a natureza errada** (ex.: marcar um "Carro de Combate" como "Infantaria"). Confirme que ele consegue navegar o formulário novo no celular: **Categoria → Tipo/natureza** (com os grupos), escalão, modificadores, partido.
+
+**Esperar:** os nomes aparecem em **português oficial** (do Portal de Simbologia Militar), a lista de tipos fica curta porque a categoria já filtrou, e trocar de categoria troca a lista inteira.
+
+**Como saber que falhou:** lista gigante com todos os tipos misturados, ou nomes em inglês → o catálogo não está sendo filtrado por categoria.
+
+**12b.** No painel do instrutor, aba **"Situação atual"**, abra a marcação daquele aluno e clique em **Editar**.
+
+**Esperar:** o formulário abre **já preenchido com o que o aluno escolheu** (categoria, tipo, escalão, modificadores) — não em branco. Corrigir só a natureza e salvar deve ser suficiente.
+
+**Como saber que falhou:** o formulário abre vazio ou na primeira categoria → o pré-preenchimento (`decomporSidc`) não reconheceu o SIDC gravado. Anote o SIDC (aparece no console) para diagnóstico.
+
+**12c.** Com o aparelho do aluno **na mão e sem tocar em nada**, salve a correção no painel.
+
+**Esperar:** o símbolo no mapa do aluno muda **sozinho, em poucos segundos, sem F5**; abrindo o popup, aparece uma linha **"Corrigido por &lt;nome de guerra do instrutor&gt; às HH:MM"**, em amarelo.
+
+**Como saber que falhou:** o símbolo muda mas a linha "Corrigido por" não aparece → o trigger `trg_elementos_carimbar_edicao` (migration `0009`) não foi aplicado, ou `editada_por` veio nulo (o que acontece se a alteração for feita pelo SQL Editor em vez de pela interface — nesse caso é o comportamento correto). Se o símbolo **não** muda, o problema é Realtime, não esta etapa (mesmo diagnóstico do item 5).
+
+**12d.** Peça ao aluno para editar a marcação **dele mesmo**.
+
+**Esperar:** funciona normalmente e **não** aparece "Corrigido por" (o carimbo só aparece quando quem editou é diferente do autor).
+
+## 13. Origem do SIDC quando a Etapa 2c for ativada (Etapa 9b, decisão 3)
+
+**Fazer só quando a Etapa 2c (seed de usuários) sair do adiamento** — hoje não há o que conferir, porque todo mundo entra pelo cadastro aberto e nasce com o símbolo padrão do schema.
+
+**13a.** Rode `backend/seed/criar_usuarios.mjs` com um CSV de teste e confira, para cada linha, que o símbolo que aparece no mapa é o que a planilha pedia (as colunas `dimensao`/`escalao`/`natureza_code`).
+
+**Esperar:** bate. Os aliases legados de `DIMENSAO` (`UNIDADE`, `EQUIPAMENTO`, `INSTALACAO`, `INDIVIDUO`, `AEREO`) foram preservados na Etapa 9b exatamente para isto, e há teste em `marcacoes.teste.mjs` garantindo que produzem os mesmos SIDC de antes.
+
+**Como saber que falhou:** o símbolo do seed difere do que a planilha pedia → conferir se o CSV está usando um valor de `dimensao` que não existe mais. **Atenção ao `AEREO`**: ele vale `05`, que no APP-6D é *espacial*, não aeronave — é um erro antigo, preservado de propósito para não reescrever dados já gravados. Para aeronave de verdade, o valor certo é `AERONAVES` (`01`).
+
+**13b.** Confira que o aluno **não** consegue mudar o próprio símbolo por lugar nenhum da interface (é decisão da etapa: símbolo é atribuição, não preferência).
+
 ## 10. Checklist de saída
 
 Depois do teste, reúna:
@@ -171,5 +231,14 @@ Depois do teste, reúna:
 - [ ] Item 9b: calco em tempo real?
 - [ ] Item 9c: isolamento do objeto confirmado? **(o outro item de segurança crítico)**
 - [ ] Item 9d: `carregar_kml` desligada mostra explicação, liga sem F5?
+- [ ] Item 11a: os três formatos trocam sem F5, inclusive **parado** (sem leitura nova de GPS)?
+- [ ] Item 11b: **zona UTM** bate com o GPS do celular e com a carta? **(o item silencioso desta etapa)** — anote os três valores e o datum da carta
+- [ ] Item 11c: perto de fronteira de zona, a zona muda quando deve?
+- [ ] Item 11d: decimal bate com o GPS nativo; GMS mostra S/W em vez de sinal negativo?
+- [ ] Item 12a: formulário novo é navegável no celular, nomes em português, lista filtrada pela categoria?
+- [ ] Item 12b: Editar abre já preenchido com a escolha do aluno?
+- [ ] Item 12c: correção do instrutor chega ao aluno **sem F5** e o popup mostra "Corrigido por …"?
+- [ ] Item 12d: aluno editando a própria marcação NÃO gera "Corrigido por"?
+- [ ] Item 13 (só quando a Etapa 2c for ativada): símbolo do seed bate com a planilha; aluno não muda o próprio símbolo?
 
 Qualquer item marcado como falha vira a prioridade do próximo chat — cole este checklist preenchido para retomar com contexto completo.

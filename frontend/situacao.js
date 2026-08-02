@@ -93,6 +93,9 @@ import { iniciarOfflineMapa } from './offline-tela.js';
 // vê a turma INTEIRA de uma vez, então o problema aparece ainda mais — ver o
 // cabeçalho de dispersar-avatares.js.
 import { dispersarPosicoes } from './dispersar-avatares.js';
+// Etapa 9b: a mesma formatação de coordenada do app do aluno. Ver
+// preferencias.js — não existe segunda implementação disto em lugar nenhum.
+import { formatarCoordenada } from './preferencias.js';
 
 // ── Mapas base ───────────────────────────────────────────────────────────
 // Vêm de frontend/basemaps.js desde a Etapa 7.1. Até então esta tela tinha a
@@ -245,9 +248,13 @@ function popupPosicao(usuario, row) {
     : '—';
   const precisao = row.precisao_m != null ? `±${Math.round(row.precisao_m)}m` : '—';
   const papel = usuario?.papel === 'instrutor' ? ' <i>(instrutor)</i>' : '';
+  // Etapa 9b: a coordenada, no formato que ESTE instrutor escolheu — a mesma
+  // função dos popups do app do aluno. Aqui ela importa até mais: é o
+  // instrutor que confere posição contra a carta impressa.
   return (
     `<b>${esc(usuario ? nomeDoUsuario(usuario) : 'Usuário desconhecido')}</b>${papel}<br>` +
     `Força: ${esc(usuario?.partido?.nome || 'sem força')}<br>` +
+    `${esc(formatarCoordenada(row.latitude, row.longitude))}<br>` +
     `Precisão: ${precisao}<br>` +
     `Atualizado: ${atualizado}`
   );

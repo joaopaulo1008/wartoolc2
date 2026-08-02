@@ -41,8 +41,19 @@ if (!existsSync(dist)) {
   process.exit(1);
 }
 
-cpSync(join(raiz, 'data'), join(dist, 'data'), { recursive: true });
+// Etapa 9b: `data/simbologia-eb/` fica de fora da cópia, embora esteja dentro
+// de `data/`. Não é esquecimento — aquele diretório é FONTE, não recurso de
+// tempo de execução: o catálogo do MD/EB chega ao navegador como módulo
+// empacotado (`frontend/simbolos-catalogo.js`, gerado por
+// scripts/gerar-catalogo-simbologia.mjs), justamente para não depender de um
+// `fetch()` em campo. Publicar os JSON junto seria ~63 kB que ninguém baixa.
+const FORA_DA_COPIA = new Set(['simbologia-eb']);
+
+cpSync(join(raiz, 'data'), join(dist, 'data'), {
+  recursive: true,
+  filter: (origem) => !FORA_DA_COPIA.has(origem.split(/[\\/]/).pop()),
+});
 cpSync(join(raiz, 'frontend', 'sw-bdgex.js'), join(dist, 'frontend', 'sw-bdgex.js'));
 writeFileSync(join(dist, '.nojekyll'), '');
 
-console.log('Copiados para dist/: data/, frontend/sw-bdgex.js, .nojekyll');
+console.log('Copiados para dist/: data/ (sem simbologia-eb/, que é fonte), frontend/sw-bdgex.js, .nojekyll');
