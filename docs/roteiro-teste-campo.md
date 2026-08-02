@@ -8,8 +8,24 @@ Este roteiro é a entrega mais valiosa da Etapa 11: várias coisas nunca puderam
 
 Sem isto pronto, nenhum item abaixo funciona:
 
-1. **GitHub Pages habilitado** (Settings → Pages → Deploy from branch → `main` / `/ (root)`, no repositório). Anote a URL — algo como `https://joaopaulo1008.github.io/wartoolc2/`.
-2. **Migration `0007_codigo_turma_valido.sql` aplicada** no SQL Editor do Supabase (junto com `0004_perfis_realtime.sql`, `0005_rastro_historico.sql`, `0006_calcos.sql`, se ainda não estiverem — `0001`-`0003` já deveriam estar aplicadas desde etapas anteriores).
+1. **GitHub Pages publicando via Actions.** ~~Deploy from branch → `main` / `/ (root)`~~ — **isto mudou na Etapa 9a**: com o Vite, o que precisa ser publicado é `dist/`, não a raiz do repo. Settings → Pages → Source = **"GitHub Actions"**. Confirmado funcionando em 2026-08-02 (o workflow roda em ~35 s por push). URL: `https://joaopaulo1008.github.io/wartoolc2/`.
+
+   **Confira que o site no ar é o build atual antes de sair**: abra a URL, F12 → aba Network, e veja se os arquivos em `/wartoolc2/assets/` têm o mesmo hash do último `npm run build` local. Um push que falhou no Actions deixa o site anterior no ar, sem erro visível.
+2. **Migrations aplicadas** no SQL Editor do Supabase: `0001`-`0003` (desde etapas anteriores), `0004_perfis_realtime.sql`, `0005_rastro_historico.sql`, `0006_calcos.sql`, `0007_codigo_turma_valido.sql`, `0008_imagem_geo.sql` e **`0009_auditoria_edicao_e_preferencias.sql`** (Etapa 9b).
+
+   A `0009` é a única cujo efeito não aparece sozinho na tela — se ela faltar (ou se só parte dela for colada), o app funciona normalmente e apenas a linha "Corrigido por …" nunca aparece no popup, o que é indistinguível de "o instrutor não corrigiu nada". Vale confirmar, é uma consulta só:
+   ```sql
+   select
+     (select count(*) from information_schema.columns
+       where table_schema='public' and table_name='elementos_marcados'
+         and column_name in ('editada_em','editada_por'))            as colunas,   -- esperado 2
+     (select count(*) from pg_trigger
+       where tgrelid='public.elementos_marcados'::regclass
+         and tgname='trg_elementos_carimbar_edicao')                 as trigger_,  -- esperado 1
+     (select count(*) from pg_constraint
+       where conrelid='public.perfis'::regclass
+         and conname='perfis_formato_coordenada_valido')             as constraint_; -- esperado 1
+   ```
 3. **`codigo_acesso` da turma de teste trocado para algo não adivinhável.** O cadastro continua aberto (qualquer um cria usuário/senha em `login.html`), mas exige esse código para entrar em turma — deixá-lo como `'TESTE'` (ou qualquer coisa óbvia) derrota o propósito. No SQL Editor:
    ```sql
    update public.turmas set codigo_acesso = 'algo-que-só-a-turma-sabe' where nome = '...';
@@ -22,6 +38,13 @@ Sem isto pronto, nenhum item abaixo funciona:
 6. **Forças distribuídas**: no painel do instrutor (aba "Permissões e forças"), coloque as 4 contas de aluno em Azul/Vermelho conforme o item 5. Lembre: partido nulo é restritivo — um aluno sem força não vê ninguém, nem é visto.
 7. **Celulares**: pelo menos 2, idealmente 3-4 (dá para revezar contas entre 2 aparelhos se faltar celular, só um pouco mais lento).
 8. Tenha o **painel do instrutor aberto num notebook/tablet** à parte — vários itens abaixo pedem uma ação do instrutor enquanto se observa o celular do aluno.
+
+### Duas coisas que vão parecer bug em campo e não são
+
+Anote antes de sair, para não gastar tempo diagnosticando o que já é conhecido:
+
+- **Aluno recém-cadastrado não vê ninguém e não é visto.** É o comportamento correto: partido nulo é restritivo por decisão da Etapa 4.5. Some assim que o instrutor o coloca numa força (item 6 acima). Se alguém chegar atrasado e se cadastrar no meio do exercício, **alguém tem que lembrar de distribuir a força dele** — não há aviso automático.
+- **O BDGEx pode "sumir" ao mudar de zoom, com o OpenTopoMap aparecendo por baixo.** É a mitigação de 2026-08-01, não uma falha nova. A causa (o `mapcache` servir só as grades que tem em cache) só é resolvida na etapa própria já registrada no ROADMAP — que **não** foi feita de propósito antes deste teste, para não mexer na camada mais crítica do app às vésperas dele. Se acontecer, anote **em que zoom** e siga.
 
 ## 1. O cadastro exige o código certo (novo — fecha a revisão da decisão 2)
 
