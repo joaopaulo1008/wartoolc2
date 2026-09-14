@@ -74,6 +74,13 @@ let selecionado = 'turma';
 // duplicar "e o estado inicial?".
 const observadoresDeTurma = new Set();
 
+// O callback recebe a LINHA INTEIRA de `turmas`
+// (`{ id, nome, codigo_acesso, ativa, instrutor_id }`) ou `null` — NÃO o uuid.
+// Está escrito aqui em caixa alta porque a confusão já custou dois bugs
+// idênticos: quem nomeia o parâmetro `turmaId` e o passa para
+// `.eq('turma_id', ...)` recebe do Postgres
+// `invalid input syntax for type uuid: "{"id":"...","nome":"..."}"`, e o
+// sintoma só aparece na primeira gravação de verdade. Leia `turma?.id`.
 export function observarTurma(callback) {
   observadoresDeTurma.add(callback);
   try {

@@ -19,16 +19,41 @@ import { ordenarPaleta, vigentes } from './paleta.js';
 // celulares sozinha.
 const COLUNAS = 'id, turma_id, rotulo, sidc, partido_padrao_id, ordem, criado_por, criado_em, removido_em';
 
+// Guarda contra a classe de erro que derrubou a primeira tentativa de uso em
+// campo (2026-09-14): mandar para o PostgREST um OBJETO onde se espera um
+// uuid. O Postgres devolve `invalid input syntax for type uuid: "{"id":...}"`,
+// que é um erro verdadeiro mas ilegível — ele descreve o sintoma no banco, a
+// 200 linhas de distância do `observarTurma` que entregou a linha inteira de
+// `turmas` em vez do id.
+//
+// Falhar aqui não conserta o chamador errado, e não é para isso que serve:
+// serve para o erro dizer QUAL é o problema, na primeira vez, em vez de
+// mandar a pessoa ler a documentação do PostgREST. Mesma postura de
+// `avaliarCriacaoExtra` (Etapa 6c) avisar antes em vez de deixar o insert
+// falhar com o erro cru.
+function exigirUuid(valor, ondeVeio) {
+  if (typeof valor === 'string' && valor) return valor;
+  const tipo = valor === null || valor === undefined ? String(valor) : typeof valor;
+  console.error(
+    `icones-rapidos: ${ondeVeio} deveria ser o uuid da turma e veio como ${tipo}.`,
+    valor,
+    '— observarTurma() entrega a LINHA INTEIRA de `turmas`; use `turma?.id`.'
+  );
+  return null;
+}
+
 // A paleta vigente da turma, já ordenada. A RLS (`icones_rapidos_ler`) garante
 // que só vem a turma de quem pergunta; o filtro de `removido_em` é do cliente,
 // pelo mesmo motivo de `calcos_ler` não filtrar exclusão lógica: a linha
 // removida existe para auditar, e quem decide o que está vigente é a consulta.
 export async function buscarPaletaDaTurma(turmaId) {
   if (!turmaId) return { ok: true, presets: [] };
+  const id = exigirUuid(turmaId, 'buscarPaletaDaTurma(turmaId)');
+  if (!id) return { ok: false, presets: [], erro: 'turma inválida (veja o console)' };
   const { data, error } = await supabase
     .from('icones_rapidos')
     .select(COLUNAS)
-    .eq('turma_id', turmaId);
+    .eq('turma_id', id);
   if (error) {
     console.error('Falha ao carregar a paleta de ícones rápidos:', error);
     return { ok: false, presets: [], erro: traduzirErro(error) };
@@ -43,10 +68,12 @@ export async function buscarPaletaDaTurma(turmaId) {
 // do exercício) é o lugar certo para isso.
 
 export async function criarPreset({ turmaId, rotulo, sidc, partidoId, ordem, usuarioId }) {
+  const id = exigirUuid(turmaId, 'criarPreset({ turmaId })');
+  if (!id) return { ok: false, erro: 'turma inválida (veja o console)' };
   const { data, error } = await supabase
     .from('icones_rapidos')
     .insert({
-      turma_id: turmaId,
+      turma_id: id,
       rotulo,
       sidc,
       partido_padrao_id: partidoId || null,

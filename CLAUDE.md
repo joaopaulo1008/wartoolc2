@@ -670,8 +670,46 @@ verdes, 654 casos** (20 `basemaps`, 68 `carta-offline`, 93 `coordenadas`, 14
 `dispersar-avatares`, 34 `imagem-geo`, 116 `kml`, 92 `marcacoes`, **58
 `paleta`** — nova, 64 `rastro`, 25 `simbolos`, 70 `visada`).
 
+#### Correção no primeiro uso real (2026-09-14) — e um bug antigo que veio junto
+
+Primeiro clique em "Acrescentar à paleta" em produção:
+`invalid input syntax for type uuid: "{"id":"48d1...","nome":"Turma de Teste",...}"`.
+
+**Causa: `observarTurma()` (instrutor-permissoes.js) entrega a LINHA INTEIRA de
+`turmas`, não o uuid.** `definirTurmaPaleta` recebeu o parâmetro chamando-o de
+`turmaId`, usou-o direto em `.eq('turma_id', ...)`, o PostgREST serializou o
+objeto na query e o Postgres reclamou — a 200 linhas de distância de onde o
+engano foi cometido.
+
+**O mesmo engano existia em `definirTurmaCalcos` desde a Etapa 7**, e foi
+corrigido junto: **publicar calco pelo painel do instrutor nunca funcionou**.
+Nunca apareceu porque o item 9 do roteiro de campo (calcos) continua pendente
+de teste ao vivo — foi encontrado ao procurar a causa do erro da paleta, não
+por acaso.
+
+`debriefing.js` e `situacao.js` sempre estiveram certos: lá o parâmetro se
+chama `turma` e o código lê `turma?.id`. **A diferença era só de NOME** — e é
+precisamente isso que torna esse tipo de erro invisível numa revisão de código.
+Três defesas entraram:
+
+1. O contrato de `observarTurma()` está escrito em caixa alta no próprio
+   `export`, dizendo que entrega a linha inteira e que se lê `turma?.id`.
+2. Os dois consumidores errados passaram a nomear o parâmetro `turma` e a
+   extrair o id — a nomenclatura agora é uniforme nos quatro.
+3. `icones-rapidos.js` ganhou `exigirUuid()`: manda para o console qual função
+   recebeu o quê, e devolve erro legível em vez de deixar o objeto chegar ao
+   PostgREST. Não conserta o chamador — faz o erro dizer o que é, na primeira
+   vez.
+
+**Um segundo defeito meu, encontrado na mesma passada:** `definirTurmaPaleta`
+consultava `partidos` com uma query própria em vez de `buscarPartidosDaTurma()`
+(auth.js), e a cópia esquecia o filtro `ativo = true` — o instrutor veria um
+partido desativado como opção de preset. Passou a usar a função compartilhada,
+que é o critério que moveu essa consulta para `auth.js` na Etapa 6a.
+
 **PENDENTE DE TESTE AO VIVO** (acrescentado a `docs/roteiro-teste-campo.md`):
-aplicar a 0010 no Supabase real; conferir a etiqueta de idade com um celular
+aplicar a 0010 no Supabase real; **publicar um calco pelo painel, que é o bug
+antigo corrigido aqui e nunca foi exercitado**; conferir a etiqueta de idade com um celular
 desligando o GPS; marcar pela paleta nos dois modos e conferir que o símbolo
 gravado é o do botão; e o toque longo num celular de verdade, que é o gesto
 mais frágil desta entrega.

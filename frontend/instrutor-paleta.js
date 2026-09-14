@@ -14,7 +14,7 @@
 // aqui seria rápido de escrever e criaria, na turma inteira, a classe de erro
 // que a Etapa 9b passou uma etapa inteira consertando: um código plausível que
 // desenha outra coisa.
-import { supabase } from './auth.js';
+import { buscarPartidosDaTurma } from './auth.js';
 import { getSIDC, decomporSidc, categoriaPorId, CATEGORIAS, descreverSidc } from './simbolos.js';
 import { svgDoSimbolo } from './icones.js';
 import {
@@ -342,7 +342,17 @@ export async function iniciarPaletaInstrutor({ userId } = {}) {
 // instrutor-permissoes.js) — o mesmo mecanismo que já troca a turma das abas
 // de calcos e de situação. Sem isto, o instrutor editaria a paleta de uma
 // turma achando que está na outra.
-export async function definirTurmaPaleta(turmaId) {
+//
+// ATENÇÃO AO PARÂMETRO: `observarTurma` entrega a LINHA INTEIRA de `turmas`
+// (`{ id, nome, codigo_acesso, ativa, instrutor_id }`), não o uuid. Receber
+// isto como se fosse um id e mandar para `.eq('turma_id', ...)` faz o
+// PostgREST serializar o objeto na query e o Postgres responder
+// `invalid input syntax for type uuid: "{"id":"48d1...","nome":"..."}"` —
+// erro relatado em campo em 2026-09-14, na primeira vez que alguém clicou em
+// "Acrescentar à paleta". O mesmo engano existia (e foi corrigido junto) em
+// `definirTurmaCalcos`, de `instrutor-calcos.js`.
+export async function definirTurmaPaleta(turma) {
+  const turmaId = turma?.id || null;
   if (turmaId === turmaAtual) return;
   desassinarPaleta(canal);
   canal = null;
@@ -351,9 +361,12 @@ export async function definirTurmaPaleta(turmaId) {
   limparFormulario();
   if (!turmaId) { desenharLista(); return; }
 
-  const { data } = await supabase
-    .from('partidos').select('id, nome, ordem').eq('turma_id', turmaId).order('ordem');
-  partidosDaTurma = data || [];
+  // buscarPartidosDaTurma() de auth.js, e não uma consulta própria: além da
+  // regra de sempre (a segunda cópia de uma consulta é a que diverge em
+  // silêncio — foi o critério que moveu esta função para auth.js na Etapa 6a),
+  // a cópia que estava aqui esquecia o filtro `ativo = true` e teria oferecido
+  // ao instrutor um partido desativado como opção de preset.
+  partidosDaTurma = await buscarPartidosDaTurma(turmaId);
   el('paleta-partido').innerHTML = opcoesPartido(null);
 
   // Select inicial primeiro, assinatura depois — o Realtime não faz backfill.

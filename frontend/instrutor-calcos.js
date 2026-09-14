@@ -522,8 +522,21 @@ async function removerDaLista(linha) {
 // Chamada por observarTurma() de instrutor-permissoes.js — o seletor de turma
 // é um só na página, pela mesma razão registrada na Etapa 6b: dois seletores
 // independentes fariam o instrutor configurar uma turma e publicar em outra.
-export async function definirTurmaCalcos(turmaId) {
-  turmaAtual = turmaId || null;
+//
+// BUG CORRIGIDO EM 2026-09-14 (existia desde a Etapa 7, nunca exercitado em
+// campo): o parâmetro se chamava `turmaId` e era usado como se fosse o uuid,
+// mas `observarTurma` entrega a LINHA INTEIRA de `turmas`. O objeto ia parar
+// em `.eq('turma_id', ...)`, o PostgREST o serializava na query e o Postgres
+// respondia `invalid input syntax for type uuid: "{"id":"48d1...",...}"` —
+// ou seja, **publicar calco pelo painel falhava sempre**. Descoberto ao
+// corrigir o mesmo engano em `definirTurmaPaleta` (instrutor-paleta.js), que
+// foi escrito copiando a assinatura daqui.
+//
+// `debriefing.js` e `situacao.js` sempre estiveram certos: lá o parâmetro se
+// chama `turma` e o código lê `turma?.id`. A diferença era só de nome — que é
+// precisamente o que torna este tipo de erro invisível na revisão.
+export async function definirTurmaCalcos(turma) {
+  turmaAtual = turma?.id || null;
   linhas.clear();
   if (canal) { desassinarCalcos(canal); canal = null; }
   partidos = [];

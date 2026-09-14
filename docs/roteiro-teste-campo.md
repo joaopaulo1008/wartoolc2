@@ -376,4 +376,17 @@ painel abre vazia e o cartão do aluno diz que o instrutor não montou a paleta.
 - [ ] 15q. Reordenar com ↑/↓ na aba do instrutor muda a ordem no aparelho do
   aluno.
 
+### Bug antigo corrigido junto — publicação de calco (Etapa 7)
+
+Ao corrigir o erro de uuid da paleta descobriu-se que `definirTurmaCalcos` tinha
+o MESMO defeito desde a Etapa 7: **publicar calco pelo painel do instrutor
+nunca funcionou**. Como o item 9 deste roteiro nunca foi exercitado, ninguém
+tinha visto.
+
+- [ ] 15r. Publique um calco KML/KMZ pelo painel. Tem que subir sem
+  `invalid input syntax for type uuid`. Se falhar, copie o erro inteiro.
+- [ ] 15s. Publique uma imagem georreferenciada (Etapa 8b) pelo mesmo caminho.
+- [ ] 15t. Confira no app do aluno que a camada publicada aparece — isso fecha
+  de uma vez os itens 9 e os cinco pendentes da 8b.
+
 Qualquer item marcado como falha vira a prioridade do próximo chat — cole este checklist preenchido para retomar com contexto completo.
