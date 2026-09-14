@@ -343,6 +343,19 @@ export function exigeDesignacao(symbolSet, codigoEntidade) {
   return ENTIDADES_SEM_DESENHO.has(`${symbolSet}:${codigoEntidade}`);
 }
 
+// A mesma pergunta, feita a um SIDC inteiro em vez do par solto. Existe porque
+// quem precisa dela quase sempre tem o SIDC na mão e não a decomposição:
+// `paleta.js` validando um preset, `paleta-tela.js` decidindo se desenha um
+// botão, `instrutor-paleta.js` sinalizando um preset antigo.
+//
+// SIDC malformado devolve `false` — "não sei dizer" NÃO é "exige sigla". Quem
+// recusa SIDC inválido é a validação de formato, que vem antes; se esta função
+// chutasse `true` aqui, um SIDC quebrado sairia com a mensagem errada.
+export function sidcExigeDesignacao(sidc) {
+  if (typeof sidc !== 'string' || !/^[0-9]{20}$/.test(sidc)) return false;
+  return exigeDesignacao(sidc.slice(4, 6), sidc.slice(10, 16));
+}
+
 // Um resumo em português do que um SIDC representa, para popup e listagem —
 // "Infantaria · Pelotão · Aeromóvel". Devolve '' quando não dá para dizer
 // nada (SIDC inválido ou categoria desconhecida), e nunca lança.

@@ -414,6 +414,19 @@ Relatado com foto: um losango vermelho liso no mapa. Não era bug de desenho —
   avisa, não impede — pode-se marcar um comando cuja sigla ainda não se sabe.
 - [ ] 15x. Grave com a sigla: no mapa, o símbolo sai com a sigla no centro.
 
+**Na PALETA a regra é outra — lá ele é recusado, porque um preset não tem onde
+guardar uma sigla.** É o defeito que gerou o relato: "Comando Nomeado" é o
+primeiro item de "Unidades", então dá para montar um preset assim sem querer.
+
+- [ ] 15x2. Aba "Marcação rápida" do instrutor, categoria **Unidades**: o item
+  "Comando Nomeado" **não aparece** na lista de ícones. (No formulário de
+  marcação do aluno ele continua aparecendo — lá funciona.)
+- [ ] 15x3. Se você já tinha criado um preset assim: ele aparece na lista do
+  instrutor **marcado em âmbar**, dizendo que está oculto para os alunos, e
+  **não aparece** na fileira de botões do formulário do aluno.
+- [ ] 15x4. Edite esse preset e salve: ele sai do estado âmbar (o `<select>`
+  cai no primeiro item válido) e volta a aparecer para os alunos.
+
 ### Fim da herança de junho (2026-09-14)
 
 O COP estático do exercício de junho de 2026 e as camadas fixas do repositório

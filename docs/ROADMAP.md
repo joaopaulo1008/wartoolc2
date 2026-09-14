@@ -424,11 +424,18 @@ Três entregas fora da fila de etapas, todas nascidas do app na mão em campo
   atingia também `instrutor-calcos.js` desde a Etapa 7 — **publicar calco pelo
   painel nunca tinha funcionado**.
 
-- [x] **Aviso de símbolo sem desenho central** (2026-09-14). "Comando Nomeado"
-  (`10:000000`) desenha só a moldura porque o conteúdo dele é a **sigla**.
-  `ENTIDADES_SEM_DESENHO`/`exigeDesignacao()` em `simbolos.js` + aviso âmbar no
-  formulário. A lista é travada por uma varredura dos 434 itens do catálogo
-  contra a `milsymbol`, em `simbolos.teste.mjs`.
+- [x] **Símbolo sem desenho central: avisa no formulário, RECUSA na paleta**
+  (2026-09-14). "Comando Nomeado" (`10:000000`) desenha só a moldura porque o
+  conteúdo dele é a **sigla da unidade** — e ele é o primeiro item da categoria
+  "Unidades", o que vem selecionado sozinho para quem não mexe no `<select>`.
+  **Onde há campo de sigla, avisa; onde não há, recusa**: o formulário de
+  marcação mostra um aviso âmbar e deixa gravar; a paleta recusa o preset, tira
+  a opção da lista do instrutor e oculta do aluno o preset antigo que já tenha
+  esse defeito (sinalizando-o na aba do instrutor, que é quem pode consertar).
+  `ENTIDADES_SEM_DESENHO`/`exigeDesignacao()`/`sidcExigeDesignacao()` em
+  `simbolos.js`. Travado por uma varredura dos 434 itens do catálogo contra a
+  `milsymbol` (`simbolos.teste.mjs`) e pela verificação dos 8 presets da paleta
+  padrão da 0010, um a um (`paleta.teste.mjs`).
 
 - [x] **Fim da herança de junho de 2026** (2026-09-14). Saíram do app o COP
   estático (`data/cop_tatico.geojson`, `GRUPOS` F/I/N/D, `contadores()`, o

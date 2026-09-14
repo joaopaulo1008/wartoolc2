@@ -18,7 +18,9 @@
 // Puro: só strings de HTML a partir do catálogo. Sem DOM, sem Leaflet, sem
 // Supabase — testável em Node (paleta.teste.mjs cobre a montagem do SIDC que
 // estes seletores alimentam).
-import { CATEGORIAS, itensDaCategoria, ESCALAO_ROTULO } from './simbolos.js';
+import {
+  CATEGORIAS, itensDaCategoria, ESCALAO_ROTULO, categoriaPorId, exigeDesignacao,
+} from './simbolos.js';
 
 // Escapa para uso dentro de texto e de atributo. `escapar` existia em duas
 // cópias (marcacoes.js e camadas.js); esta é a que serve ao catálogo.
@@ -38,7 +40,24 @@ export function opcoesCategoria(idSelecionado) {
 // O rótulo mostrado é o `NomeBR` puro — sem o sufixo de desambiguação que a
 // tabela plana NATUREZA usa, porque aqui a categoria já foi escolhida (ver o
 // comentário de `chaveNatureza()` em simbolos.js).
-export function opcoesItem(categoriaId, codigoSelecionado) {
+//
+// `somenteComDesenho` (2026-09-14) tira da lista os símbolos cujo desenho
+// central É a sigla da unidade — hoje um só, "Comando Nomeado" (`10:000000`),
+// que por azar é a PRIMEIRA opção da categoria "Unidades" e portanto a que
+// vem selecionada sozinha quando alguém abre aquela categoria e não mexe.
+//
+// Quem liga isso é a aba de montagem da paleta, e só ela: um preset não tem
+// campo de designação, então essa opção ali é uma armadilha — some do mapa
+// como losango vazio, que foi o defeito relatado em campo. No FORMULÁRIO DE
+// MARCAÇÃO a opção continua aparecendo, porque lá existe o campo da sigla e o
+// símbolo funciona; o que aquele lado faz é avisar quando o campo está vazio.
+//
+// Filtrar aqui, e não só recusar em validarPreset(), é o que evita a interface
+// que oferece e depois nega. A recusa continua existindo como barreira — se um
+// SIDC assim chegar por outro caminho, ele para lá.
+export function opcoesItem(categoriaId, codigoSelecionado, { somenteComDesenho = false } = {}) {
+  const categoria = categoriaPorId(categoriaId);
+  const symbolSet = categoria ? categoria.symbolSet : '';
   return itensDaCategoria(categoriaId)
     .map((grupo) => {
       // O terceiro elemento da tupla, quando existe, é a OBSERVAÇÃO que o
@@ -47,7 +66,14 @@ export function opcoesItem(categoriaId, codigoSelecionado) {
       // como `title=`, não no rótulo: num <select> de celular ela empurraria
       // o nome para fora da tela — que é o mesmo problema que a correção de
       // 2026-08-02 resolveu no mapa.
-      const opcoes = grupo.itens
+      const itens = somenteComDesenho
+        ? grupo.itens.filter(([codigo]) => !exigeDesignacao(symbolSet, codigo))
+        : grupo.itens;
+      // Um <optgroup> vazio ainda desenha o cabeçalho do grupo no <select> —
+      // "Comando e Controle não especificado" é um grupo de UM item, então sem
+      // isto o filtro deixaria um título de seção sem nada embaixo.
+      if (itens.length === 0) return '';
+      const opcoes = itens
         .map(([codigo, nome, observacao]) =>
           `<option value="${codigo}"${codigo === codigoSelecionado ? ' selected' : ''}` +
           `${observacao ? ` title="${escaparHtmlCurto(observacao)}"` : ''}>${escaparHtmlCurto(nome)}</option>`)

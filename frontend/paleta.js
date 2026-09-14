@@ -10,6 +10,12 @@
 // paleta-tela.js; a tela do instrutor em instrutor-paleta.js. Mesmo quarteto
 // de kml.js / calcos.js / camadas.js / instrutor-calcos.js da Etapa 7.
 
+// A única importação deste arquivo, e ela não quebra a pureza: simbolos.js
+// também é puro (roda em Node, é a FONTE ÚNICA do que um SIDC significa desde
+// a Etapa 4.5). Duplicar aqui a lista de símbolos sem desenho seria a segunda
+// cópia de sempre — a que diverge em silêncio quando a milsymbol muda.
+import { sidcExigeDesignacao } from './simbolos.js';
+
 // ── Limites ──────────────────────────────────────────────────────────────
 // Os DOIS primeiros têm cópia no `check`/trigger de 0010 — e essa duplicação é
 // deliberada, na mesma disciplina de três camadas que a Etapa 7 usa para o
@@ -43,6 +49,25 @@ export function validarPreset({ rotulo, sidc, partidoId = null, ordem = 100 } = 
   // um elemento que não é o que ele escolheu.
   if (typeof sidc !== 'string' || !/^[0-9]{20}$/.test(sidc)) {
     return { ok: false, erro: 'O símbolo escolhido não produziu um SIDC válido de 20 dígitos.' };
+  }
+  // Um preset tem rótulo, símbolo e força — NÃO tem designação de unidade. Por
+  // isso um símbolo cujo desenho central É a sigla ("Comando Nomeado") não pode
+  // ser atalho: ele sairia como moldura vazia no mapa, e antes disso como botão
+  // vazio na paleta. Não há o que preencher.
+  //
+  // Isto é uma RECUSA, não um aviso, e a diferença é o que o lugar promete. No
+  // formulário de marcação existe o campo da sigla, então lá o certo é avisar e
+  // deixar a pessoa decidir. Aqui a promessa da paleta é "o que está no botão é
+  // o que vai para o mapa" — um botão que não consegue mostrar o que grava
+  // quebra justamente aquilo por que a paleta existe.
+  if (sidcExigeDesignacao(sidc)) {
+    return {
+      ok: false,
+      erro: 'Este símbolo é desenhado com a SIGLA da unidade no centro, e um botão da paleta '
+        + 'não tem onde guardar uma sigla — ele sairia vazio no mapa. Escolha um símbolo com '
+        + 'desenho próprio, ou marque este pelo formulário completo, que tem o campo "Designação '
+        + 'da unidade".',
+    };
   }
   const o = Number.isFinite(Number(ordem)) ? Math.trunc(Number(ordem)) : 100;
   return {

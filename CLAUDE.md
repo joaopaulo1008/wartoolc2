@@ -841,6 +841,60 @@ correção não é no desenho.**
   dependência de runtime; sem `node_modules` ela PULA essa parte dizendo o
   porquê, em vez de falhar por engano ou passar em silêncio).
 
+#### O aviso não bastava — na PALETA, a resposta certa é recusar
+
+Correção do mesmo dia, a partir da resposta de quem usa: *"o sentido de ter um
+banco de símbolos rápidos é justamente ele aparecer daquela forma no mapa. Não
+faz sentido eu escolher um símbolo rápido e aparecer um símbolo genérico no
+mapa."* Está certo, e o diagnóstico acima estava pela metade.
+
+**A causa concreta, que a primeira passagem não procurou:** `000000` é o
+**primeiro item da categoria "Unidades"**, sozinho num grupo de um item só
+("Comando e Controle não especificado"). Ou seja: quem abre aquela categoria na
+aba de montagem da paleta e não mexe no `<select>` **monta um preset de Comando
+Nomeado sem querer** — e a partir daí cada toque naquele botão grava um losango
+vazio no mapa. Os 8 presets da paleta padrão da 0010 não têm esse problema (há
+teste varrendo os oito), então o preset defeituoso só pode ter nascido assim.
+
+**A regra que faltava escrever: um preset não tem campo de designação.** O
+formulário de marcação tem, e por isso lá o certo continua sendo AVISAR e deixar
+a pessoa decidir. Na paleta não existe o que preencher — e a promessa dela é *o
+que está no botão é o que vai para o mapa*. Um botão que não consegue mostrar o
+que grava quebra exatamente aquilo por que a paleta existe. **Onde há campo,
+avisa; onde não há, recusa.**
+
+- **`sidcExigeDesignacao(sidc)` (novo em `simbolos.js`)** faz a mesma pergunta de
+  `exigeDesignacao()` a um SIDC inteiro, porque os três chamadores novos têm o
+  SIDC na mão e não a decomposição. SIDC malformado devolve `false` — "não sei
+  dizer" não é "exige sigla", e quem recusa SIDC inválido é a validação de
+  formato, que vem antes; chutar `true` ali daria a mensagem errada.
+- **`validarPreset()` (paleta.js) RECUSA**, com a frase dizendo o motivo E a
+  saída (marcar pelo formulário completo, que tem o campo). É a postura de
+  `cabeMaisUm()` recusando o 13º preset e de `LIMITE_FEICOES` na Etapa 7.
+  `paleta.js` ganhou a sua primeira importação — `simbolos.js`, que também é
+  puro; duplicar ali a lista de símbolos sem desenho seria a segunda cópia de
+  sempre.
+- **`opcoesItem()` (catalogo-form.js) ganhou `{ somenteComDesenho }`**, ligado
+  **só** na aba de montagem da paleta. Recusar depois de oferecer é interface
+  que arma armadilha: a opção simplesmente não aparece lá, e a recusa fica como
+  barreira para um SIDC que chegue por outro caminho. O `<optgroup>` que fica
+  vazio é omitido junto, senão sobraria o título de uma seção sem nada embaixo.
+  No formulário de marcação a opção continua na lista, porque lá ela funciona.
+- **Efeito colateral bom na EDIÇÃO:** abrir um preset antigo defeituoso na aba
+  do instrutor monta o `<select>` já filtrado, então ele cai no primeiro item
+  válido — salvar conserta o preset em vez de reescrever o defeito.
+- **Preset antigo já gravado: sinalizado para quem pode consertar, oculto para
+  quem não pode.** A linha dele na aba do instrutor fica marcada em âmbar,
+  dizendo por que sai vazio e que está oculto na tela dos alunos; `paleta-tela.js`
+  não desenha o botão. **Não é esconder o problema** — é mostrá-lo ao dono da
+  paleta, e não ao aluno no meio do exercício, que não pode fazer nada a
+  respeito. Âmbar e não vermelho porque nada está errado *agora*: é uma correção
+  a fazer, não uma falha em curso.
+- `paleta.teste.mjs` (58 → **85**) trava a recusa, a mensagem, o filtro da lista
+  (incluindo o `<optgroup>` vazio e o fato de o filtro não vazar para outras
+  categorias) e **os oito presets da paleta padrão, um a um** — se alguém trocar
+  um código na migration por um que não desenha, aparece aqui.
+
 ### Fim da herança de junho de 2026 (2026-09-14)
 
 *"Quero eliminar essas heranças de junho"* — o mapa do aluno ainda mostrava, em

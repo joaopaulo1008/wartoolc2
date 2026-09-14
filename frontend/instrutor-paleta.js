@@ -15,7 +15,9 @@
 // que a Etapa 9b passou uma etapa inteira consertando: um código plausível que
 // desenha outra coisa.
 import { buscarPartidosDaTurma } from './auth.js';
-import { getSIDC, decomporSidc, categoriaPorId, CATEGORIAS, descreverSidc } from './simbolos.js';
+import {
+  getSIDC, decomporSidc, categoriaPorId, CATEGORIAS, descreverSidc, sidcExigeDesignacao,
+} from './simbolos.js';
 import { svgDoSimbolo } from './icones.js';
 import {
   opcoesCategoria, opcoesItem, opcoesModificador, opcoesEscalao,
@@ -28,6 +30,11 @@ import {
   validarPreset, cabeMaisUm, proximaOrdem, ordenarPaleta,
   modoDoPreset, MAX_PRESETS, MAX_ROTULO, PASSO_ORDEM,
 } from './paleta.js';
+
+// Ligado em TODA montagem do <select> de ícone desta aba, e só desta aba (o
+// formulário de marcação do aluno passa sem ele, porque lá existe o campo da
+// sigla). Ver o comentário de opcoesItem() em catalogo-form.js para o porquê.
+const SO_COM_DESENHO = { somenteComDesenho: true };
 
 let turmaAtual = null;
 let meuUserId = null;
@@ -117,7 +124,7 @@ function limparFormulario() {
   const cat = el('paleta-categoria');
   if (cat) cat.value = CATEGORIAS[0].id;
   const item = el('paleta-item');
-  if (item) item.innerHTML = opcoesItem(CATEGORIAS[0].id, '');
+  if (item) item.innerHTML = opcoesItem(CATEGORIAS[0].id, '', SO_COM_DESENHO);
   montarModificadores(CATEGORIAS[0].id, '', '');
   const esc = el('paleta-escalao');
   if (esc) esc.value = '';
@@ -169,6 +176,23 @@ function desenharLista() {
         : 'pergunta a força ao aluno') +
       (preset.criado_por ? '' : ' · da paleta padrão');
     texto.appendChild(sub);
+
+    // Preset gravado ANTES de a recusa existir (2026-09-14). Não dá para
+    // consertar sozinho — o símbolo dele precisa de uma sigla que um preset não
+    // tem onde guardar —, então quem tem que saber é justamente quem está
+    // olhando esta lista, que é quem pode trocar o símbolo. Na tela do aluno
+    // ele não aparece: um botão em branco que grava um losango vazio é pior do
+    // que botão nenhum.
+    if (sidcExigeDesignacao(preset.sidc)) {
+      linha.classList.add('paleta-linha-quebrada');
+      const alerta = document.createElement('small');
+      alerta.className = 'paleta-quebrado';
+      alerta.textContent = 'Este símbolo é desenhado com a sigla da unidade no centro, '
+        + 'e um botão não tem onde guardar uma sigla — ele sairia vazio no mapa. '
+        + 'Está OCULTO na tela dos alunos. Edite e escolha outro símbolo.';
+      texto.appendChild(alerta);
+    }
+
     linha.appendChild(texto);
 
     const acoes = document.createElement('div');
@@ -239,7 +263,11 @@ function carregarParaEdicao(preset) {
   const d = decomporSidc(preset.sidc);
   const cat = categoriaPorId(d.categoriaId) ? d.categoriaId : CATEGORIAS[0].id;
   el('paleta-categoria').value = cat;
-  el('paleta-item').innerHTML = opcoesItem(cat, d.codigoEntidade);
+  // `SO_COM_DESENHO` também aqui, e isso tem uma consequência boa: ao editar um
+  // preset ANTIGO que aponta para o símbolo sem desenho, ele não aparece na
+  // lista — então o <select> cai no primeiro item válido e salvar já conserta o
+  // preset, em vez de reescrever o defeito.
+  el('paleta-item').innerHTML = opcoesItem(cat, d.codigoEntidade, SO_COM_DESENHO);
   montarModificadores(cat, d.mod1, d.mod2);
   el('paleta-escalao').value = d.escalao || '';
   el('paleta-partido').innerHTML = opcoesPartido(preset.partido_padrao_id);
@@ -321,7 +349,7 @@ export async function iniciarPaletaInstrutor({ userId } = {}) {
   meuUserId = userId;
 
   el('paleta-categoria').innerHTML = opcoesCategoria(CATEGORIAS[0].id);
-  el('paleta-item').innerHTML = opcoesItem(CATEGORIAS[0].id, '');
+  el('paleta-item').innerHTML = opcoesItem(CATEGORIAS[0].id, '', SO_COM_DESENHO);
   el('paleta-escalao').innerHTML = opcoesEscalao('');
   montarModificadores(CATEGORIAS[0].id, '', '');
 
@@ -330,7 +358,7 @@ export async function iniciarPaletaInstrutor({ userId } = {}) {
     // as tabelas de modificador são de cada symbol set, e "manter" a escolha
     // anterior produziria justamente a combinação inválida que a hierarquia
     // existe para impedir.
-    el('paleta-item').innerHTML = opcoesItem(ev.target.value, '');
+    el('paleta-item').innerHTML = opcoesItem(ev.target.value, '', SO_COM_DESENHO);
     montarModificadores(ev.target.value, '', '');
     atualizarPrevia();
   });

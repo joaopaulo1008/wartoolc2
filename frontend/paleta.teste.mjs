@@ -28,7 +28,10 @@ import {
 // Para a seção de hostilidade da paleta. svgDoSimbolo() em si não é testável
 // aqui (importa leaflet/milsymbol, que não rodam em Node) — mas a regra que
 // ela precisa aplicar é esta, e é puramente de simbolos.js.
-import { sidcParaObservador } from './simbolos.js';
+import { sidcParaObservador, sidcExigeDesignacao } from './simbolos.js';
+// Puro também (só monta strings de <option> a partir do catálogo) — é o que
+// permite testar aqui a lista que a aba do instrutor oferece.
+import { opcoesItem } from './catalogo-form.js';
 
 let passou = 0, falhou = 0;
 function ok(descricao, obtido, esperado) {
@@ -216,6 +219,76 @@ ok('o mesmo preset desenha DIFERENTE para os dois lados',
 // Preset "Perguntar ao aluno": amarelo é a resposta certa, não um bug.
 ok('preset sem força continua desconhecido (a força quem escolhe é o aluno)',
   hostilidadeDe(sidcParaObservador(SIDC_OK, AZUL, null)), '01');
+
+// =============================================================================
+// Símbolo sem desenho central NUNCA vira preset (2026-09-14)
+// =============================================================================
+//
+// Relatado em campo, e a frase de quem usa é o requisito inteiro: *"o sentido
+// de ter um banco de símbolos rápidos é justamente ele aparecer daquela forma
+// no mapa"*. "Comando Nomeado" (`10:000000`) é desenhado com a SIGLA da unidade
+// no centro, e um preset não tem onde guardar sigla — então ali ele sai como
+// moldura vazia, no botão e no mapa.
+//
+// Por que RECUSAR aqui e só AVISAR no formulário de marcação: lá existe o campo
+// da sigla, então o símbolo funciona e a decisão é de quem marca. Aqui não
+// existe o que preencher.
+//
+// O agravante que fez isso acontecer de verdade: `000000` é o PRIMEIRO item da
+// categoria "Unidades" (grupo de um item só), ou seja o que fica selecionado
+// sozinho quando alguém abre aquela categoria e não mexe no <select>.
+console.log('\n── Preset que sairia sem desenho: recusa, não aviso ──────');
+
+// SIDC de "Comando Nomeado": symbol set 10, entidade 000000.
+const SIDC_SEM_DESENHO = '10011000000000000000';
+ok('o SIDC do Comando Nomeado é reconhecido como "exige sigla"',
+  sidcExigeDesignacao(SIDC_SEM_DESENHO), true);
+ok('e o SIDC de um preset normal, não',
+  sidcExigeDesignacao(SIDC_OK), false);
+ok('SIDC malformado devolve false — "não sei dizer" não é "exige sigla"',
+  sidcExigeDesignacao('nao-e-sidc'), false);
+
+const recusado = validarPreset({ rotulo: 'Cmdo', sidc: SIDC_SEM_DESENHO });
+ok('validarPreset RECUSA um preset com esse símbolo', recusado.ok, false);
+ok('e a recusa explica o motivo, não só "inválido"',
+  /sigla/i.test(recusado.erro || ''), true);
+ok('e diz para onde ir (o formulário completo tem o campo)',
+  /formul/i.test(recusado.erro || ''), true);
+ok('o preset normal continua passando (a recusa é cirúrgica)',
+  validarPreset({ rotulo: 'CC', sidc: SIDC_OK }).ok, true);
+
+// A lista de ícones da aba do instrutor não pode nem OFERECER a opção — uma
+// interface que oferece e depois nega é pior que uma que não oferece.
+const itensUnidades = opcoesItem('unidades', '');
+const itensUnidadesFiltrado = opcoesItem('unidades', '', { somenteComDesenho: true });
+ok('sem o filtro, "Comando Nomeado" está na lista (é o caminho do formulário de marcação)',
+  itensUnidades.includes('value="000000"'), true);
+ok('com o filtro, ele some',
+  itensUnidadesFiltrado.includes('value="000000"'), false);
+ok('e o <optgroup> vazio some junto, sem deixar título de seção órfão',
+  itensUnidadesFiltrado.includes('Comando e Controle não especificado'), false);
+ok('o resto da categoria continua inteiro (some UM item, não o grupo todo)',
+  itensUnidadesFiltrado.includes('value="121100"'), true);
+ok('e o filtro não mexe em outra categoria',
+  opcoesItem('aeronaves', '', { somenteComDesenho: true }) === opcoesItem('aeronaves', ''), true);
+
+// A paleta PADRÃO da 0010 é escrita à mão na migration — se um dia alguém
+// trocar um código ali por um que não desenha, é aqui que aparece.
+console.log('\n── A paleta padrão da 0010 desenha, preset a preset ──────');
+const PALETA_PADRAO = [
+  ['CC',      '10011500001202000000'],
+  ['VBTP',    '10011500001201030000'],
+  ['Inf',     '10011000001211000000'],
+  ['Inf Mec', '10011000001211020000'],
+  ['Rec',     '10011000001205010000'],
+  ['Art Cmp', '10011000001303000000'],
+  ['Mrt',     '10011500001114000000'],
+  ['Vtr',     '10011500001401000000'],
+];
+for (const [rotulo, sidc] of PALETA_PADRAO) {
+  ok(`"${rotulo}" passa na validação e tem desenho próprio`,
+    validarPreset({ rotulo, sidc }).ok, true);
+}
 
 // =============================================================================
 console.log(`\n${passou} passou, ${falhou} falhou, ${passou + falhou} total\n`);

@@ -35,6 +35,7 @@ import { svgDoSimbolo } from './icones.js';
 import { buscarPartidosDaTurma } from './auth.js';
 import { buscarPaletaDaTurma, assinarPaleta, desassinarPaleta } from './icones-rapidos.js';
 import { ordenarPaleta, modoDoPreset } from './paleta.js';
+import { sidcExigeDesignacao } from './simbolos.js';
 
 const TAMANHO_SIMBOLO = 30;
 
@@ -155,9 +156,26 @@ function redesenharMontagens() {
   }
 }
 
+// Um preset cujo símbolo não tem desenho central não vira botão (2026-09-14).
+//
+// A regra da paleta é: **o que está no botão é o que vai para o mapa.** Um
+// símbolo cujo desenho É a sigla da unidade não consegue cumprir isso aqui,
+// porque um preset não tem onde guardar sigla — sairia um botão em branco que
+// grava um losango vazio, que foi exatamente o que se viu em campo.
+//
+// `validarPreset()` já impede que um desses seja criado; isto cobre o que foi
+// gravado ANTES dessa recusa existir. Não é "esconder o problema": a aba do
+// instrutor marca o preset em âmbar e diz que ele está oculto aqui e por quê —
+// a recusa aparece para quem pode consertá-la, que é o dono da paleta, e não
+// para o aluno no meio do exercício, que não pode fazer nada a respeito.
+function desenhaveis(lista) {
+  return lista.filter((p) => !sidcExigeDesignacao(p.sidc));
+}
+
 function desenhar(container) {
   container.textContent = '';
-  if (presets.length === 0) return false;
+  const visiveis = desenhaveis(presets);
+  if (visiveis.length === 0) return false;
 
   const titulo = document.createElement('p');
   titulo.className = 'pal-titulo';
@@ -167,7 +185,7 @@ function desenhar(container) {
   const grade = document.createElement('div');
   grade.className = 'pal-grade';
 
-  for (const preset of presets) {
+  for (const preset of visiveis) {
     const partidoDoPreset = partidosDaTurma.find((x) => x.id === preset.partido_padrao_id) || null;
 
     const btn = document.createElement('button');
