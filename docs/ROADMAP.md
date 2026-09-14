@@ -483,6 +483,18 @@ Três entregas fora da fila de etapas, todas nascidas do app na mão em campo
   o código antigo. As marcações já gravadas só se corrigem à mão, pelo Editar —
   o SIDC pretendido nunca chegou a ser gravado.
 
+- [x] **Vetor de observação nas duas telas + altitude e dimensão do alvo**
+  (2026-09-14, migration `0011`). No app do aluno a linha "Do meu posto" parou
+  de sumir em silêncio — diz o motivo (GPS sem fixo / posição oculta). Na aba
+  "Situação atual" ela **passou a existir**, com origem no posto de quem marcou
+  o elemento (o hook virou `obterPostoObservacao(row)`), e o rótulo declara a
+  idade da posição do autor quando ela é velha. A pedido da artilharia,
+  `elementos_marcados` ganhou `altitude_m` + `altitude_fonte` (nunca uma sem a
+  outra) e `frente_m` + `profundidade_m`. **Pendente de decisão externa:** a
+  fonte de modelo de elevação — consultar serviço público enviaria a coordenada
+  do alvo a um terceiro, e falta confirmar, de dentro da rede do Exército, se o
+  BDGEx entrega elevação por ponto.
+
 ## Como abrir cada etapa
 
 No início do chat, algo como:

@@ -344,7 +344,7 @@ import * as L from 'leaflet';
 // (que desenha colegas e marcações), e kml.js em camadas.js.
 import { criarBasemaps, trocarBasemap as trocarCamadaBasemap, BASEMAP_FALLBACK } from './basemaps.js';
 import { exigirSessao, sair, entrarNaTurmaComCodigo } from './auth.js';
-import { iniciarPermissoes, observarPermissao } from './permissoes.js';
+import { iniciarPermissoes, observarPermissao, pode } from './permissoes.js';
 // Etapa 9b: preferências de VISUALIZAÇÃO do próprio usuário (hoje só o
 // formato de coordenada). Não confundir com permissoes.js, que é o que o
 // INSTRUTOR deixa ver — ver o cabeçalho de preferencias.js.
@@ -732,7 +732,20 @@ if (resultado) {
       // Só o app do ALUNO passa isto: é ele que tem GPS próprio rodando.
       // O painel do instrutor (situacao.js) não passa, e lá a linha "Do meu
       // posto" simplesmente não aparece.
-      obterMinhaPosicao: minhaPosicao,
+      // O posto de observação do aluno é ele mesmo. Quando ainda não há
+      // posição, devolvemos o MOTIVO em vez de nada — foi o relato de campo
+      // "não há mais informações sobre o lançamento", com o código intacto: a
+      // linha sumia sem dizer que estava esperando o GPS.
+      obterPostoObservacao: () => {
+        const p = minhaPosicao();
+        if (p) return { lat: p.lat, lon: p.lon, rotulo: 'Do meu posto' };
+        return {
+          rotulo: 'Do meu posto',
+          motivo: pode('ver_propria_posicao')
+            ? 'aguardando o GPS fixar a sua posição'
+            : 'sua posição está oculta pelo instrutor',
+        };
+      },
     });
 
     // Etapa 6a: o instrutor também move o aluno de força pelo painel. Isso

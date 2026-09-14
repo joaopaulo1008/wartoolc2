@@ -498,4 +498,26 @@ defeito do "símbolo genérico", nas três vezes que ele foi relatado.
   delas: tem que aparecer a linha âmbar explicando e mandando editar e escolher
   o símbolo certo. Corrija uma pelo Editar e confirme que passa a desenhar.
 
+### Vetor de observação e dados de tiro (2026-09-14, migration 0011)
+
+**Aplicar a `0011` no Supabase antes destes itens.**
+
+- [ ] 15aq. App do aluno, ANTES de o GPS fixar: abra o popup de uma marcação —
+  a linha "Do meu posto" tem que aparecer em cinza dizendo **"aguardando o GPS
+  fixar a sua posição"**, não sumir.
+- [ ] 15ar. Com o GPS fixo: a mesma linha mostra distância e lançamento
+  (`1431 m · 1244 mil (70,0°) qd`).
+- [ ] 15as. Instrutor desliga `ver_propria_posicao` para aquele aluno: a linha
+  passa a dizer **"sua posição está oculta pelo instrutor"**.
+- [ ] 15at. Aba "Situação atual" do instrutor, popup de uma marcação feita por
+  um aluno: agora aparece **"Do posto de <nome do aluno>"** com o vetor. Se a
+  posição do aluno estiver velha, o rótulo diz há quanto tempo.
+- [ ] 15au. Marcação de aluno que ainda não reportou posição: a linha diz
+  **"ainda sem posição reportada"**.
+- [ ] 15av. Abra "Dados de tiro" no formulário, preencha altitude 820 e
+  frente 300: o popup mostra **"820 m (lida na carta)"** e **"300 m de
+  frente"**. Deixe em branco: nenhuma das duas linhas aparece.
+- [ ] 15aw. Tente gravar frente 0: o navegador barra pelo `min=1`; se passar,
+  o banco recusa (é o `check` da 0011).
+
 Qualquer item marcado como falha vira a prioridade do próximo chat — cole este checklist preenchido para retomar com contexto completo.

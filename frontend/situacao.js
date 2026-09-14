@@ -596,6 +596,36 @@ async function iniciarMarcacoesDaTurma(turmaId) {
     // tudo" — nenhuma lógica nova de visibilidade precisa entrar aqui.
     perfil: contexto.perfil,
     avaliarCriacaoExtra,
+    // **O vetor de observação passou a existir nesta aba (2026-09-14).**
+    //
+    // Ele nunca tinha aparecido aqui, e o argumento de 2026-08-02 era que "o
+    // vetor do MEU posto até o alvo não significa nada para quem olha o
+    // exercício de fora". Estava certo sobre o instrutor não ter posto — e
+    // errado em concluir que a linha não cabia. Quem supervisiona apoio de fogo
+    // quer justamente conferir o lançamento que o observador teria calculado.
+    //
+    // A origem certa, então, não é o instrutor: é **o posto de quem MARCOU** o
+    // elemento. Reproduz o vetor do próprio observador, não exige interface
+    // nova, e é o que o instrutor precisa para dizer se o pedido está coerente.
+    //
+    // A posição é a ATUAL do autor, não a que ele tinha ao marcar (o banco não
+    // guarda essa). Por isso o rótulo carrega a idade quando ela passa do
+    // limiar — a MESMA de `rotuloIdade()` que já etiqueta o avatar dele no
+    // mapa: um vetor a partir de uma posição de 20 minutos atrás é utilizável,
+    // desde que ninguém o leia como se fosse de agora.
+    obterPostoObservacao: (row) => {
+      const nome = usuarios.find((u) => u.id === row.autor_id)?.nome_guerra || 'quem marcou';
+      const estado = posicoes.get(row.autor_id);
+      if (!estado?.row) {
+        return { rotulo: `Do posto de ${nome}`, motivo: 'ainda sem posição reportada' };
+      }
+      const idade = rotuloIdade(Date.now() - estado.ultimaAtualizacaoEm);
+      return {
+        lat: estado.row.latitude,
+        lon: estado.row.longitude,
+        rotulo: `Do posto de ${nome}${idade ? ` (posição de ${idade} atrás)` : ''}`,
+      };
+    },
   });
   // O instrutor normalmente não tem partido, então os símbolos da paleta saem
   // pela referência fixa da Etapa 11 (menor `ordem` = amigo) — o mesmo que ele

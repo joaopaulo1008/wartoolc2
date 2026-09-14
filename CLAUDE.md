@@ -1143,6 +1143,88 @@ melhorias, não o conserto. O conserto é esta linha.
 queria nunca chegou a ser gravado em lugar nenhum — perdeu-se no caminho. Só dá
 para corrigi-las à mão, pelo botão Editar, e é isso que o popup agora diz.
 
+### Vetor de observação nas duas telas + dados de tiro (2026-09-14) — migration 0011
+
+*"Não está aparecendo mais o lançamento em graus e milésimos em relação ao
+observador."* Foi investigado no navegador antes de mexer em qualquer coisa: os
+três commits estavam publicados e **a string `"Do meu posto"` estava no bundle
+no ar**. O código não sumiu. O que havia eram duas coisas diferentes, uma em
+cada tela.
+
+**1. No app do aluno, a linha sumia em SILÊNCIO — e esse era o defeito.**
+Quando não há posição própria (GPS ainda sem fixo, ou `ver_propria_posicao`
+desligada), ela simplesmente não era renderizada. Some é indistinguível de "a
+função foi removida": quem está com o app na mão não tem como saber qual dos
+três é. **Custou uma sessão inteira de investigação para responder "está
+esperando o GPS".** Agora a linha aparece em cinza itálico dizendo o motivo —
+mesma regra que vale no resto do projeto desde a Etapa 6b, só que desta vez a
+afirmação errada era sobre o próprio app.
+
+**2. Na aba "Situação atual" do instrutor, a linha NUNCA existiu** — e não era
+regressão: `situacao.js` nunca passou o hook. A decisão de 2026-08-02 dizia que
+"o vetor do MEU posto até o alvo não significa nada para quem olha o exercício
+de fora". Estava certa sobre o instrutor não ter posto, e **errada em concluir
+que a linha não cabia**: quem supervisiona apoio de fogo quer justamente
+conferir o lançamento que o observador teria calculado.
+
+- **A origem certa não é o instrutor: é o posto de QUEM MARCOU.** Reproduz o
+  vetor do próprio observador, não exige interface nova, e é o que responde a
+  pergunta que o instrutor tem.
+- **O hook foi generalizado** de `obterMinhaPosicao()` (sem argumento) para
+  `obterPostoObservacao(row)`, que recebe a marcação — porque "quem marcou" só
+  se sabe olhando a linha. Devolve `{lat, lon, rotulo}`, ou `{rotulo, motivo}`
+  quando não há posto. **O motivo mora em quem injeta**, não em `marcacoes.js`:
+  no aluno é "aguardando o GPS" / "posição oculta pelo instrutor", no painel é
+  "ainda sem posição reportada". Centralizar isso faria o módulo saber coisas
+  das duas telas — o oposto do que a injeção serve.
+- **A posição do autor é a ATUAL, não a de quando ele marcou** (o banco não
+  guarda essa). Por isso o rótulo carrega a idade quando ela passa do limiar —
+  a mesma `rotuloIdade()` que já etiqueta o avatar dele: *"Do posto de Cap Silva
+  (posição de 20m atrás)"*. Um vetor a partir de posição velha é utilizável,
+  desde que ninguém o leia como se fosse de agora.
+
+**3. Altitude e dimensão do alvo — migration `0011_alvo_altitude_dimensoes.sql`.**
+Pedido da artilharia. Quatro colunas nuláveis em `elementos_marcados`, nenhuma
+policy tocada (a RLS de 0003 decide quem lê e escreve a linha; coluna nova não
+muda isso — mesma postura da 0009).
+
+- **`altitude_m` NUNCA existe sem `altitude_fonte`**, garantido por `check`. É a
+  decisão central desta migration: uma cota derivada de modelo de elevação e uma
+  cota lida na carta pelo observador não valem a mesma coisa, e **cota anônima
+  apresentada como medida é o pior modo de falha aqui**. O popup mostra sempre
+  a origem — "820 m (lida na carta)".
+- **`'mde'` é aceito pelo banco e não tem produtor no frontend**, de propósito.
+  A coluna já aceita o valor para a consulta entrar depois sem migration, mas a
+  fonte ficou em aberto por uma razão que não é técnica: **consultar um serviço
+  público de elevação envia a coordenada do alvo para um terceiro.** Para
+  instrução talvez não importe; para uso real, importa muito. O caminho certo é
+  um serviço do próprio Exército — o BDGEx publica serviços OGC, mas não deu
+  para confirmar daqui se algum entrega elevação por ponto, e essa confirmação
+  precisa ser feita de dentro da rede. Até lá o app grava só `'manual'`, e
+  `camposDeAlvo()` (marcacoes.js) é o lugar único onde essa escolha passará a
+  ser feita.
+- **`frente_m` e `profundidade_m` são independentes** — um alvo linear tem
+  frente e profundidade desprezível, e faz sentido gravar só uma. Formato
+  escolhido com quem usa (dois números em metros, como entra no pedido de fogo);
+  descartados na mesma conversa o `tipo` pontual/linear/área com campos
+  variáveis e o desenho da geometria no mapa (esse exigiria guardar geometria,
+  não dois números — etapa própria).
+- **Zero é recusado junto com o negativo.** "Alvo de 0 m de frente" não descreve
+  nada: quem não sabe deixa em branco, que é o estado honesto. `numeroOuNulo()`
+  no cliente converte campo vazio em `null`, nunca em 0.
+- **Os três campos ficam atrás de um `<details>` fechado** ("Dados de tiro"). Um
+  contato de 20 segundos não pode ganhar três campos no caminho — e a paleta
+  (0010) continua gravando em dois toques sem passar por eles.
+
+**Verificação — migrations EXECUTADAS de novo.** `0001`–`0011` aplicadas em
+ordem num Postgres 16 limpo, sem erro; a `0011` rodada **duas vezes** para
+provar a idempotência. **`backend/testes/03_teste_alvo_campos.sql` (novo, 11
+casos, 11/11)** exercita cada `check` contra o banco de verdade, nas duas
+direções (aceitou o que não devia / recusou o que devia aceitar) — inclusive o
+caso que mais importa: altitude gravada sem fonte é recusada. Mais:
+`valida_sql.py` nas 0001–0011 sem falhas; as onze suítes de frontend verdes;
+`npm run build`.
+
 ## Estrutura de pastas
 
 ```

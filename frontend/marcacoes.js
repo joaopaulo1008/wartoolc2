@@ -123,7 +123,21 @@ let avaliarCriacaoExtra = null;
 // há GPS próprio rodando — e o vetor "do meu posto até o alvo" não significa
 // nada para quem está olhando o exercício de fora. Sem a função, o popup
 // simplesmente não mostra a linha, sem nenhum tratamento especial.
-let obterMinhaPosicao = null;
+// **Generalizado em 2026-09-14**: era `obterMinhaPosicao()`, sem argumento,
+// devolvendo a posição de quem olha. Virou `obterPostoObservacao(row)` porque a
+// tela do instrutor precisava da MESMA linha com outra origem — o posto de quem
+// MARCOU aquele elemento —, e "quem marcou" só se sabe olhando a marcação.
+//
+// Contrato: recebe a linha da marcação e devolve
+//   { lat, lon, rotulo }   -> tem posto, desenha o vetor com esse título
+//   { rotulo, motivo }     -> NÃO tem posto, e diz por quê (vira a linha cinza)
+//   null                   -> esta tela não tem observador; a linha nem aparece
+//
+// O MOTIVO da ausência mora em quem injeta, não aqui: no app do aluno é "GPS
+// ainda não fixou" ou "o instrutor ocultou sua posição"; no painel é "o autor
+// ainda não reportou posição". Centralizar isso em marcacoes.js faria este
+// módulo saber coisas das duas telas — é o oposto do que a injeção serve.
+let obterPostoObservacao = null;
 
 // Referência ao handler de clique registrado no mapa, para poder tirá-lo em
 // pararMarcacoes() (Etapa 6c) sem sobrar um segundo listener duplicado numa
@@ -244,12 +258,57 @@ function construirPopupHtml(row, autorPerfil, editorPerfil) {
   // Calculado na ABERTURA do popup, não a cada leitura de GPS: quem consulta
   // o vetor está parado olhando a tela naquele instante, e recalcular a cada
   // 5 s todos os popups fechados seria trabalho jogado fora.
-  const v = obterMinhaPosicao
-    ? visada(obterMinhaPosicao(), { lat: row.latitude, lon: row.longitude })
+  // **A linha NÃO some mais em silêncio quando não há posição própria**
+  // (2026-09-14). Ela sumia, e o relato de campo foi exatamente este: *"não há
+  // mais informações sobre o lançamento"* — com o código intacto e publicado.
+  // Some é indistinguível de "a função foi removida": quem está com o app na
+  // mão não tem como saber se o GPS ainda não fixou, se o instrutor ocultou a
+  // posição dele, ou se alguém quebrou alguma coisa. Custou uma sessão inteira
+  // de investigação para responder "está aguardando o GPS".
+  //
+  // É a mesma regra que vale no resto do projeto desde a Etapa 6b: uma lacuna
+  // declarada é informação, uma lacuna silenciosa é uma afirmação errada. Só
+  // que aqui a afirmação errada era sobre o próprio app.
+  const posto = obterPostoObservacao ? obterPostoObservacao(row) : null;
+  const v = (posto && Number.isFinite(posto.lat) && Number.isFinite(posto.lon))
+    ? visada({ lat: posto.lat, lon: posto.lon }, { lat: row.latitude, lon: row.longitude })
     : null;
-  const linhaVisada = v
-    ? `<div class="popup-row"><span class="popup-label">Do meu posto</span>` +
-      `<span class="popup-value">${escapar(formatarVisada(v))}</span></div>`
+  let linhaVisada = '';
+  if (v) {
+    linhaVisada = `<div class="popup-row"><span class="popup-label">${escapar(posto.rotulo || 'Do meu posto')}</span>` +
+      `<span class="popup-value">${escapar(formatarVisada(v))}</span></div>`;
+  } else if (posto && posto.motivo) {
+    linhaVisada = `<div class="popup-row mc-visada-ausente">` +
+      `<span class="popup-label">${escapar(posto.rotulo || 'Do meu posto')}</span>` +
+      `<span class="popup-value">— ${escapar(posto.motivo)}</span></div>`;
+  }
+  // Sem hook nenhum (`null`), a linha continua ausente e sem explicação: ali ela
+  // não faltou, ela não se aplica.
+
+  // Dados de tiro (migration 0011). Ficam JUNTO do vetor, não espalhados, porque
+  // é assim que são lidos: distância, lançamento, cota e dimensão formam uma
+  // descrição só. Cada pedaço só aparece se existir — um alvo sem dimensão
+  // conhecida não ganha "— m", ganha nada.
+  //
+  // **A cota nunca aparece sem a origem.** `altitude_fonte` é gravada junto
+  // pelo `check` da 0011, e o rótulo a mostra: "820 m (lida na carta)". Quando
+  // um dia houver consulta a modelo de elevação, a mesma linha dirá isso, e
+  // quem lê continua sabendo qual das duas está vendo — que é a diferença que
+  // importa no tiro.
+  const FONTE_ALTITUDE = { manual: 'lida na carta', mde: 'modelo de elevação' };
+  const linhaAltitude = (row.altitude_m !== null && row.altitude_m !== undefined)
+    ? `<div class="popup-row"><span class="popup-label">Altitude</span>` +
+      `<span class="popup-value">${escapar(row.altitude_m)} m` +
+      `<span class="mc-fonte"> (${escapar(FONTE_ALTITUDE[row.altitude_fonte] || row.altitude_fonte || 'origem não registrada')})</span>` +
+      `</span></div>`
+    : '';
+
+  const dimensoes = [];
+  if (row.frente_m) dimensoes.push(`${row.frente_m} m de frente`);
+  if (row.profundidade_m) dimensoes.push(`${row.profundidade_m} m de profundidade`);
+  const linhaDimensao = dimensoes.length
+    ? `<div class="popup-row"><span class="popup-label">Dimensão</span>` +
+      `<span class="popup-value">${escapar(dimensoes.join(' × '))}</span></div>`
     : '';
 
   // Etapa 9b: a linha que existe para o aluno não ver o próprio símbolo mudar
@@ -318,6 +377,8 @@ function construirPopupHtml(row, autorPerfil, editorPerfil) {
       `<div class="popup-row"><span class="popup-label">Partido</span><span class="popup-value">${escapar(nomePartido)}</span></div>` +
       linhaCoordenada +
       linhaVisada +
+      linhaAltitude +
+      linhaDimensao +
       `<div class="popup-row"><span class="popup-label">Marcado por</span><span class="popup-value">${escapar(autorNome)} às ${quando}</span></div>` +
       linhaEdicao +
       linhaSemDesenho +
@@ -590,6 +651,22 @@ function injetarEstilos() {
     .mc-btn { padding:3px 10px; border-radius:4px; font-size:11px; cursor:pointer; border:1px solid #999; background:#f0f0f0; }
     .mc-btn-remover { border-color:#c0392b; color:#c0392b; }
     .mc-corrigida .popup-value { color:#f5c842; }
+    /* Vetor ainda indisponível: cinza, não âmbar. Não é problema nem aviso —
+       é um dado que ainda vai chegar (ou que o instrutor escolheu não dar). */
+    .mc-visada-ausente .popup-value { color:#8a8a8a; font-style:italic; }
+    /* A origem da cota, menor e mais apagada que o número — presente sempre,
+       sem competir com o valor. */
+    .mc-fonte { color:#888; font-size:11px; }
+    /* Os três campos de tiro, atrás de um <details> fechado. */
+    .mc-alvo { margin:10px 0 4px; }
+    .mc-alvo > summary {
+      cursor:pointer; font-size:12px; color:#7a9ab8; padding:4px 0;
+      list-style:none; user-select:none;
+    }
+    .mc-alvo > summary::before { content:'▸ '; }
+    .mc-alvo[open] > summary::before { content:'▾ '; }
+    .mc-alvo-par { display:flex; gap:8px; }
+    .mc-alvo-par label { flex:1; min-width:0; }
     /* Mesma cor do aviso de sigla no formulário: é o mesmo assunto, visto do
        outro lado (lá antes de gravar, aqui depois). Âmbar e não vermelho —
        a marcação está lá e vale, só não consegue se desenhar. */
@@ -771,6 +848,38 @@ function abrirFormulario(latlng, { marcacaoExistente, sidcInicial, partidoInicia
     <label>Partido do elemento observado
       <select id="mc-partido">${construirOpcoesPartido(marcacaoExistente?.partido_id ?? partidoInicial ?? null)}</select>
     </label>
+    <!-- Migration 0011, a pedido da artilharia: os dois campos que faltavam
+         para o popup deixar de ser "onde está" e virar uma descrição de alvo
+         utilizável num pedido de fogo. Os três são OPCIONAIS e ficam atrás de
+         um <details> fechado — um contato de 20 segundos não pode ganhar três
+         campos obrigatórios no caminho, e a paleta (0010) grava em dois toques
+         justamente sem passar por aqui. Quem tem tempo e carta na mão abre.
+
+         Em branco é o estado honesto: o banco recusa frente/profundidade zero
+         (ver 0011) exatamente para ninguém gravar um número que outra pessoa
+         leria como medida. -->
+    <details class="mc-alvo">
+      <summary>Dados de tiro <span style="color:#4a6a8a">(opcional)</span></summary>
+      <label>Altitude do alvo (m)
+        <input id="mc-altitude" type="number" step="1" min="-500" max="9000"
+               inputmode="numeric" autocomplete="off" placeholder="lida na carta"
+               value="${escapar(marcacaoExistente?.altitude_m ?? '')}">
+      </label>
+      <p class="mc-dica">Só o que você LEU na carta. O app não estima cota — uma
+        altitude derivada apresentada como medida é erro caro no tiro.</p>
+      <div class="mc-alvo-par">
+        <label>Frente (m)
+          <input id="mc-frente" type="number" step="1" min="1" max="20000"
+                 inputmode="numeric" autocomplete="off"
+                 value="${escapar(marcacaoExistente?.frente_m ?? '')}">
+        </label>
+        <label>Profundidade (m)
+          <input id="mc-profundidade" type="number" step="1" min="1" max="20000"
+                 inputmode="numeric" autocomplete="off"
+                 value="${escapar(marcacaoExistente?.profundidade_m ?? '')}">
+        </label>
+      </div>
+    </details>
     <div class="mc-acoes">
       <button type="button" class="mc-cancelar" id="mc-cancelar">Cancelar</button>
       <button type="button" class="mc-salvar" id="mc-salvar">Salvar</button>
@@ -915,6 +1024,11 @@ function abrirFormulario(latlng, { marcacaoExistente, sidcInicial, partidoInicia
       mod2: document.getElementById('mc-mod2')?.value || '00',
       designacao: document.getElementById('mc-designacao').value.trim(),
       partidoId: document.getElementById('mc-partido').value || null,
+      // Campo vazio vira `null`, nunca 0: o banco recusa zero de propósito
+      // (0011), e "não sei" é um estado diferente de "mede zero".
+      altitudeM: numeroOuNulo(document.getElementById('mc-altitude')?.value),
+      frenteM: numeroOuNulo(document.getElementById('mc-frente')?.value),
+      profundidadeM: numeroOuNulo(document.getElementById('mc-profundidade')?.value),
     };
     const ok = await salvarMarcacao({ latlng, marcacaoExistente, valores });
     if (ok) fecharFormulario();
@@ -926,6 +1040,35 @@ function abrirFormulario(latlng, { marcacaoExistente, sidcInicial, partidoInicia
 // com o dígito de hostilidade como PLACEHOLDER, via getSIDC()) e partido_id
 // (o fato que a Etapa 4.5 corrigiu). Quem lê depois, lê através de
 // sidcParaObservador(), nunca deste SIDC cru.
+// Campo numérico vazio -> null, nunca 0 nem NaN. Existe porque os três campos
+// da 0011 são opcionais e o banco recusa zero: "não sei a dimensão" e "a
+// dimensão é zero" são estados diferentes, e só o primeiro é honesto para um
+// campo em branco.
+function numeroOuNulo(texto) {
+  const s = String(texto ?? '').trim();
+  if (s === '') return null;
+  const n = Number(s);
+  return Number.isFinite(n) ? n : null;
+}
+
+// Os três campos da 0011, no formato que a tabela espera.
+//
+// `altitude_fonte` é derivada, NUNCA vem do formulário: hoje o app só produz
+// cota digitada por quem marcou, então a fonte é sempre 'manual'. O banco
+// aceita 'mde' desde a 0011 para a consulta a modelo de elevação poder entrar
+// sem migration — e é aqui, num lugar só, que essa escolha passará a ser feita
+// quando houver uma fonte confirmada. O `check` da 0011 garante que número e
+// fonte nunca se separam no meio do caminho.
+function camposDeAlvo(valores) {
+  const alt = valores.altitudeM ?? null;
+  return {
+    altitude_m: alt,
+    altitude_fonte: alt === null ? null : 'manual',
+    frente_m: valores.frenteM ?? null,
+    profundidade_m: valores.profundidadeM ?? null,
+  };
+}
+
 async function salvarMarcacao({ latlng, marcacaoExistente, valores }) {
   // Uma linha, e o defeito mais caro desta série morava aqui.
   //
@@ -955,7 +1098,7 @@ async function salvarMarcacao({ latlng, marcacaoExistente, valores }) {
   if (marcacaoExistente) {
     const { data, error } = await supabase
       .from('elementos_marcados')
-      .update({ sidc, partido_id: valores.partidoId, titulo })
+      .update({ sidc, partido_id: valores.partidoId, titulo, ...camposDeAlvo(valores) })
       .eq('id', marcacaoExistente.id)
       .select()
       .single();
@@ -977,6 +1120,7 @@ async function salvarMarcacao({ latlng, marcacaoExistente, valores }) {
       partido_id: valores.partidoId,
       sidc,
       titulo,
+      ...camposDeAlvo(valores),
     })
     .select()
     .single();
@@ -1049,7 +1193,7 @@ function ativarCliqueNoMapa(map) {
 export async function iniciarMarcacoes({
   map, userId, turmaId, perfil,
   avaliarCriacaoExtra: extra,
-  obterMinhaPosicao: posicao,
+  obterPostoObservacao: posto,
 } = {}) {
   mapaRef = map;
   meuUserId = userId;
@@ -1057,7 +1201,7 @@ export async function iniciarMarcacoes({
   meuPartido = perfil?.partido || null;
   meuPapel = perfil?.papel;
   avaliarCriacaoExtra = extra || null;
-  obterMinhaPosicao = posicao || null;
+  obterPostoObservacao = posto || null;
 
   if (!turmaId) {
     // Sem turma, a policy `elementos_criar` rejeitaria o insert mesmo assim
