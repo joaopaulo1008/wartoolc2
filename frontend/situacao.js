@@ -66,10 +66,10 @@
 // verdade (leaflet pinado em package.json na mesma versão que já se usava).
 import * as L from 'leaflet';
 import { supabase, traduzirErro, buscarUsuariosDaTurma } from './auth.js';
-import { criarIconeSimbolo } from './icones.js';
+import { criarIconeSimbolo, definirEtiquetaIdade } from './icones.js';
 import { iniciarMarcacoes, pararMarcacoes } from './marcacoes.js';
 import {
-  AVISO_PARADO_MS, REMOVER_MS, idadeMs, iniciarVigia,
+  AVISO_PARADO_MS, SEM_SINAL_MS, idadeMs, iniciarVigia, rotuloIdade,
 } from './vigia-ausencia.js';
 // Etapa 7: as camadas de arquivo (calcos KML/KMZ publicados + arquivo aberto
 // no próprio aparelho). Reuso direto do módulo do app do aluno — ele recebe o
@@ -261,14 +261,17 @@ function popupPosicao(usuario, row) {
 }
 
 // ── Estado "ao vivo / parado / sem sinal" de um usuário ──────────────────
-// Os mesmos dois limiares da vigia (AVISO_PARADO_MS/REMOVER_MS), só que
+// Os mesmos dois limiares da vigia (AVISO_PARADO_MS/SEM_SINAL_MS), só que
 // aplicados à LISTA em vez de ao marcador — é o "de relance" que o
-// instrutor precisa sem abrir o popup de cada um.
+// instrutor precisa sem abrir o popup de cada um. Esta parte NÃO mudou com a
+// saída do esmaecimento (2026-09-14): a lista sempre foi independente do que
+// acontece com o marker, e continua sendo a leitura mais detalhada das duas
+// ("sem sinal há 2m05s" aqui, "2m" na etiqueta ao lado do símbolo).
 function estadoDe(usuarioId) {
   const estado = posicoes.get(usuarioId);
   if (!estado) return { texto: 'sem posição', cor: '#4a6a8a', temPosicao: false };
   const idade = idadeMs(estado.row.atualizado_em);
-  if (idade >= REMOVER_MS) {
+  if (idade >= SEM_SINAL_MS) {
     return { texto: `sem sinal há ${duracaoCurta(idade)}`, cor: '#e05252', temPosicao: true };
   }
   if (idade >= AVISO_PARADO_MS) {
@@ -303,8 +306,11 @@ function desenharOuAtualizarMarcador(usuarioId) {
   } else {
     estado.marker.setLatLng([row.latitude, row.longitude]);
     estado.marker.setIcon(iconePosicao(usuario)); // força pode ter mudado desde o último desenho
-    estado.marker.setOpacity(1); // pode ter sido esmaecido pela vigia; voltou a se mover, "está vivo"
   }
+  // Chegou posição nova: a etiqueta de idade some na hora, sem esperar o
+  // próximo ciclo de 15s da vigia. (Também cobre o setIcon() logo acima, que
+  // recria o elemento do marcador e levaria junto a etiqueta anterior.)
+  definirEtiquetaIdade(estado.marker, '');
   estado.marker.bindPopup(popupPosicao(usuario, row));
   redistribuirPosicoes();
 }
@@ -363,12 +369,12 @@ async function carregarPosicoesIniciais(turmaId) {
   for (const row of data || []) {
     registrarPosicao(row);
     // Bug de campo (2026-08-01): antes, uma posição já "morta" (mais velha
-    // que REMOVER_MS) nem era desenhada no mapa ao carregar a tela — o
+    // que SEM_SINAL_MS) nem era desenhada no mapa ao carregar a tela — o
     // instrutor perdia de vista de onde alguém esteve por último. Agora
-    // SEMPRE desenha; aplicarOpacidadePorIdade() cuida de já mostrar
-    // esmaecido/sem sinal de cara, sem esperar o próximo ciclo da vigia.
+    // SEMPRE desenha; aplicarIdade() já põe a etiqueta de idade correta de
+    // cara, sem esperar o próximo ciclo da vigia.
     desenharOuAtualizarMarcador(row.usuario_id);
-    aplicarOpacidadePorIdade(row.usuario_id, idadeMs(row.atualizado_em));
+    aplicarIdade(row.usuario_id, idadeMs(row.atualizado_em));
   }
   renderizarLista();
   return true;
@@ -407,23 +413,27 @@ function assinarCanalPosicoes(turmaId) {
 }
 
 // ── 3. Vigia de ausência (limiares em vigia-ausencia.js) ─────────────────
-// Bug de campo (teste em outra cidade, 2026-08-01): REMOVER_MS tirava o
-// marcador do mapa (removerMarcadorDoMapa) quando alguém perdia sinal — o
-// instrutor via o ícone sumir, mesmo a lista já mostrando "sem sinal há Xm"
-// (estadoDe(), que nunca dependeu do marker existir). Pedido explícito:
-// elemento amigo não some, fica na última posição conhecida, esmaecido, com
-// o horário dela (popupPosicao já mostra "Atualizado: ..."). Por isso
-// REMOVER_MS não remove mais o marker aqui — só esmaece mais forte que
-// AVISO_PARADO_MS. O marker só sai do mapa por um DELETE de verdade
-// (esquecerPosicao, via assinarCanalPosicoes ou apagarPosicao()).
-const OPACIDADE_ESMAECIDA = 0.4;
-const OPACIDADE_SEM_SINAL = 0.15;
-
-function aplicarOpacidadePorIdade(usuarioId, idade) {
+// Duas correções de campo, no mesmo sentido — a posição de um aluno é
+// informação, e ela não pode ir sumindo sozinha da tela de quem conduz:
+//
+//   2026-08-01 — o segundo limiar tirava o marcador do mapa
+//   (removerMarcadorDoMapa). O instrutor via o ícone sumir, mesmo a lista já
+//   mostrando "sem sinal há Xm" (estadoDe(), que nunca dependeu do marker
+//   existir). Passou a ficar na última posição conhecida, esmaecido.
+//   2026-09-14 — sobrava o esmaecimento (0,4 e depois 0,15), e ele saiu a
+//   pedido: o marcador não esmaece, marca a última posição conhecida.
+//
+// **Nada neste módulo toca em setOpacity() desde então.** No lugar entrou a
+// ETIQUETA DE IDADE (definirEtiquetaIdade, em icones.js), a mesma de
+// colegas.js e pelo mesmo motivo — a decisão foi uniforme nos dois
+// consumidores da vigia, não só num deles, como já tinha sido em 2026-08-01.
+//
+// O marker só sai do mapa por um DELETE de verdade (esquecerPosicao, via
+// assinarCanalPosicoes ou apagarPosicao()).
+function aplicarIdade(usuarioId, idade) {
   const marker = posicoes.get(usuarioId)?.marker;
   if (!marker) return;
-  if (idade >= REMOVER_MS) marker.setOpacity(OPACIDADE_SEM_SINAL);
-  else if (idade >= AVISO_PARADO_MS) marker.setOpacity(OPACIDADE_ESMAECIDA);
+  definirEtiquetaIdade(marker, rotuloIdade(idade), { semSinal: idade >= SEM_SINAL_MS });
 }
 
 function iniciarVigiaLocal() {
@@ -432,14 +442,16 @@ function iniciarVigiaLocal() {
     listarEstados: () => [...posicoes].map(([usuarioId, estado]) => ({
       usuarioId, ultimaAtualizacaoEm: estado.ultimaAtualizacaoEm,
     })),
-    aoEsmaecer: (e) => {
-      posicoes.get(e.usuarioId)?.marker?.setOpacity(OPACIDADE_ESMAECIDA);
-      renderizarLista(); // mantém "parado há Xm" contando na lista
+    // Chamado para TODO mundo a cada ciclo (não só ao cruzar um limiar),
+    // porque a etiqueta conta e porque a lista lateral precisa continuar
+    // atualizando "parado há Xm" enquanto ninguém se mexe.
+    aoConferir: (e, { rotulo, semSinal }) => {
+      definirEtiquetaIdade(posicoes.get(e.usuarioId)?.marker, rotulo, { semSinal });
     },
-    aoRemover: (e) => {
-      posicoes.get(e.usuarioId)?.marker?.setOpacity(OPACIDADE_SEM_SINAL);
-      renderizarLista();
-    },
+    // UMA vez por ciclo, depois do laço — antes ela rodava uma vez por
+    // usuário atrasado, ou seja até 60 vezes a cada 15s, redesenhando a
+    // lista inteira em cada uma. Mantém "parado há Xm" contando.
+    aoFim: renderizarLista,
   });
 }
 

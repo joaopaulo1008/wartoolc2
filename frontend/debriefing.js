@@ -72,7 +72,13 @@ import { supabase, buscarUsuariosDaTurma } from './auth.js';
 // fallback para SIDC inválido — é o mesmo caminho de gps.js, colegas.js e
 // marcacoes.js desde a Etapa 5. Redefinir o desenho do símbolo aqui seria a
 // quarta cópia que icones.js existe para impedir.
-import { criarIconeSimbolo } from './icones.js';
+import { criarIconeSimbolo, definirEtiquetaIdade } from './icones.js';
+// A etiqueta de idade do replay usa a MESMA função de rótulo do mapa ao vivo
+// (colegas.js/situacao.js) — é o que mantém a simetria "o que eu vi em campo
+// é o que eu revejo na sala" prometida desde a Etapa 6b. Só a origem da idade
+// muda: aqui é o instante do replay, não Date.now(). Ver a chamada em
+// desenharInstante().
+import { rotuloIdade } from './vigia-ausencia.js';
 import { criarBasemaps, preencherSeletorBasemap, BASEMAP_PADRAO, trocarBasemap } from './basemaps.js';
 // Etapa 6b: `ver_historico_rastro` deixa de ser "sem efeito ainda". Hoje esta
 // tela só existe para o instrutor (que recebe tudo habilitado pelo papel, via
@@ -698,7 +704,24 @@ function desenharInstante(t) {
       camada.marcador.setLatLng([pos.lat, pos.lon]);
     }
 
-    camada.marcador.setOpacity(pos.estado === 'esmaecido' ? 0.4 : 1);
+    // 2026-09-14: o replay esmaecia (0,4) quando posicaoNoInstante() devolvia
+    // estado 'esmaecido'. Isso existia por SIMETRIA com o mapa ao vivo — "o
+    // instrutor que viu um avatar esmaecer em campo precisa ver a mesma coisa
+    // ao reproduzir aquele momento" (Etapa 6b). Quando colegas.js/situacao.js
+    // trocaram o esmaecimento pela ETIQUETA DE IDADE, manter o replay
+    // esmaecendo teria QUEBRADO exatamente a simetria que justificou o
+    // esmaecimento aqui — então ele acompanha, com a mesma etiqueta e a
+    // mesma função de rótulo.
+    //
+    // A diferença é de onde vem a idade: aqui ela é a do INSTANTE DO REPLAY
+    // (`pos.idade`, quanto tempo fazia, naquele instante, desde a última
+    // leitura real), nunca `Date.now()` — o relógio de quem assiste não tem
+    // nada a ver com o exercício de ontem. Os limiares batem porque
+    // GAP_ESMAECER_MS/GAP_SEM_SINAL_MS em rastro.js são, de propósito, os
+    // mesmos 60s/120s de vigia-ausencia.js.
+    definirEtiquetaIdade(camada.marcador, rotuloIdade(pos.idade), {
+      semSinal: pos.estado === 'sem_sinal',
+    });
   }
 
   const marcadorTempo = el('debriefing-relogio');

@@ -1,0 +1,42 @@
+Avatares param de esmaecer + paleta de marcação rápida (migration 0010)
+
+Dois pedidos de campo, na véspera de um teste.
+
+1. O avatar não esmaece mais; ele marca a última posição conhecida do
+   elemento. É a segunda correção no mesmo lugar (a de 2026-08-01 fez o
+   avatar parar de SER REMOVIDO). No lugar do esmaecimento entra a
+   ETIQUETA DE IDADE — "12m" em âmbar, vermelho passando de SEM_SINAL_MS:
+   tirar o esmaecimento sem pôr nada no lugar deixaria uma posição de 40
+   minutos idêntica a uma de 5 segundos, que é a falha silenciosa que o
+   projeto recusa desde a Etapa 6b.
+
+   - vigia-ausencia.js: rotuloIdade() (puro), REMOVER_MS -> SEM_SINAL_MS,
+     e iniciarVigia() com um aoConferir por ciclo (a etiqueta CONTA; um
+     callback de cruzamento de limiar não conta) mais aoFim.
+   - icones.js: definirEtiquetaIdade() escreve no <span> que todo símbolo
+     já carrega, em vez de recriar o divIcon de 60 marcadores a cada 15s.
+   - colegas.js, situacao.js e o replay de debriefing.js pararam de mexer
+     em opacidade. O replay acompanha por SIMETRIA (Etapa 6b), usando a
+     idade daquele instante do replay, nunca Date.now().
+
+2. Paleta de ícones rápidos (0010_icones_rapidos.sql): o instrutor monta
+   até 12 presets por turma; o aluno toca no botão e depois no mapa.
+   Partido híbrido (com força grava direto, sem força pergunta só a
+   força); toque longo abre o formulário completo pré-preenchido. Toda
+   turma nasce com 8 presets, por trigger.
+
+   - A paleta NÃO registra um segundo map.on('click'): arma um preset
+     dentro de marcacoes.js, que segue sendo o único a escrever em
+     elementos_marcados.
+   - Nenhuma chave nova de permissão — criar_marcacao_inimiga já é dona.
+   - catalogo-form.js extrai as construtoras de <option> do catálogo ao
+     ganharem o segundo consumidor.
+
+Verificação: 0001-0010 EXECUTADAS contra um Postgres 16 + PostGIS real
+(nunca feito da 0004 em diante); 01_teste_partidos.sql 43/43 com as dez
+aplicadas; 02_teste_icones_rapidos.sql novo, 26/26; valida_sql.py sem
+falhas; 11 suítes de frontend verdes (654 casos); npm run build OK.
+
+Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01Lx1krT1GFindNs39bVGHvc
+

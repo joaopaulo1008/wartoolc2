@@ -262,6 +262,13 @@ Sugestão de modelo por etapa: tarefas mecânicas/config → **modelo mais leve*
 
   Migration `0009_auditoria_edicao_e_preferencias.sql` (duas colunas, um trigger, um `check`; **nenhuma policy de RLS tocada**). Detalhe técnico completo, com as seis decisões justificadas, na seção "Decisões da Etapa 9b" de `CLAUDE.md`. Verificação: nove suítes 100% verdes, **509 casos** (as oito anteriores mais `coordenadas.teste.mjs`, nova com 93; `marcacoes.teste.mjs` foi reescrito, de 40 para 75, e agora varre o catálogo inteiro); `valida_sql.py` na `0009`; `npm run build` OK, **+13 kB gzipado** no bundle. Os valores esperados de UTM vieram do **PROJ 9.5.1** (via `pyproj`, a mesma biblioteca do QGIS), não de estimativa — concordância de 0,83 mm no pior de 13 pontos. **Pendente de teste ao vivo**: os três itens acrescentados a `docs/roteiro-teste-campo.md` (conferir UTM contra referência externa, correção do instrutor chegando ao aluno sem F5, e a precedência do SIDC contra o cadastro real da 2c).
 
+- [x] **Etiqueta de idade + paleta de ícones rápidos (2026-09-14)** *(fora da numeração de etapas — dois pedidos de campo na véspera de um teste)*
+
+  1. **Os avatares deixaram de esmaecer.** Segunda correção no mesmo lugar (a primeira, de 2026-08-01, foi parar de REMOVER o avatar). No lugar do esmaecimento entrou uma **etiqueta de idade** ao lado do símbolo — "12m" em âmbar, vermelho passando de `SEM_SINAL_MS` —, porque tirar o esmaecimento sem pôr nada no lugar deixaria uma posição de 40 minutos idêntica a uma de 5 segundos. Vale no mapa do aluno, no do instrutor e no replay do debriefing (a simetria da Etapa 6b não podia quebrar).
+  2. **Paleta de marcação rápida** (migration `0010_icones_rapidos.sql`): o instrutor monta, por turma, até 12 presets; o aluno toca no botão e depois no mapa. Partido em modo híbrido (preset com força grava direto, sem força pergunta só a força); toque longo abre o formulário completo pré-preenchido. Toda turma nasce com uma paleta padrão de 8, criada por trigger.
+
+  **As migrations 0001–0010 foram executadas contra um Postgres de verdade** nesta sessão (o que nunca tinha acontecido da 0004 em diante), e `01_teste_partidos.sql` segue 43/43 com as dez aplicadas. Detalhes em `CLAUDE.md`.
+
 ## A fazer, em ordem
 
 - [ ] **Etapa 2 — Autenticação e papéis** *(em andamento — dividida em 2a e 2b)*

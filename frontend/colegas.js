@@ -30,7 +30,7 @@ import { supabase, buscarPerfisDaTurma, buscarPerfilBasico } from './auth.js';
 // sidcParaObservador() e montar o L.divIcon via milsymbol, com fallback) saiu
 // daqui e de gps.js para frontend/icones.js — a marcação de elemento no mapa
 // virou o terceiro consumidor previsto no comentário original deste arquivo.
-import { criarIconeSimbolo } from './icones.js';
+import { criarIconeSimbolo, definirEtiquetaIdade } from './icones.js';
 // Etapa 6a: `ver_posicao_outros` liga e desliga este módulo inteiro. Quando
 // desligada, não basta esconder os avatares: o canal Realtime também é
 // fechado, porque não faz sentido continuar recebendo posição que não vai
@@ -50,7 +50,7 @@ import { formatarCoordenada, observarFormatoCoordenada } from './preferencias.js
 // cabeçalho de lá para o raciocínio completo. Este módulo continua dono do
 // PRÓPRIO laço (ele decide o que "esmaecer"/"remover" significam para um
 // avatar de colega), só não guarda mais os números nem a conta de idade.
-import { AVISO_PARADO_MS, REMOVER_MS, idadeMs, iniciarVigia } from './vigia-ausencia.js';
+import { SEM_SINAL_MS, idadeMs, iniciarVigia, rotuloIdade } from './vigia-ausencia.js';
 // Bug relatado em campo (teste da Etapa 11): colegas em posições quase
 // idênticas (ex.: formados lado a lado) desenhavam avatares empilhados,
 // impossíveis de distinguir/clicar. dispersarPosicoes() é puro/testável
@@ -184,8 +184,11 @@ async function upsertAvatar(row, { map }) {
     colegas.set(row.usuario_id, estado);
   } else {
     estado.marker.setLatLng([row.latitude, row.longitude]);
-    estado.marker.setOpacity(1); // pode ter sido esmaecido pela vigia; voltou a se mover, então "está vivo"
   }
+  // Chegou posição nova: a etiqueta de idade some na hora, sem esperar o
+  // próximo ciclo de 15s da vigia. (A opacidade não é mais tocada em lugar
+  // nenhum deste módulo — ver o comentário da vigia, mais abaixo.)
+  definirEtiquetaIdade(estado.marker, '');
 
   // Posição CRUA guardada à parte do que está desenhado — redistribuirAvatares()
   // sempre parte daqui, nunca do que um deslocamento anterior já moveu (senão
@@ -242,13 +245,13 @@ async function carregarEstadoInicial(turmaId, userId, { map }) {
 
   for (const row of data || []) {
     // Bug de campo (2026-08-01): antes, uma posição já "morta" (mais velha
-    // que REMOVER_MS) nem era desenhada — o colega sumia da tela de quem
+    // que SEM_SINAL_MS) nem era desenhada — o colega sumia da tela de quem
     // acabasse de abrir a página. Agora SEMPRE desenha: quem perdeu sinal
-    // continua marcado na ÚLTIMA posição conhecida, só esmaecido (ver
-    // aplicarOpacidadePorIdade) — a vigia (abaixo) só ajusta a opacidade a
-    // partir daqui, nunca mais remove.
+    // continua marcado na ÚLTIMA posição conhecida, com a etiqueta dizendo
+    // de quando ela é — a vigia (abaixo) só mantém a etiqueta em dia a
+    // partir daqui, e nunca remove ninguém.
     await upsertAvatar(row, { map });
-    aplicarOpacidadePorIdade(row.usuario_id, idadeMs(row.atualizado_em));
+    aplicarIdade(row.usuario_id, idadeMs(row.atualizado_em));
   }
 
   if (colegas.size === 0) status('nenhum colega visível ainda', '#7a9ab8');
@@ -308,27 +311,36 @@ function assinarCanal(turmaId, userId, { map }) {
 
 // ── 3. Vigia de ausência ──────────────────────────────────────────────────
 // O laço em si (os dois limiares, o intervalo de checagem) mora em
-// vigia-ausencia.js desde a Etapa 6c; aqui só se decide o que "esmaecer" e
-// "remover" significam para um avatar de colega.
+// vigia-ausencia.js desde a Etapa 6c; aqui só se decide o que a idade
+// PROVOCA na tela para um avatar de colega.
 //
-// Bug de campo (teste em outra cidade, 2026-08-01): REMOVER_MS tirava o
-// avatar do mapa de vez — um amigo que perdeu sinal literalmente sumia, sem
-// deixar rastro de onde esteve por último. Pedido explícito: para elementos
-// amigos, a última posição conhecida tem que continuar registrada, com o
-// horário dela. Por isso REMOVER_MS não remove mais nada aqui — só esmaece
-// mais forte que AVISO_PARADO_MS, para dar pra distinguir "atrasado" de "sem
-// sinal há tempo" numa olhada. O horário fica no popup (popupColega, campo
-// "Atualizado") e continua o mesmo enquanto não chegar posição nova. O
-// avatar só sai do mapa por um evento REAL (DELETE via assinarCanal(), ou a
-// permissão `ver_posicao_outros` sendo desligada em desativar()).
-const OPACIDADE_ESMAECIDA = 0.4;
-const OPACIDADE_SEM_SINAL = 0.15;
-
-function aplicarOpacidadePorIdade(usuarioId, idade) {
+// Duas correções de campo moldaram este trecho, e as duas foram no mesmo
+// sentido — o avatar de um amigo é informação, não enfeite:
+//
+//   2026-08-01 — o segundo limiar TIRAVA o avatar do mapa. Um amigo que
+//   perdia sinal sumia sem deixar rastro de onde esteve. Passou a ficar na
+//   última posição conhecida, esmaecido.
+//   2026-09-14 — sobrava o esmaecimento (0,4 e depois 0,15). Pedido
+//   explícito: o avatar não esmaece; ele marca a última posição conhecida
+//   do elemento. Um símbolo a 15% sobre a carta do BDGEx é quase invisível
+//   justamente quando é a única informação que restou daquele elemento.
+//
+// **Nada neste módulo toca em setOpacity() desde então.** No lugar do
+// esmaecimento entrou a ETIQUETA DE IDADE (definirEtiquetaIdade, em
+// icones.js): "12m" em âmbar passando de AVISO_PARADO_MS, vermelho passando
+// de SEM_SINAL_MS. Ela diz mais do que a opacidade dizia — 0,4 nunca
+// respondeu "há quanto tempo" — e não esconde o símbolo. O horário exato
+// continua no popup (popupColega, campo "Atualizado"), inalterado enquanto
+// não chegar posição nova.
+//
+// O avatar só sai do mapa por um evento REAL (DELETE via assinarCanal(), ou
+// a permissão `ver_posicao_outros` sendo desligada em desativar()).
+function aplicarIdade(usuarioId, idade) {
   const estado = colegas.get(usuarioId);
   if (!estado) return;
-  if (idade >= REMOVER_MS) estado.marker.setOpacity(OPACIDADE_SEM_SINAL);
-  else if (idade >= AVISO_PARADO_MS) estado.marker.setOpacity(OPACIDADE_ESMAECIDA);
+  definirEtiquetaIdade(estado.marker, rotuloIdade(idade), {
+    semSinal: idade >= SEM_SINAL_MS,
+  });
 }
 
 function iniciarVigiaAusencia() {
@@ -337,8 +349,12 @@ function iniciarVigiaAusencia() {
     listarEstados: () => [...colegas].map(([usuarioId, estado]) => ({
       usuarioId, ultimaAtualizacaoEm: estado.ultimaAtualizacaoEm, marker: estado.marker,
     })),
-    aoEsmaecer: (e) => e.marker.setOpacity(OPACIDADE_ESMAECIDA),
-    aoRemover: (e) => e.marker.setOpacity(OPACIDADE_SEM_SINAL),
+    // Chamado para TODO colega a cada ciclo, não só ao cruzar um limiar: a
+    // etiqueta conta ("12m" vira "13m"), e quem voltou a ser recente precisa
+    // vê-la apagar mesmo que o upsert não tenha passado por aqui.
+    aoConferir: (e, { rotulo, semSinal }) => {
+      definirEtiquetaIdade(e.marker, rotulo, { semSinal });
+    },
   });
 }
 

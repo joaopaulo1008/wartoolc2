@@ -319,4 +319,61 @@ Depois do teste, reúna:
 - [ ] Item 14c: lançamento de quadrícula bate com o transferidor na carta? (diferença constante de 5-30 milésimos = pode estar mostrando o verdadeiro — confira o sufixo `qd`). Faz falta o magnético?
 - [ ] Item 14d: KML de medidas de coordenação publicado só para o partido da artilharia funcionou? O que faltou?
 
+## 15. Etiqueta de idade e paleta de marcação rápida (2026-09-14)
+
+**Antes de qualquer coisa: aplicar a `0010` no Supabase** (SQL Editor, ou
+`backend/scripts/aplicar_migrations.sh`). Sem ela a aba "Marcação rápida" do
+painel abre vazia e o cartão do aluno diz que o instrutor não montou a paleta.
+
+### Etiqueta de idade (substituiu o esmaecimento)
+
+- [ ] 15a. Com dois celulares na mesma força, desligue o GPS (ou o modo avião)
+  de um. Aos ~60s, o avatar dele **continua com a mesma nitidez de antes** e
+  ganha `1m` em âmbar ao lado do símbolo. É o ponto do pedido: ele marca a
+  última posição conhecida, não desbota.
+- [ ] 15b. A etiqueta **conta sozinha** (`1m` → `2m` → `3m`), sem ninguém
+  recarregar. Passando de 2 minutos ela fica **vermelha**.
+- [ ] 15c. Religando o GPS, a etiqueta **some na hora** que chega a primeira
+  posição nova — não espera o ciclo de 15s da vigia.
+- [ ] 15d. A etiqueta **não cobre o símbolo** num celular pequeno, e não
+  atrapalha tocar no avatar para abrir o popup.
+- [ ] 15e. Na aba "Situação atual" do instrutor, a mesma coisa — e a **lista
+  lateral continua** dizendo "parado há 2m05s"/"sem sinal há Xm" (ela é a
+  leitura detalhada; a etiqueta é a de relance).
+- [ ] 15f. No **Debriefing**, reproduza um trecho em que alguém perdeu sinal: o
+  símbolo dele fica no último ponto e ganha a etiqueta com a idade **daquele
+  instante do replay** (não a de agora). É a simetria prometida desde a 6b.
+
+### Paleta de marcação rápida
+
+- [ ] 15g. A turma já existente ganhou a paleta padrão de 8 botões (o backfill
+  da 0010 semeia turmas antigas). Confira que os símbolos desenhados nos botões
+  são os esperados — CC, VBTP, Inf, Inf Mec, Rec, Art Cmp, Mrt, Vtr.
+- [ ] 15h. **Modo rápido**: toque em "CC", depois no mapa. A marcação grava
+  **sem formulário**, e o símbolo que aparece no mapa é o mesmo do botão. Um
+  colega da mesma força vê aparecer em tempo real.
+- [ ] 15i. **Modo perguntar**: toque em "Vtr" (nasce sem força), depois no mapa.
+  Aparece só a escolha de força — nada mais. Escolha e confira que gravou.
+- [ ] 15j. **Toque longo** (~0,5s) num botão e depois no mapa: abre o
+  formulário **completo já pré-preenchido** com aquele símbolo, dá para pôr
+  escalão e designação. **Este é o gesto mais frágil da entrega** — se num
+  celular específico ele não disparar (ou disparar sozinho ao rolar o painel),
+  anote qual aparelho e navegador.
+- [ ] 15k. Tocar no botão armado **de novo** cancela (a borda amarela sai).
+- [ ] 15l. Com o preset armado, o toque no mapa **não** abre o formulário
+  normal por engano, e desenhar área offline continua funcionando sem abrir
+  marcação (o bug de 2026-08-01 não voltou).
+- [ ] 15m. Instrutor: acrescente um preset pela aba "Marcação rápida" com o
+  aluno com o app aberto. O botão **aparece no aparelho dele na hora**, sem F5.
+  Remova um: some na hora.
+- [ ] 15n. Instrutor: **edite um preset da paleta PADRÃO** (os que dizem "da
+  paleta padrão"). Tem que salvar normalmente — foi um bug real corrigido antes
+  de ir para o ar, e é o caso que a RLS quase barrou.
+- [ ] 15o. Tente acrescentar o 13º preset: tem que recusar com a frase
+  explicando o teto, **antes** de qualquer erro do banco.
+- [ ] 15p. Instrutor desliga `criar_marcacao_inimiga` para um aluno: a paleta
+  dele fica **desabilitada com a explicação**, não some.
+- [ ] 15q. Reordenar com ↑/↓ na aba do instrutor muda a ordem no aparelho do
+  aluno.
+
 Qualquer item marcado como falha vira a prioridade do próximo chat — cole este checklist preenchido para retomar com contexto completo.

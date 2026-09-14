@@ -29,10 +29,20 @@
 //      instantes entre duas leituras (posicaoNoInstante).
 //
 // Os dois limiares de perda de sinal são DE PROPÓSITO os mesmos de
-// colegas.js (AVISO_PARADO_MS / REMOVER_MS): o instrutor que viu um avatar
-// esmaecer no mapa ao vivo e depois sumir precisa ver o mesmo comportamento,
-// pelo mesmo motivo, quando reproduz aquele momento no debriefing. Se os
-// números divergirem, o replay contradiz a memória de quem estava lá.
+// colegas.js (AVISO_PARADO_MS / SEM_SINAL_MS, em vigia-ausencia.js): o
+// instrutor que viu um avatar marcado como atrasado no mapa ao vivo precisa
+// ver o mesmo comportamento, pelo mesmo motivo, quando reproduz aquele
+// momento no debriefing. Se os números divergirem, o replay contradiz a
+// memória de quem estava lá.
+//
+// 2026-09-14: o que os limiares PROVOCAM na tela mudou (esmaecimento saiu,
+// etiqueta de idade entrou) — nos três lugares ao mesmo tempo, justamente
+// para a simetria acima continuar valendo. Os NOMES daqui não mudaram:
+// GAP_ESMAECER_MS e os estados 'esmaecido'/'sem_sinal' são contrato testado
+// (rastro.teste.mjs) e renomeá-los seria mexer em 64 asserções para
+// descrever a mesma fronteira de tempo. Leia 'esmaecido' como "passou do
+// primeiro limiar", não como uma instrução de opacidade — quem decide o que
+// desenhar é debriefing.js.
 
 // ── Limiares de perda de sinal ───────────────────────────────────────────
 // gps.js grava um heartbeat a cada 30s mesmo com o aluno parado, então um
@@ -239,11 +249,13 @@ export function segmentar(pontos, gapMs = GAP_SEM_SINAL_MS) {
 // { lat, lon, estado, idade, interpolado, ponto, proximo, fracao }, onde
 // `estado` é:
 //   'ok'        — posição confiável (leitura recente ou interpolação curta);
-//   'esmaecido' — passou de GAP_ESMAECER_MS sem leitura nova: desenhar mais
-//                 apagado, como colegas.js faz no mapa ao vivo;
-//   'sem_sinal' — passou de GAP_SEM_SINAL_MS: tirar do mapa. A posição vai
-//                 junto assim mesmo, para quem chamar poder mostrar "último
-//                 ponto conhecido" se quiser.
+//   'esmaecido' — passou de GAP_ESMAECER_MS sem leitura nova (o nome é
+//                 histórico; hoje debriefing.js marca isso com a etiqueta de
+//                 idade, como colegas.js faz no mapa ao vivo);
+//   'sem_sinal' — passou de GAP_SEM_SINAL_MS. A posição vai junto assim
+//                 mesmo: desde 2026-08-01 o marcador NUNCA sai do mapa por
+//                 idade, ele fica no último ponto conhecido — aqui e no ao
+//                 vivo.
 //
 // A INTERPOLAÇÃO é linear e só acontece DENTRO de um trecho contínuo (dois
 // pontos separados por até gapSemSinalMs). Ela existe porque a cadência real

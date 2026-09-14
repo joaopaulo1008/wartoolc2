@@ -208,6 +208,34 @@
     background:#0d1b2a; border-right:1px solid #2a4a6b;
   }
   #calcos-publicados { flex:1; overflow:auto; padding:14px; }
+
+  /* Paleta de marcação rápida (2026-09-14) — mesma divisão em duas colunas
+     da aba de calcos: o formulário à esquerda, o que já existe à direita. */
+  #paleta-corpo { flex:1; display:flex; min-height:0; }
+  #paleta-formulario {
+    width:340px; flex-shrink:0; overflow:auto; padding:14px;
+    background:#0d1b2a; border-right:1px solid #2a4a6b;
+  }
+  #paleta-atual { flex:1; overflow:auto; padding:14px; }
+  #paleta-previa-caixa {
+    display:flex; align-items:center; gap:10px; min-height:52px;
+    padding:6px 8px; background:#16263a; border:1px solid #2a4a6b; border-radius:4px;
+  }
+  #paleta-previa-nome { font-size:12px; color:#a8c8e8; }
+  .paleta-linha {
+    display:flex; align-items:center; gap:10px; padding:8px 10px; margin-bottom:6px;
+    background:#0d1b2a; border:1px solid #23405e; border-radius:5px;
+  }
+  .paleta-simbolo { flex-shrink:0; width:34px; text-align:center; }
+  .paleta-texto { flex:1; min-width:0; }
+  .paleta-texto b { display:block; font-size:13px; }
+  .paleta-texto small { display:block; font-size:11px; color:#7a9ab8; margin-top:2px; }
+  .paleta-acoes { display:flex; gap:4px; flex-shrink:0; }
+  .paleta-btn {
+    padding:4px 8px; font-size:11px; border-radius:4px; cursor:pointer;
+    background:#16263a; color:#c8d8e8; border:1px solid #2a4a6b;
+  }
+  .paleta-btn:disabled { opacity:.35; cursor:default; }
   .campo input[type=text], .campo input[type=file] {
     padding:5px 6px; background:#16263a; color:#e8eaf0;
     border:1px solid #2a4a6b; border-radius:4px; font-size:12px; width:100%;
@@ -359,6 +387,7 @@
   <button type="button" id="aba-situacao" class="aba">Situação atual</button>
   <button type="button" id="aba-debriefing" class="aba">Debriefing — rastro</button>
   <button type="button" id="aba-calcos" class="aba">Calcos</button>
+  <button type="button" id="aba-paleta" class="aba">Marcação rápida</button>
 </div>
 
 <div id="contexto">
@@ -606,11 +635,94 @@
       </div>
     </div>
   </div>
+
+  <!-- ── Aba 4: paleta de marcação rápida (2026-09-14) ─────────────────────
+       Onde o instrutor monta os botões de marcação que os alunos da turma
+       usam. A lógica está em frontend/instrutor-paleta.js; o acesso ao banco
+       em frontend/icones-rapidos.js (compartilhado com o app do aluno) e a
+       regra pura em frontend/paleta.js.
+
+       O SIDC é montado pelos MESMOS seletores hierárquicos do catálogo
+       oficial que o aluno usa para marcar (frontend/catalogo-form.js) — nunca
+       digitado à mão. Ver o cabeçalho de instrutor-paleta.js. -->
+  <div id="painel-paleta" class="painel" hidden>
+    <div id="paleta-corpo">
+      <div id="paleta-formulario">
+        <h2 class="grade-titulo">Montar a paleta da turma</h2>
+        <p class="grade-sub">
+          Cada botão vira um atalho no app do aluno: ele toca no botão e depois
+          no mapa, e a marcação está gravada — sem passar pelo formulário de oito
+          campos. O que você acrescentar aqui aparece no aparelho deles na hora,
+          sem recarregar.
+        </p>
+
+        <div class="campo">
+          <label for="paleta-rotulo">Nome do botão</label>
+          <input type="text" id="paleta-rotulo" maxlength="14" placeholder="ex.: CC, Inf Mec, Mrt">
+          <span class="campo-dica">
+            Curto: ele divide a largura de um celular com outros sete botões.
+          </span>
+        </div>
+
+        <div class="campo">
+          <label for="paleta-categoria">Categoria</label>
+          <select id="paleta-categoria"></select>
+        </div>
+
+        <div class="campo">
+          <label for="paleta-item">Símbolo</label>
+          <select id="paleta-item"></select>
+        </div>
+
+        <div id="paleta-modificadores"></div>
+
+        <div class="campo">
+          <label for="paleta-escalao">Escalão</label>
+          <select id="paleta-escalao"></select>
+          <span class="campo-dica">
+            Deixe em branco se o aluno não vai saber o escalão só de olhar —
+            é o caso mais comum num contato.
+          </span>
+        </div>
+
+        <div class="campo">
+          <label for="paleta-partido">Força do elemento marcado</label>
+          <select id="paleta-partido"></select>
+          <span class="campo-dica">
+            Com uma força definida, o aluno marca em um toque. Com
+            <b>Perguntar ao aluno</b>, ele toca no mapa e escolhe a força — use
+            para o que pode ser civil (uma viatura comum, por exemplo).
+          </span>
+        </div>
+
+        <div class="campo" id="paleta-previa-campo">
+          <label>Como vai ficar</label>
+          <div id="paleta-previa-caixa">
+            <span id="paleta-previa"></span>
+            <span id="paleta-previa-nome"></span>
+          </div>
+        </div>
+
+        <div class="campo">
+          <button type="button" id="paleta-salvar" class="botao-primario">Acrescentar à paleta</button>
+          <button type="button" id="paleta-cancelar-edicao" hidden>Cancelar edição</button>
+        </div>
+        <div id="paleta-status" class="campo-dica"></div>
+      </div>
+
+      <div id="paleta-atual">
+        <h2 class="grade-titulo">Paleta desta turma</h2>
+        <p class="grade-sub" id="paleta-contador"></p>
+        <div id="paleta-lista"></div>
+      </div>
+    </div>
+  </div>
 </div>
 
 <div id="footer">
   WartoolC2 — Etapa 6a: permissões e forças &nbsp;|&nbsp; Etapa 6c: situação atual
   &nbsp;|&nbsp; Etapa 6b: debriefing do rastro &nbsp;|&nbsp; Etapa 7: calcos KML/KMZ &nbsp;|&nbsp; Etapa 8b: imagem georreferenciada
+  &nbsp;|&nbsp; Marcação rápida
   &nbsp;<span id="debriefing-status"></span>
 </div>
 
@@ -628,6 +740,7 @@ import { iniciarPainelPermissoes, observarTurma } from './instrutor-permissoes.j
 import { iniciarDebriefing, aoAbrirDebriefing, definirTurmaDebriefing, abrirRastroDoAluno } from './debriefing.js';
 import { iniciarSituacao, aoAbrirSituacao, definirTurmaSituacao } from './situacao.js';
 import { iniciarPainelCalcos, definirTurmaCalcos } from './instrutor-calcos.js';
+import { iniciarPaletaInstrutor, definirTurmaPaleta } from './instrutor-paleta.js';
 
 const resultado = await exigirSessao('instrutor');
 if (resultado) {
@@ -692,6 +805,12 @@ if (resultado) {
   iniciarPainelCalcos({ userId: session.user.id });
   observarTurma(definirTurmaCalcos);
 
+  // Paleta de marcação rápida (2026-09-14). Amarrada ao mesmo seletor de turma
+  // do topo, pelo mesmo motivo dos calcos: a paleta é POR TURMA, e editar a da
+  // turma errada só apareceria no meio do exercício, na mão dos alunos.
+  await iniciarPaletaInstrutor({ userId: session.user.id });
+  observarTurma(definirTurmaPaleta);
+
   // ── Abas ────────────────────────────────────────────────────────────────
   // O mapa do debriefing só é montado quando a aba é aberta pela primeira vez
   // (aoAbrirDebriefing): um Leaflet criado dentro de um container com
@@ -702,6 +821,7 @@ if (resultado) {
     { botao: 'aba-situacao',   painel: 'painel-situacao' },
     { botao: 'aba-debriefing', painel: 'painel-debriefing' },
     { botao: 'aba-calcos',     painel: 'painel-calcos' },
+    { botao: 'aba-paleta',     painel: 'painel-paleta' },
   ];
 
   function trocarAba(alvo) {

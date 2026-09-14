@@ -482,6 +482,200 @@ Acréscimo pequeno e deliberadamente isolado, feito **depois** de a Etapa 9b fec
 
 **Verificação**: `visada.teste.mjs` (novo, 49 casos) com os valores esperados vindos do **PROJ** via `pyproj.Geod` — não de estimativa; as dez suítes 100% verdes, **558 casos**; `node --check` + `acorn`; `npm run build`. Sem migration, sem mudança de RLS, sem chave de permissão nova.
 
+### Etiqueta de idade no lugar do esmaecimento (2026-09-14)
+
+Pedido de campo, na véspera de um teste: *"os avatares não devem esmaecer com o
+tempo, devem marcar a última posição conhecida do elemento"*. É a **segunda**
+correção no mesmo lugar e no mesmo sentido — vale ler as duas juntas, porque
+sozinha cada uma parece um ajuste de estilo e juntas elas são uma regra:
+
+| Quando | O que os limiares faziam | Por que mudou |
+|---|---|---|
+| Até 2026-08-01 | `REMOVER_MS` tirava o avatar do mapa | Um amigo que perdia sinal sumia sem deixar rastro de onde esteve |
+| Até 2026-09-14 | Esmaecia (0,4 e depois 0,15) | Um símbolo a 15% sobre a carta do BDGEx é quase invisível — justamente quando é a única informação que restou daquele elemento |
+
+**Tirar o esmaecimento sem pôr nada no lugar seria pior do que mantê-lo**, e
+esse foi o ponto discutido antes de executar: sem nenhum sinal, uma posição de
+40 minutos atrás fica pixel por pixel idêntica a uma de 5 segundos, e quem olha
+lê "ele está ali". É a falha silenciosa que o projeto recusa desde a Etapa 6b
+(o debriefing avisa quantas leituras cada ponto representa) e desde a Etapa 7
+(a tela diz em voz alta quando simplificou uma geometria). Num vetor de tiro,
+ler posição velha como atual é erro caro.
+
+- **A troca é opacidade 1,0 + ETIQUETA DE IDADE.** `rotuloIdade()` (novo em
+  `vigia-ausencia.js`, puro e testado) devolve `''` abaixo de
+  `AVISO_PARADO_MS` e `'12m'`/`'1h35'`/`'+24h'` acima. **Ela diz mais do que o
+  esmaecimento dizia** — "0,4" nunca respondeu "há quanto tempo". As duas
+  cores guardam a distinção que os dois patamares faziam: âmbar para atrasado,
+  vermelho para sem sinal.
+- **`REMOVER_MS` virou `SEM_SINAL_MS`.** O nome mentia desde 2026-08-01 (ele
+  não remove nada há mais de um mês) e agora mentiria mais ainda. Dois
+  consumidores, renomeados junto.
+- **A etiqueta mora no `divIcon`, não num `setIcon()` por ciclo.** Todo símbolo
+  desenhado por `criarIconeSimbolo()` nasce com um `<span>` vazio e escondido;
+  `definirEtiquetaIdade(marker, texto)` (novo em `icones.js`) escreve nele via
+  `getElement()`. A alternativa — recriar o ícone a cada mudança de idade —
+  jogaria fora e reconstruiria o SVG do milsymbol de 60 marcadores a cada 15s
+  sem nenhuma necessidade: o desenho não mudou, só o texto ao lado.
+- **`iniciarVigia()` mudou de contrato**: os dois callbacks disparados ao
+  CRUZAR um limiar (`aoEsmaecer`/`aoRemover`) viraram um `aoConferir` chamado
+  para TODO elemento a cada ciclo. Bastavam enquanto o efeito era um valor fixo
+  de opacidade; deixaram de bastar quando o efeito virou um texto que CONTA
+  ("12m" precisa virar "13m"). Ganhou também `aoFim`, para trabalho por ciclo:
+  `situacao.js` redesenhava a lista lateral de dentro do callback, ou seja até
+  uma vez por aluno atrasado — 60 redesenhos da lista inteira a cada 15s.
+- **O replay do Debriefing acompanhou, e isso não era opcional.** Ele esmaecia
+  por SIMETRIA com o ao vivo ("o instrutor que viu um avatar esmaecer em campo
+  precisa ver a mesma coisa ao reproduzir aquele momento", Etapa 6b) — manter o
+  esmaecimento só lá teria quebrado exatamente a simetria que o justificava. A
+  diferença é a origem da idade: no replay é `pos.idade` (quanto tempo fazia
+  NAQUELE instante), nunca `Date.now()`. Os limiares batem porque
+  `GAP_ESMAECER_MS`/`GAP_SEM_SINAL_MS` em `rastro.js` são, de propósito, os
+  mesmos 60s/120s.
+- **O que NÃO mudou**: a lista lateral do instrutor (`estadoDe()` em
+  `situacao.js`) continua dizendo "parado há 2m05s"/"sem sinal há Xm" — ela
+  nunca dependeu do marcador e é a leitura detalhada das duas. Os nomes
+  `GAP_ESMAECER_MS` e os estados `'esmaecido'`/`'sem_sinal'` de `rastro.js`
+  continuam como estão: são contrato testado (64 asserções), e renomeá-los
+  seria mexer em tudo isso para descrever a mesma fronteira de tempo. Leia
+  `'esmaecido'` como "passou do primeiro limiar", não como instrução de
+  opacidade — quem decide o que desenhar é `debriefing.js`.
+- **`rotuloIdade()` não reusa `duracaoCurta()`** (que existe em duas cópias, em
+  `situacao.js` e `debriefing.js`, com comportamentos ligeiramente diferentes
+  abaixo de 1min). Aquelas formatam duração para ler DENTRO de uma frase
+  ("Janela de 1h30m"); esta divide espaço com um símbolo de 26px num celular e
+  precisa de duas ou três letras. Requisitos diferentes; unificar pioraria os
+  dois lados e mudaria o rótulo da janela do debriefing, que não tem nada a ver
+  com este pedido. Há teste travando que nenhum rótulo passe de 5 caracteres.
+
+### Paleta de ícones rápidos (2026-09-14) — migration 0010
+
+Segundo pedido da mesma conversa: *"um banco de ícones rápidos para os usuários
+locarem pontos no mapa, definidos pelo instrutor"*. Três opções foram postas
+(lista fixa no código / coluna `jsonb` em `turmas` / tabela própria) e a
+escolhida foi a tabela, com partido em modo **híbrido**.
+
+**O problema.** Desde a Etapa 9b, marcar um elemento custa no mínimo oito
+toques: mapa → categoria → ícone (dentro de 434) → mod 1 → mod 2 → escalão →
+partido → designação. O catálogo hierárquico foi a decisão certa (a tabela
+manual que ele substituiu errava 13 dos 18 códigos, e a hierarquia impede
+combinação inválida), mas é uma **ferramenta de precisão** — e um contato que
+dura 20 segundos, com luva, não cabe em oito toques. A paleta é o atalho: um
+toque no botão, um toque no mapa.
+
+- **`backend/supabase/0010_icones_rapidos.sql`** — tabela por turma. Nada aqui
+  é padrão novo: RLS no molde de `calcos` (0006), exclusão lógica da Etapa 1,
+  `check (sidc ~ '^[0-9]{20}$')` da 0001, Realtime com `replica identity full`,
+  e **paleta padrão criada por trigger em toda turma nova**, no molde exato de
+  `fn_criar_partidos_padrao` (0003) — a turma nasce utilizável em vez de com
+  uma tela vazia que quase ninguém configuraria.
+- **O trigger se chama `trg_turmas_z_icones_rapidos_padrao`, e o `z_` é
+  funcional.** O Postgres dispara triggers de mesmo timing em ordem
+  ALFABÉTICA, e este precisa rodar DEPOIS de `trg_turmas_partidos_padrao`
+  (0003), porque os presets referenciam o partido 'Vermelho' que aquele acaba
+  de criar. "Arrumar" o nome faria a paleta nascer com partido nulo — **sem
+  erro nenhum**, só com todos os presets pedindo partido para sempre. Há teste
+  travando isso.
+- **Os SIDCs da paleta padrão não foram escritos à mão.** Saíram de `getSIDC()`
+  a partir dos códigos de entidade do catálogo oficial e foram conferidos de
+  volta por `descreverSidc()`; o comentário ao lado de cada um na migration é o
+  rótulo oficial que o código significa. É consequência direta do achado da
+  Etapa 9b — "Infantaria Mecanizada" vinha desenhando apoio de fogo havia
+  meses.
+- **`partido_padrao_id` NÃO é `calcos.partido_id`, e por isso não tem o mesmo
+  nome.** Em `calcos`, a coluna diz PARA QUEM o calco é visível (nulo = turma
+  inteira). Aqui ela diz que partido a MARCAÇÃO criada recebe (nulo =
+  perguntar ao aluno). Um nome igual com semântica oposta em duas tabelas
+  vizinhas é o que alguém copia de uma policy para a outra sem reler.
+- **O modo híbrido é o que decide quantos toques a marcação custa.** Preset com
+  força definida grava em um toque; preset sem força abre SÓ o seletor de
+  partido, nada mais. Quem decide preset a preset é o instrutor: "CC" é quase
+  sempre hostil e vale gravar direto; "Vtr" pode ser tráfego civil. Sem esse
+  meio-termo seria preciso escolher entre velocidade (o aluno grava partido
+  errado por reflexo) e segurança (some metade do ganho).
+- **São QUATRO policies, não um `for all` como em `calcos_escrever` — e a
+  diferença foi um bug real, apanhado pelo teste antes de ir para o ar.** Um
+  `for all` com `with check (... and criado_por = auth.uid())` aplica essa
+  exigência também ao UPDATE, e aí **o instrutor não consegue editar a paleta
+  PADRÃO**: aquelas linhas têm `criado_por` nulo, porque não foi pessoa nenhuma
+  que as criou. Falharia exatamente no caso de uso principal, só nos presets
+  padrão, só no UPDATE, sem erro que explicasse o motivo. `calcos` tem a mesma
+  forma e não sofre disso só porque lá toda linha nasce de um instrutor de
+  verdade. `criado_por` nulo passou a ter significado ("veio da paleta
+  padrão") e é imutável, garantido por trigger — mesma escolha, e pelo mesmo
+  motivo, de `fn_carimbar_edicao_do_elemento` na 0009.
+- **Teto de 12 presets, por trigger** (um `check` não conta linhas). Não é
+  zelo: 12 botões já ocupam um cartão inteiro do painel lateral, e uma paleta
+  de 40 recria, sem hierarquia para filtrar, o mesmo problema de navegação que
+  o catálogo de 434 — que é o problema que ela existe para resolver. Recusar e
+  dizer o porquê segue `LIMITE_FEICOES` (Etapa 7) e o teto de tiles (8a).
+- **Nenhuma chave nova em `catalogo_permissoes`.** A paleta é um atalho para
+  criar marcação, e criar marcação já tem dono (`criar_marcacao_inimiga`, Etapa
+  6a) — o mesmo interruptor esconde a paleta e o formulário. Dois interruptores
+  para a mesma capacidade é a forma mais fácil de deixar um aluno num estado
+  que ninguém sabe explicar em campo.
+- **A paleta NÃO registra um segundo `map.on('click')`.** `paleta-tela.js`
+  chama `armarPreset()` em `marcacoes.js`, e o handler que já existe lá desvia.
+  A razão é a correção de campo de 2026-08-01: o Leaflet chama TODOS os
+  listeners de clique do mapa, e foi assim que marcar o canto de uma área
+  offline passou a abrir também o formulário de marcação. Entrar por dentro
+  reaproveita todas as guardas (permissão, lotação da 6c, `cliqueSuspenso`, um
+  formulário por vez) em vez de duplicá-las, e não acrescenta uma terceira
+  aresta ao mesmo evento. **O `insert` em `elementos_marcados` continua sendo
+  um só**, o de `salvarMarcacao()` — a paleta nunca é um segundo caminho até o
+  banco.
+- **Toque longo (500ms) arma o preset em modo "completo"**: o próximo toque no
+  mapa abre o formulário inteiro JÁ pré-preenchido com aquele SIDC
+  (`sidcInicial`/`partidoInicial`, novos em `abrirFormulario()` — criação
+  normal, não modo edição). Sem essa saída, usar a paleta significaria desistir
+  de escalão e designação, e a pessoa acabaria não usando a paleta.
+- **`frontend/catalogo-form.js` (novo)** é a extração das quatro construtoras
+  de `<option>` do catálogo, que moravam em `marcacoes.js` e agora têm o
+  segundo consumidor (o painel do instrutor monta o SIDC de um preset pelos
+  MESMOS seletores hierárquicos). Critério de sempre — `icones.js` na Etapa 5,
+  `vigia-ausencia.js` na 6c, `basemaps.js` na 7.1. Aqui a divergência seria
+  cara e invisível: um painel que montasse a lista por conta própria poderia
+  oferecer categoria + entidade que não existem juntas, e a paleta inteira da
+  turma passaria a marcar o elemento errado.
+- **`svgDoSimbolo()` (novo em `icones.js`)** desenha o símbolo FORA do mapa —
+  o botão da paleta e a prévia do painel do instrutor. Os dois mostram
+  exatamente o desenho que vai aparecer no mapa, pelo mesmo renderizador; um
+  ícone "parecido" desenhado à parte seria a porta de entrada para o botão e o
+  mapa discordarem.
+- **Cinco arquivos novos no frontend**, na separação de sempre: `paleta.js`
+  (regra pura e testável), `icones-rapidos.js` (banco e Realtime, compartilhado
+  pelas duas telas, no padrão de `calcos.js`), `paleta-tela.js` (cartão
+  "Marcação rápida" no app do aluno), `instrutor-paleta.js` (a aba de
+  montagem) e `catalogo-form.js`.
+
+**Verificação — e desta vez as migrations foram EXECUTADAS.** Ao contrário das
+0004–0009 ("não foi executada contra um Postgres" em todas), esta sessão teve
+Postgres 16 + PostGIS disponível: **0001–0010 aplicadas em ordem, em banco
+limpo, sem erro**, e `01_teste_partidos.sql` (o teste de RLS da Etapa 4.5)
+continua **43/43 verde com as dez migrations aplicadas** — ou seja, a 0010 não
+regride a visibilidade. **`backend/testes/02_teste_icones_rapidos.sql` (novo,
+26 casos, 26/26)** cobre a paleta padrão e a ordem dos triggers, o teto, os
+checks de formato e a RLS inteira. Ele traz documentada uma armadilha que ele
+mesmo caiu: **a RLS bloqueia INSERT e UPDATE de formas diferentes** — insert
+que viola o `with check` levanta exceção, update cuja linha não passa no
+`using` não levanta nada, só afeta 0 linhas. Quem só olha a exceção conclui que
+o update passou.
+
+Mais: `backend/testes/valida_sql.py` nas 0001–0010 sem falhas; `node --check` +
+`acorn` em todos os `.js`/`.mjs` e no `<script type="module">` de cada HTML;
+uma checagem nova que resolve TODO import nomeado contra os exports reais do
+arquivo alvo (útil depois de mover as construtoras do catálogo); `npm run
+build` com sucesso (+10,5 kB no chunk principal); e as **onze suítes 100%
+verdes, 654 casos** (20 `basemaps`, 68 `carta-offline`, 93 `coordenadas`, 14
+`dispersar-avatares`, 34 `imagem-geo`, 116 `kml`, 92 `marcacoes`, **58
+`paleta`** — nova, 64 `rastro`, 25 `simbolos`, 70 `visada`).
+
+**PENDENTE DE TESTE AO VIVO** (acrescentado a `docs/roteiro-teste-campo.md`):
+aplicar a 0010 no Supabase real; conferir a etiqueta de idade com um celular
+desligando o GPS; marcar pela paleta nos dois modos e conferir que o símbolo
+gravado é o do botão; e o toque longo num celular de verdade, que é o gesto
+mais frágil desta entrega.
+
 ## Estrutura de pastas
 
 ```
@@ -520,6 +714,18 @@ frontend/       app web (Leaflet + milsymbol + stanag-app6). Login/cadastro/rote
                 nunca formatam por conta própria; visada.js (puro, inversa de Vincenty) é
                 distância + azimute de quem observa até o elemento marcado — NÃO reusa o
                 haversine de rastro.js de propósito (ver a seção "Vetor de observação" acima)
+                2026-09-14: vigia-ausencia.js ganhou rotuloIdade() e o esmaecimento
+                dos avatares SAIU — quem marca posição velha agora é a etiqueta de
+                idade, escrita por definirEtiquetaIdade() (icones.js) em colegas.js,
+                situacao.js e no replay de debriefing.js. paleta.js (puro) +
+                icones-rapidos.js (banco/Realtime) + paleta-tela.js (cartão do aluno)
+                + instrutor-paleta.js (aba de montagem) são a PALETA DE ÍCONES
+                RÁPIDOS (migration 0010): presets de marcação definidos pelo
+                instrutor, por turma. catalogo-form.js é a FONTE ÚNICA dos <option>
+                do catálogo, extraída de marcacoes.js ao ganhar o segundo consumidor.
+                A paleta NÃO tem listener de clique próprio: arma um preset dentro de
+                marcacoes.js, que continua sendo o único que escreve em
+                elementos_marcados
 data/           GeoJSON publicados (saída do pipeline atual; pode servir de seed pro backend novo)
 data/simbologia-eb/  extrato do Portal de Simbologia Militar do MD/EB (Etapa 9b) + PROCEDENCIA.md
                 (URL, SHA-256 e data de cada um dos 12 arquivos originais, e como recapturar)
@@ -527,7 +733,10 @@ scripts/        utilitários de build/manutenção rodados à mão ou pelo `npm 
                 (copiar-estaticos-build.mjs, gerar-catalogo-simbologia.mjs)
 legacy-qgis/    pipeline original QGIS + Sheets — mantido como importador opcional, não é mais a fonte de verdade
 backend/        schema Supabase (migrations SQL + RLS) — ver backend/README.md
-backend/testes/ stub do ambiente Supabase + teste de RLS rodável num Postgres cru (não rodar no Supabase)
+backend/testes/ stub do ambiente Supabase + testes de RLS rodáveis num Postgres cru (não rodar
+                no Supabase): 01_teste_partidos.sql (Etapa 4.5) e 02_teste_icones_rapidos.sql
+                (0010). Cada um espera um banco LIMPO — rodar duas vezes no mesmo banco
+                contamina a massa de teste e produz falhas que não existem
 docs/           plano de viabilidade (Plano_WebGIS_Militar.docx) e decisões de arquitetura
 ```
 

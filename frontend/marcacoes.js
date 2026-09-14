@@ -26,8 +26,7 @@ import * as L from 'leaflet';
 import { supabase, traduzirErro, buscarPerfilBasico, buscarPartidosDaTurma } from './auth.js';
 import {
   getSIDC, decomporSidc, descreverSidc,
-  CATEGORIAS, categoriaPorId, itensDaCategoria, nomeDoItem, designacaoDoMapa,
-  ESCALAO_ROTULO,
+  CATEGORIAS, categoriaPorId, nomeDoItem, designacaoDoMapa,
 } from './simbolos.js';
 import { formatarCoordenada, observarFormatoCoordenada } from './preferencias.js';
 // Distância e azimute de quem observa até o elemento marcado — o vetor que o
@@ -46,6 +45,14 @@ import { criarIconeSimbolo } from './icones.js';
 // A última é a única que exige guardar estado a mais: ver o comentário de
 // `linhas` logo abaixo.
 import { observarPermissao, pode } from './permissoes.js';
+// Paleta de ícones rápidos (2026-09-14): a regra pura de "o que este preset
+// faz quando tocado" e "que valores a marcação recebe". Este módulo continua
+// sendo o único que escreve em `elementos_marcados` — a paleta é um atalho
+// para o MESMO salvarMarcacao(), nunca um segundo caminho até o banco.
+import { modoDoPreset, valoresDaMarcacao } from './paleta.js';
+import {
+  opcoesCategoria, opcoesItem, opcoesModificador, opcoesEscalao,
+} from './catalogo-form.js';
 
 // ── Estado do módulo ─────────────────────────────────────────────────────
 // marcadores: id (uuid de elementos_marcados) -> { marker (Leaflet), row }.
@@ -527,6 +534,18 @@ function injetarEstilos() {
       color:#f5c842; background:#2a2412; border:1px solid #5a4a1a;
       border-radius:4px; padding:6px 8px; margin:0 0 10px;
     }
+    /* Paleta de ícones rápidos: a escolha de partido do modo "perguntar".
+       Botões grandes de propósito — é a única coisa que separa o toque no
+       mapa da marcação gravada, e quem está usando isto está em campo, com
+       luva, no sol. */
+    #marcacao-painel .mc-partidos {
+      display:flex; flex-direction:column; gap:8px; margin:4px 0 2px;
+    }
+    #marcacao-painel .mc-partido-btn {
+      padding:11px 14px; font-size:14px; text-align:left;
+      background:#16263a; color:#e8eaf0; border:1px solid #2a4a6b;
+    }
+    #marcacao-painel .mc-partido-btn:disabled { opacity:.5; cursor:default; }
     #marcacao-painel .mc-coord {
       font-size:11px; color:#7a9ab8; margin-bottom:12px; padding:5px 7px;
       background:#16263a; border:1px solid #23405e; border-radius:4px;
@@ -569,56 +588,16 @@ function injetarEstilos() {
 // (dígitos 9-10), vale para qualquer categoria e tem 13 opções — continua um
 // <select> plano. Partido nunca foi simbologia: é o fato do banco que a
 // hostilidade relativa consome (Etapa 4.5).
-function construirOpcoesCategoria(idSelecionado) {
-  return CATEGORIAS
-    .map((c) => `<option value="${c.id}"${c.id === idSelecionado ? ' selected' : ''}>${escapar(c.nome)}</option>`)
-    .join('');
-}
-
-// Os ícones centrais de UMA categoria, com <optgroup> por entidade APP-6D.
-// O rótulo mostrado é o `NomeBR` puro — sem o sufixo de desambiguação que a
-// tabela plana NATUREZA usa, porque aqui a categoria já foi escolhida (ver o
-// comentário de `chaveNatureza()` em simbolos.js).
-function construirOpcoesItem(categoriaId, codigoSelecionado) {
-  return itensDaCategoria(categoriaId)
-    .map((grupo) => {
-      // O terceiro elemento da tupla, quando existe, é a OBSERVAÇÃO que o
-      // portal trazia colada no nome ("código específico apenas para
-      // compatibilidade com a OTAN", sinônimos, código OTAN de posto). Vai
-      // como `title=`, não no rótulo: num <select> de celular ela empurraria
-      // o nome para fora da tela — que é o mesmo problema que a correção de
-      // 2026-08-02 resolveu no mapa.
-      const opcoes = grupo.itens
-        .map(([codigo, nome, observacao]) =>
-          `<option value="${codigo}"${codigo === codigoSelecionado ? ' selected' : ''}` +
-          `${observacao ? ` title="${escapar(observacao)}"` : ''}>${escapar(nome)}</option>`)
-        .join('');
-      return `<optgroup label="${escapar(grupo.nome)}">${opcoes}</optgroup>`;
-    })
-    .join('');
-}
-
-// Modificador é opcional: o código '00' ("Não especificado") já vem do
-// catálogo como primeira linha de toda tabela, então não é preciso inventar
-// uma opção vazia aqui.
-function construirOpcoesModificador(lista, codigoSelecionado) {
-  return lista
-    .map(([codigo, rotulo, observacao]) =>
-      `<option value="${codigo}"${codigo === codigoSelecionado ? ' selected' : ''}` +
-      `${observacao ? ` title="${escapar(observacao)}"` : ''}>${escapar(rotulo)}</option>`)
-    .join('');
-}
-
-function construirOpcoesEscalao(chaveSelecionada) {
-  // ESCALAO tem chaves sinônimas (CIA/BIA/ESC valem '14') e uma chave ''
-  // sinônima de NONE — as duas coisas existem para aceitar entrada vinda de
-  // dados antigos e do CSV do seed, não para virarem opções repetidas no
-  // <select>. Mostramos só as que têm rótulo próprio em ESCALAO_ROTULO.
-  return Object.keys(ESCALAO_ROTULO)
-    .map((chave) =>
-      `<option value="${chave}"${chave === chaveSelecionada ? ' selected' : ''}>${escapar(ESCALAO_ROTULO[chave])}</option>`)
-    .join('');
-}
+// Etapa 5/9b: as quatro construtoras de <option> do catálogo saíram deste
+// arquivo para frontend/catalogo-form.js em 2026-09-14, ao ganharem o segundo
+// consumidor (o painel de ícones rápidos do instrutor monta o SIDC de um
+// preset pelos mesmos seletores). Ver o cabeçalho de lá. Os nomes locais
+// abaixo são aliases finos, só para não reescrever as chamadas no corpo do
+// formulário.
+const construirOpcoesCategoria   = opcoesCategoria;
+const construirOpcoesItem        = opcoesItem;
+const construirOpcoesModificador = opcoesModificador;
+const construirOpcoesEscalao     = opcoesEscalao;
 
 function construirOpcoesPartido(partidoIdSelecionado) {
   const naoIdentificado = `<option value=""${!partidoIdSelecionado ? ' selected' : ''}>Não identificado</option>`;
@@ -646,7 +625,13 @@ function fecharFormulario() {
 // latlng: L.LatLng do ponto clicado (criação) ou da marcação existente (edição).
 // marcacaoExistente: a `row` de elementos_marcados sendo editada, ou undefined
 // para criar uma nova.
-function abrirFormulario(latlng, { marcacaoExistente } = {}) {
+// sidcInicial / partidoInicial (2026-09-14): pré-preenchimento vindo de um
+// preset da paleta de ícones rápidos, quando o aluno usou o TOQUE LONGO —
+// "quero este símbolo, mas preciso ajustar escalão/designação". É diferente de
+// `marcacaoExistente`, que além de pré-preencher coloca o formulário em modo
+// EDIÇÃO (update em vez de insert). Aqui é criação normal, só começando de um
+// ponto de partida em vez de da primeira categoria da lista.
+function abrirFormulario(latlng, { marcacaoExistente, sidcInicial, partidoInicial } = {}) {
   fecharFormulario(); // no máximo um formulário aberto por vez
   injetarEstilos();
 
@@ -667,7 +652,8 @@ function abrirFormulario(latlng, { marcacaoExistente } = {}) {
   // de um aluno já com o que o aluno escolheu selecionado, troca só o que
   // está errado e salva. Um pré-preenchimento que perdesse a escolha original
   // transformaria "corrigir a natureza" em "refazer a marcação do zero".
-  const preenchido = marcacaoExistente ? decomporSidc(marcacaoExistente.sidc) : {};
+  const sidcParaPreencher = marcacaoExistente?.sidc || sidcInicial || '';
+  const preenchido = sidcParaPreencher ? decomporSidc(sidcParaPreencher) : {};
   // SIDC gravado por um caminho que o catálogo não conhece (dado anterior à
   // 9b com natureza que saiu das tabelas manuais, ou symbol set exótico):
   // abre na primeira categoria em vez de num <select> vazio.
@@ -728,7 +714,7 @@ function abrirFormulario(latlng, { marcacaoExistente } = {}) {
              placeholder="ex.: 1º/5º RCC" value="${escapar(designacaoInicial)}">
     </label>
     <label>Partido do elemento observado
-      <select id="mc-partido">${construirOpcoesPartido(marcacaoExistente?.partido_id)}</select>
+      <select id="mc-partido">${construirOpcoesPartido(marcacaoExistente?.partido_id ?? partidoInicial ?? null)}</select>
     </label>
     <div class="mc-acoes">
       <button type="button" class="mc-cancelar" id="mc-cancelar">Cancelar</button>
@@ -906,9 +892,148 @@ function ativarCliqueNoMapa(map) {
         return;
       }
     }
+    // Paleta de ícones rápidos (2026-09-14): se há um preset armado, este
+    // clique grava direto (ou pede só o partido) em vez de abrir o
+    // formulário completo. Ver o comentário de armarPreset(), logo abaixo.
+    if (presetArmado) {
+      gravarPeloPreset(ev.latlng);
+      return;
+    }
     abrirFormulario(ev.latlng);
   };
   map.on('click', cliqueHandler);
+}
+
+// ── Paleta de ícones rápidos ──────────────────────────────────────────────
+// A paleta NÃO registra um segundo `map.on('click')`. Isso é deliberado, e a
+// razão é uma correção de campo de 2026-08-01: `index.html` cria UM `map` e o
+// entrega a vários módulos; o Leaflet chama TODOS os listeners de clique, sem
+// nenhum "parar aqui" entre eles, e foi assim que marcar o canto de uma área
+// offline passou a abrir também o formulário de marcação. A solução de lá
+// (suspenderClique/retomarClique) resolveu aquele caso concreto; repetir o
+// padrão aqui resolveria de novo, mas acrescentaria um terceiro listener ao
+// mesmo evento — mais uma aresta para a próxima tela tropeçar.
+//
+// Como a paleta quer exatamente o que este handler já faz (checar permissão,
+// checar a guarda de lotação da 6c, respeitar `cliqueSuspenso` e "um
+// formulário por vez") e só muda o DESTINO do clique, ela entra por dentro:
+// paleta-tela.js arma um preset aqui, o handler existente desvia, e toda a
+// cadeia de guardas continua valendo sem ser duplicada.
+//
+// `aoConsumir` avisa a paleta de que o preset foi usado, para ela desarmar o
+// botão — quem desenha o estado "armado" é quem desenha o botão.
+let presetArmado = null;
+let aoConsumirPreset = null;
+let presetAbreFormulario = false;
+
+// `completo: true` (toque LONGO no botão da paleta) faz o próximo toque no
+// mapa abrir o formulário inteiro JÁ PRÉ-PREENCHIDO com o SIDC do preset, em
+// vez de gravar direto. É a saída para quem quer o símbolo do botão mas
+// precisa ajustar escalão ou pôr a designação da unidade — sem ela, usar a
+// paleta significaria desistir dos campos que o formulário oferece, e a pessoa
+// acabaria não usando a paleta.
+export function armarPreset(preset, { aoConsumir, completo = false } = {}) {
+  presetArmado = preset || null;
+  aoConsumirPreset = aoConsumir || null;
+  presetAbreFormulario = Boolean(completo);
+}
+
+export function desarmarPreset() {
+  presetArmado = null;
+  aoConsumirPreset = null;
+  presetAbreFormulario = false;
+}
+
+export function temPresetArmado() {
+  return Boolean(presetArmado);
+}
+
+// Grava a marcação a partir do preset armado. Dois caminhos, decididos por
+// modoDoPreset() (paleta.js, puro e testado) — ver lá o raciocínio do modo
+// híbrido.
+async function gravarPeloPreset(latlng) {
+  const preset = presetArmado;
+  if (!preset) return;
+
+  if (presetAbreFormulario) {
+    // O formulário completo grava sozinho e fecha; o preset já cumpriu o papel
+    // dele (dizer de onde partir), então sai de cena agora — não na gravação.
+    const { sidc, partido_padrao_id: partidoInicial } = preset;
+    consumirPreset(true);
+    abrirFormulario(latlng, { sidcInicial: sidc, partidoInicial });
+    return;
+  }
+
+  if (modoDoPreset(preset) === 'gravar') {
+    const ok = await salvarMarcacao({ latlng, valores: valoresDaMarcacao(preset) });
+    consumirPreset(ok);
+    return;
+  }
+  // Modo "perguntar": só o partido, nada mais. Não é o formulário completo —
+  // o SIDC já está decidido pelo preset, e reabrir os quatro selects do
+  // catálogo aqui desfaria o ganho inteiro da paleta.
+  abrirEscolhaDePartido(latlng, preset);
+}
+
+function consumirPreset(ok) {
+  if (!ok) return; // falhou ao gravar: mantém armado, a pessoa tenta de novo
+  const avisar = aoConsumirPreset;
+  desarmarPreset();
+  if (avisar) avisar();
+}
+
+// Painel mínimo: um botão por partido da turma, mais "Não identificado".
+// Reusa `partidosDaTurma`, que este módulo já carrega no início — sem
+// consulta nova.
+function abrirEscolhaDePartido(latlng, preset) {
+  fecharFormulario();
+  injetarEstilos();
+
+  marcadorTemporario = L.circleMarker(latlng, {
+    radius: 9, color: '#f5c842', weight: 2, dashArray: '4,3', fillOpacity: 0.15,
+  }).addTo(mapaRef);
+
+  const painel = document.createElement('div');
+  // Mesmo id do formulário completo: o CSS injetado por injetarEstilos() é
+  // todo escopado em `#marcacao-painel`, e fecharFormulario() já sabe remover
+  // `painelAberto` seja qual for o conteúdo dele.
+  painel.id = 'marcacao-painel';
+  painel.innerHTML = `
+    <h3>${escapar(preset.rotulo)} — de quem é?</h3>
+    <p class="mc-dica">O instrutor deixou este botão sem força definida, então
+      a escolha é sua. É ela que separa um elemento hostil de um civil no mapa
+      dos seus colegas.</p>
+    <div class="mc-partidos" id="mc-preset-partidos"></div>
+    <div class="mc-acoes"><button type="button" class="mc-cancelar">Cancelar</button></div>`;
+  document.body.appendChild(painel);
+  painelAberto = painel;
+
+  const caixa = painel.querySelector('#mc-preset-partidos');
+  const opcoes = [{ id: '', nome: 'Não identificado' }, ...partidosDaTurma];
+  for (const p of opcoes) {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'mc-partido-btn';
+    b.textContent = p.nome;
+    b.addEventListener('click', async () => {
+      // Desabilita a fileira inteira: dois toques rápidos gravariam duas
+      // marcações no mesmo ponto, e a segunda só apareceria depois, por cima
+      // da primeira, sem ninguém entender de onde veio.
+      caixa.querySelectorAll('button').forEach((x) => { x.disabled = true; });
+      const ok = await salvarMarcacao({
+        latlng, valores: valoresDaMarcacao(preset, p.id || null),
+      });
+      fecharFormulario();
+      consumirPreset(ok);
+    });
+    caixa.appendChild(b);
+  }
+
+  painel.querySelector('.mc-cancelar').addEventListener('click', () => {
+    // Cancelar fecha o painel mas NÃO desarma o preset: quem errou o ponto
+    // quer tocar de novo no lugar certo, não reescolher o botão.
+    fecharFormulario();
+  });
 }
 
 // ── Ponto de entrada ──────────────────────────────────────────────────────
