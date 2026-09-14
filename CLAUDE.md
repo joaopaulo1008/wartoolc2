@@ -1068,6 +1068,81 @@ representa, a Etapa 7 avisa quando simplificou uma geometria, e desde a
 etiqueta de idade o avatar parado não some. **Uma lacuna declarada é
 informação; uma lacuna silenciosa é uma afirmação errada.**
 
+### A CAUSA DE VERDADE do símbolo genérico (2026-09-14) — e três diagnósticos errados antes dela
+
+*"Continua o problema de clicar no símbolo e entrar um símbolo genérico."*
+
+Terceiro relato do mesmo defeito. As duas correções anteriores desta seção
+trataram sintomas **que não eram a causa**. Vale ler o erro inteiro, porque a
+classe dele é comum e o custo foi alto.
+
+**A causa.** `salvarMarcacao()` (marcacoes.js) SEMPRE remontava o SIDC a partir
+de cinco campos — categoria, entidade, escalão, mod1, mod2 —, porque era assim
+que o formulário entregava os dados. **A paleta não tem esses cinco campos:**
+ela tem o SIDC pronto do preset, e `valoresDaMarcacao()` (paleta.js) devolve
+`{ sidc, partidoId, designacao }`. Os cinco chegavam `undefined`, `getSIDC()`
+caía em todos os defaults, e o default de `getSIDC()` é:
+
+```
+getSIDC({}) === '10011000000000000000'   // symbol set 10, entidade 000000
+descreverSidc(...)  ->  "Comando Nomeado (sigla do Comando no setor central)"
+```
+
+**Ninguém nunca escolheu "Comando Nomeado". Ele é o que sobra quando não se
+escolhe nada.** Toda marcação gravada pela paleta em modo "gravar" saiu assim,
+desde o primeiro dia.
+
+**Por que os três diagnósticos anteriores erraram, e o que aprender:**
+
+1. Varri os 434 itens do catálogo e achei que `10:000000` desenha só a moldura.
+   **Verdadeiro, e irrelevante como causa** — eu tinha achado a assinatura do
+   sintoma e parei ali, tratando-a como origem.
+2. Concluí que o instrutor havia criado um preset de Comando Nomeado sem
+   querer, porque ele é o primeiro item de "Unidades". **Plausível e falso.**
+   Nunca verifiquei o que de fato ia ao banco — teria bastado ler
+   `salvarMarcacao()` uma vez.
+3. Concluí que eram marcações antigas ainda no mapa. **Também falso**, pelo
+   mesmo motivo: eu estava explicando o dado observado sem rastrear o caminho
+   que o produziu.
+
+O erro comum às três: **eu expliquei o sintoma em vez de seguir o dado.** O
+botão da paleta desenha `preset.sidc` e sempre esteve certo; o mapa mostrava
+outra coisa. Bastava perguntar "o que exatamente é gravado?" e ler as quinze
+linhas entre a paleta e o `insert`.
+
+**A correção, e a regra em uma frase.** `sidcDaMarcacao(valores)` (novo em
+`simbolos.js`, puro e testado): **se já existe um SIDC, ele É o SIDC; só se
+monta um quando não há.** Remontar um SIDC que já existe nunca é necessário e é
+sempre uma chance de divergir.
+
+- **É uma função com NOME, e não o atalho `props.sidc` que `getSIDC()` já tinha
+  por dentro.** Aquele atalho existia, estava correto, e ninguém o alimentava —
+  é justamente por ser escondido que passou despercebido. Um nome é o que dá
+  para o teste segurar.
+- **O teste que faltava** (`paleta.teste.mjs`, 90 → **108**): para cada um dos 8
+  presets padrão, `sidcDaMarcacao(valoresDaMarcacao(preset)) === preset.sidc`.
+  Uma linha. **Conferido que ele FALHA (9 asserções) com o código antigo** — não
+  é um teste que passa por acaso. Trava também o caso nominal
+  (`getSIDC({})` cai em Comando Nomeado) para a regressão ter nome se voltar, e
+  o caminho do formulário (sem `sidc`, monta dos cinco campos).
+
+**O aviso do popup foi REESCRITO, porque orientava errado.** Ele dizia "edite e
+preencha a sigla" — o que consertaria o desenho **mantendo o elemento errado**,
+já que o símbolo não é o que a pessoa escolheu. Agora diz, na ordem provável:
+que a marcação está gravada como Comando Nomeado, que marcações feitas pela
+paleta antes desta correção caíram nele por engano, que **se não era isso, edite
+e escolha o símbolo certo**, e só então que, se era mesmo, falta a sigla.
+
+**O que fica das correções anteriores** (elas não foram revertidas, e continuam
+certas pelo mérito próprio): o aviso de sigla no formulário, a recusa de
+`Comando Nomeado` como preset — um preset segue sem campo de designação — e a
+ocultação de um preset assim na tela do aluno. **O que muda é o peso**: eram
+melhorias, não o conserto. O conserto é esta linha.
+
+**As marcações já gravadas não têm conserto automático.** O SIDC que a pessoa
+queria nunca chegou a ser gravado em lugar nenhum — perdeu-se no caminho. Só dá
+para corrigi-las à mão, pelo botão Editar, e é isso que o popup agora diz.
+
 ## Estrutura de pastas
 
 ```

@@ -258,6 +258,49 @@ export function getSIDC(props) {
   return `10${h}${d}${s}${hq}${e}${nat}`;
 }
 
+// ── O SIDC que vai para o banco numa marcação ───────────────────────────────
+//
+// Existe para consertar — e impedir que volte — o defeito mais caro desta
+// série: **toda marcação feita pela paleta era gravada como "Comando
+// Nomeado"**, o losango vazio.
+//
+// A mecânica do erro, que vale entender porque a classe dele é comum:
+// `salvarMarcacao()` sempre REMONTAVA o SIDC a partir de cinco campos
+// (categoria, entidade, escalão, mod1, mod2), porque era assim que o
+// formulário entregava os dados. A paleta, porém, não tem esses cinco campos —
+// ela tem o SIDC PRONTO do preset, e `valoresDaMarcacao()` devolvia só ele.
+// Os cinco chegavam `undefined`, `getSIDC()` caía em todos os defaults, e o
+// default de `getSIDC()` é exatamente `10011000000000000000`: symbol set 10,
+// entidade `000000`. Ninguém nunca escolheu "Comando Nomeado" — ele era o que
+// sobra quando não se escolhe nada.
+//
+// O erro não aparecia em lugar nenhum antes do mapa: o botão da paleta desenha
+// `preset.sidc` e está certo; o que estava errado era só a gravação. Botão e
+// mapa discordavam, que é precisamente o que a paleta promete não fazer.
+//
+// A regra agora é uma frase: **se já existe um SIDC, ele É o SIDC.** Só se
+// monta um quando não há — que é o caso do formulário, onde a pessoa escolheu
+// campo a campo. Remontar um SIDC que já existe nunca é necessário e é sempre
+// uma chance de divergir.
+//
+// Mora aqui, e não em marcacoes.js, porque é sobre o que um SIDC É — mesma
+// razão de getSIDC()/decomporSidc() morarem aqui. E é uma FUNÇÃO com nome, e
+// não o atalho `props.sidc` que getSIDC() já tinha por dentro, porque o
+// atalho escondido é o que permitiu o defeito passar: ele existia, estava
+// certo, e ninguém o alimentava. Um nome é o que dá para o teste segurar.
+export function sidcDaMarcacao(valores = {}) {
+  if (typeof valores.sidc === 'string' && /^[0-9]{20}$/.test(valores.sidc)) {
+    return valores.sidc;
+  }
+  return getSIDC({
+    dimensao: valores.categoriaId,
+    escalao: valores.escalao,
+    natureza_code: valores.codigoEntidade,
+    mod1: valores.mod1,
+    mod2: valores.mod2,
+  });
+}
+
 // ── Decomposição do SIDC (inverso de getSIDC) ───────────────────────────────
 // Usada pela Etapa 5 (frontend/marcacoes.js) para PRÉ-PREENCHER o formulário
 // de edição de uma marcação: como só o SIDC final é gravado em

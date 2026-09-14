@@ -479,4 +479,23 @@ testa aqui é se a lacuna é declarada em vez de passar batido.
 - [ ] 15aj. Apague e reacenda a tela rapidamente (menos de 1 minuto): **não**
   deve aparecer relato nenhum de lacuna — ninguém do outro lado viu nada.
 
+### A gravação pela paleta (2026-09-14) — o teste que fecha o caso
+
+**Este é o item mais importante do roteiro hoje.** Era aqui que estava o
+defeito do "símbolo genérico", nas três vezes que ele foi relatado.
+
+- [ ] 15ak. Confira o carimbo de versão no rodapé antes de começar.
+- [ ] 15al. Toque no mapa, toque num botão da paleta com força definida (ex.:
+  **CC**). A marcação tem que aparecer no mapa com **exatamente o símbolo do
+  botão** — não um losango vazio.
+- [ ] 15am. Repita para cada botão da paleta, um a um. Todos têm que bater.
+- [ ] 15an. Toque longo num botão, ajuste o escalão e salve: o símbolo gravado
+  continua sendo o do botão, agora com o escalão por cima.
+- [ ] 15ao. Preset **sem** força ("Vtr"): preencher só a força e salvar tem que
+  gravar o símbolo do botão, não o do primeiro item do formulário.
+- [ ] 15ap. As marcações ANTIGAS feitas pela paleta continuam como losango
+  vazio — isso é esperado, não tem conserto automático. Abra o popup de uma
+  delas: tem que aparecer a linha âmbar explicando e mandando editar e escolher
+  o símbolo certo. Corrija uma pelo Editar e confirme que passa a desenhar.
+
 Qualquer item marcado como falha vira a prioridade do próximo chat — cole este checklist preenchido para retomar com contexto completo.

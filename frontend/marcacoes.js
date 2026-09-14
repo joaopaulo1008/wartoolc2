@@ -27,7 +27,7 @@ import { supabase, traduzirErro, buscarPerfilBasico, buscarPartidosDaTurma } fro
 import {
   getSIDC, decomporSidc, descreverSidc,
   CATEGORIAS, categoriaPorId, nomeDoItem, designacaoDoMapa, exigeDesignacao,
-  sidcExigeDesignacao,
+  sidcExigeDesignacao, sidcDaMarcacao,
 } from './simbolos.js';
 import { formatarCoordenada, observarFormatoCoordenada } from './preferencias.js';
 // Distância e azimute de quem observa até o elemento marcado — o vetor que o
@@ -267,20 +267,30 @@ function construirPopupHtml(row, autorPerfil, editorPerfil) {
 
   // A marcação que saiu como losango vazio explica a si mesma (2026-09-14).
   //
-  // O aviso no formulário e a recusa na paleta só valem daqui para a frente.
-  // O que JÁ está gravado com um símbolo cujo desenho é a sigla — e sem sigla
-  // — continua no mapa, e continuaria para sempre, sem nada na tela dizendo
-  // por que aquele elemento não tem desenho. É o mesmo defeito que gerou o
-  // relato de campo, só que na cópia que ninguém corrigiu ainda.
+  // **O texto desta linha foi REESCRITO depois de achar a causa de verdade**, e
+  // a primeira versão dele é um bom exemplo de aviso que orienta errado. Ela
+  // dizia "edite e preencha a sigla", porque na época eu achava que a pessoa
+  // tinha escolhido "Comando Nomeado" de propósito. Não tinha: a esmagadora
+  // maioria destas marcações veio do defeito de gravação da paleta (ver
+  // `sidcDaMarcacao()` em simbolos.js), onde este símbolo é o DEFAULT que sobra
+  // quando nenhum campo chega — ou seja, o símbolo não é o que ninguém
+  // escolheu, e mandar preencher a sigla consertaria o desenho mantendo o
+  // elemento errado.
   //
-  // A linha aparece SÓ quando as duas coisas são verdade (símbolo exige sigla
-  // E a designação está vazia); com a sigla preenchida o símbolo desenha
-  // certo e não há nada a dizer. Quem tem o botão Editar logo abaixo resolve
-  // em dois toques — e é por isso que o texto termina apontando para ele.
+  // O texto agora diz as duas coisas, na ordem provável: quase certamente o
+  // símbolo está errado e deve ser trocado; se for mesmo um comando nomeado,
+  // aí sim falta a sigla. O botão Editar está logo abaixo e resolve os dois.
+  //
+  // A linha aparece SÓ quando as duas condições valem (símbolo exige sigla E a
+  // designação está vazia) — com a sigla preenchida o símbolo desenha certo e
+  // não há nada a dizer.
   const linhaSemDesenho = (sidcExigeDesignacao(row.sidc) && !designacao)
     ? `<div class="popup-row mc-sem-desenho"><span class="popup-label">Sem desenho</span>` +
-      `<span class="popup-value">Este símbolo é desenhado com a SIGLA da unidade no centro. ` +
-      `Sem "Designação da unidade" ele sai vazio no mapa — edite e preencha a sigla.</span></div>`
+      `<span class="popup-value">Este elemento está gravado como <b>Comando Nomeado</b>, ` +
+      `que é desenhado com a SIGLA da unidade no centro — sem sigla, sai vazio. ` +
+      `Marcações feitas pela paleta antes da correção de 14/09 caíram nele por engano: ` +
+      `se não era isto que você marcou, <b>edite e escolha o símbolo certo</b>. ` +
+      `Se era, preencha "Designação da unidade".</span></div>`
     : '';
 
   // Etapa 6a: o autor só vê Editar/Remover se `editar_marcacao_propria`
@@ -917,18 +927,23 @@ function abrirFormulario(latlng, { marcacaoExistente, sidcInicial, partidoInicia
 // (o fato que a Etapa 4.5 corrigiu). Quem lê depois, lê através de
 // sidcParaObservador(), nunca deste SIDC cru.
 async function salvarMarcacao({ latlng, marcacaoExistente, valores }) {
-  // Etapa 9b: o SIDC é montado a partir da CATEGORIA (que é o symbol set) e
-  // do código de entidade escolhidos no catálogo, mais os dois modificadores.
-  // Continua sendo `getSIDC()` de simbolos.js montando um SIDC NOVO e
-  // completo — nunca splicing de dígitos do SIDC antigo (decisão da Etapa 5,
-  // mantida: `decomporSidc()` serve só para PRÉ-PREENCHER).
-  const sidc = getSIDC({
-    dimensao: valores.categoriaId,
-    escalao: valores.escalao,
-    natureza_code: valores.codigoEntidade,
-    mod1: valores.mod1,
-    mod2: valores.mod2,
-  });
+  // Uma linha, e o defeito mais caro desta série morava aqui.
+  //
+  // Até 2026-09-14 este trecho chamava `getSIDC()` direto com os CINCO campos
+  // do formulário. Funcionava para o formulário e estava errado para a paleta,
+  // que não tem esses cinco campos — ela tem o SIDC pronto do preset. Os cinco
+  // chegavam `undefined`, `getSIDC()` caía em todos os defaults, e o default
+  // dele é `10011000000000000000`: o losango vazio que apareceu no mapa.
+  // **Toda marcação feita pela paleta saiu assim, desde o primeiro dia.**
+  //
+  // `sidcDaMarcacao()` (simbolos.js, puro e testado) é a regra inteira em uma
+  // frase: se já existe um SIDC, ele É o SIDC; só se monta um quando não há.
+  // O round-trip preset -> banco é travado por teste em paleta.teste.mjs.
+  //
+  // Continua valendo a decisão da Etapa 5 para o formulário: quando o SIDC é
+  // montado, ele é montado NOVO e completo, nunca por splicing de dígitos do
+  // antigo (`decomporSidc()` serve só para PRÉ-PREENCHER).
+  const sidc = sidcDaMarcacao(valores);
   // `titulo` volta a ser o que a `0001` sempre disse que era — "rótulo curto
   // exibido no mapa" —, ou seja a DESIGNAÇÃO da unidade digitada pelo
   // usuário. Pode ser vazio: o tipo do elemento não precisa ser gravado

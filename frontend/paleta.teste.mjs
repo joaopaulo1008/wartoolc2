@@ -28,7 +28,9 @@ import {
 // Para a seção de hostilidade da paleta. svgDoSimbolo() em si não é testável
 // aqui (importa leaflet/milsymbol, que não rodam em Node) — mas a regra que
 // ela precisa aplicar é esta, e é puramente de simbolos.js.
-import { sidcParaObservador, sidcExigeDesignacao } from './simbolos.js';
+import {
+  sidcParaObservador, sidcExigeDesignacao, sidcDaMarcacao, getSIDC, descreverSidc,
+} from './simbolos.js';
 // Puro também (só monta strings de <option> a partir do catálogo) — é o que
 // permite testar aqui a lista que a aba do instrutor oferece.
 import { opcoesItem } from './catalogo-form.js';
@@ -289,6 +291,62 @@ for (const [rotulo, sidc] of PALETA_PADRAO) {
   ok(`"${rotulo}" passa na validação e tem desenho próprio`,
     validarPreset({ rotulo, sidc }).ok, true);
 }
+
+// =============================================================================
+// O SIDC QUE VAI AO BANCO É O SIDC DO BOTÃO (2026-09-14)
+// =============================================================================
+//
+// **Este é o teste que faltava, e a falta dele custou três correções erradas.**
+//
+// O defeito: `salvarMarcacao()` sempre REMONTAVA o SIDC a partir de cinco
+// campos do formulário (categoria, entidade, escalão, mod1, mod2). A paleta não
+// tem esses cinco campos — `valoresDaMarcacao()` devolve o SIDC PRONTO do
+// preset. Os cinco chegavam `undefined`, `getSIDC()` caía em todos os defaults,
+// e o default dele é `10011000000000000000`: symbol set 10, entidade `000000`,
+// "Comando Nomeado" — o losango vazio relatado em campo.
+//
+// Ninguém nunca escolheu aquele símbolo. Ele era **o que sobra quando não se
+// escolhe nada**. E o erro era invisível em todo lugar menos no mapa: o botão
+// desenha `preset.sidc` e sempre esteve certo.
+//
+// A asserção abaixo é de uma linha e teria apanhado isso no primeiro dia. Ela
+// não testa uma função interna qualquer: testa a MESMA `sidcDaMarcacao()` que
+// `salvarMarcacao()` chama, alimentada pela MESMA `valoresDaMarcacao()` que a
+// paleta usa. É o caminho de gravação inteiro, sem banco.
+console.log('\n── O que está no botão é o que vai para o mapa ──────────');
+
+for (const [rotulo, sidc] of PALETA_PADRAO) {
+  ok(`"${rotulo}": o SIDC gravado é IDÊNTICO ao do botão`,
+    sidcDaMarcacao(valoresDaMarcacao({ sidc, partido_padrao_id: null })), sidc);
+}
+
+// O caso exato do defeito, travado nominalmente: se algum dia alguém voltar a
+// remontar o SIDC a partir de campos que a paleta não tem, é aqui que aparece —
+// com o nome do símbolo errado que sairia, não com um código cru.
+ok('sem nenhum campo, getSIDC() ainda cai em Comando Nomeado (o default)',
+  getSIDC({}), '10011000000000000000');
+ok('e ERA ISSO que a paleta gravava — a regressão tem nome',
+  descreverSidc(getSIDC({})).startsWith('Comando Nomeado'), true);
+ok('mas sidcDaMarcacao() com o SIDC do preset NÃO cai nesse default',
+  sidcDaMarcacao({ sidc: SIDC_OK }) !== getSIDC({}), true);
+
+// O formulário continua funcionando: sem `sidc`, monta a partir dos campos.
+ok('sem SIDC pronto, monta a partir dos cinco campos do formulário',
+  sidcDaMarcacao({ categoriaId: 'unidades', codigoEntidade: '121100', escalao: 'PEL', mod1: '00', mod2: '00' }),
+  getSIDC({ dimensao: 'unidades', natureza_code: '121100', escalao: 'PEL', mod1: '00', mod2: '00' }));
+ok('SIDC malformado NÃO é aceito como pronto — cai na montagem',
+  sidcDaMarcacao({ sidc: '123', categoriaId: 'unidades', codigoEntidade: '121100' }),
+  getSIDC({ dimensao: 'unidades', natureza_code: '121100' }));
+ok('e SIDC de 20 caracteres com letra também não passa por pronto',
+  sidcDaMarcacao({ sidc: 'abcdefghijklmnopqrst' }), getSIDC({}));
+
+// `valoresDaMarcacao` é o outro lado do par: o que ela devolve tem que bastar.
+const vGravar = valoresDaMarcacao({ sidc: SIDC_OK, partido_padrao_id: 'p-verm' });
+ok('valoresDaMarcacao devolve o SIDC do preset intacto', vGravar.sidc, SIDC_OK);
+ok('e o partido padrão, quando o preset tem um', vGravar.partidoId, 'p-verm');
+const vPerguntar = valoresDaMarcacao({ sidc: SIDC_OK, partido_padrao_id: null }, 'p-azul');
+ok('no modo perguntar, o partido escolhido pelo aluno prevalece', vPerguntar.partidoId, 'p-azul');
+ok('e o SIDC continua sendo o do preset, não o do formulário', vPerguntar.sidc, SIDC_OK);
 
 // =============================================================================
 // A lacuna de envio quando o celular dorme (2026-09-14)

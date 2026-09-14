@@ -472,6 +472,17 @@ Três entregas fora da fila de etapas, todas nascidas do app na mão em campo
   ÚNICA forma de rastrear com a tela apagada. Custo: vira app instalável, com
   assinatura, distribuição e um segundo alvo para manter. Complexidade: alta.
 
+- [x] **A causa de verdade do "símbolo genérico": a paleta gravava o default de
+  `getSIDC()`** (2026-09-14). `salvarMarcacao()` sempre remontava o SIDC a
+  partir de cinco campos do formulário; a paleta não tem esses campos, tem o
+  SIDC pronto. Os cinco chegavam `undefined` e `getSIDC({})` devolve
+  `10011000000000000000` — "Comando Nomeado", o losango vazio. **Toda marcação
+  feita pela paleta saiu assim desde o primeiro dia**, e os três diagnósticos
+  anteriores trataram sintomas. Corrigido com `sidcDaMarcacao()` (se já existe
+  um SIDC, ele É o SIDC) e um teste de round-trip preset → banco que falha com
+  o código antigo. As marcações já gravadas só se corrigem à mão, pelo Editar —
+  o SIDC pretendido nunca chegou a ser gravado.
+
 ## Como abrir cada etapa
 
 No início do chat, algo como:
