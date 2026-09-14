@@ -688,8 +688,37 @@ export function iniciarSituacao({ userId, perfil, aoPedirRastro: callback } = {}
 // Chamado por instrutor.html toda vez que a aba "Situação atual" é aberta.
 // Mesma razão de aoAbrirDebriefing() na 6b: só monta o Leaflet quando o
 // container já está visível.
+// Reler a turma a cada ABERTURA da aba, e não só na primeira (2026-09-14).
+//
+// `carregarTudo()` roda uma vez só, e até aqui isso bastava. Deixou de bastar
+// quando a aba "Permissões e forças" ganhou o editor de SÍMBOLO do aluno: o
+// instrutor corrige o símbolo, volta para cá e vê o avatar antigo — a mesma
+// classe de defeito que já custou caro neste projeto, a correção que parece
+// não ter funcionado. Vale igual para a troca de FORÇA, que tinha a mesma
+// janela de defasagem e ninguém tinha notado.
+//
+// É barato: `perfis` de uma turma são dezenas de linhas, e isto roda só no
+// clique da aba. Redesenhar os marcadores já na hora (em vez de esperar a
+// próxima posição) importa porque um aluno parado pode levar até 30s para
+// mandar a próxima — tempo de sobra para o instrutor concluir que não pegou.
+// NÃO passa por desenharOuAtualizarMarcador(): aquela função apaga a etiqueta
+// de idade ("chegou posição nova"), e aqui não chegou posição nenhuma — quem
+// está sem sinal há 10 minutos voltaria a parecer recente por causa de uma
+// troca de ícone. Troca o ícone e reescreve a idade que o estado já conhece,
+// com a mesma aplicarIdade() da vigia.
+async function reatualizarTurma() {
+  if (!turmaAtual) return;
+  await carregarUsuarios(turmaAtual.id);
+  for (const [usuarioId, estado] of posicoes) {
+    if (!estado.marker) continue;
+    estado.marker.setIcon(iconePosicao(usuarioPorId(usuarioId)));
+    aplicarIdade(usuarioId, idadeMs(estado.row?.atualizado_em));
+  }
+}
+
 export function aoAbrirSituacao() {
   garantirMapa();
+  if (iniciado) reatualizarTurma();
   if (!iniciado) {
     iniciado = true;
     carregarTudo();

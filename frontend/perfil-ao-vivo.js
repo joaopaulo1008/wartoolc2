@@ -37,6 +37,7 @@ import { supabase } from './auth.js';
 
 let canal = null;
 let partidoConhecido = null;   // o partido com que ESTA página foi montada
+let sidcConhecido = null;      // idem para o símbolo, para não redesenhar à toa
 let recarregando = false;
 
 // Um aviso curto antes do reload, em vez da tela sumir do nada no meio de
@@ -89,8 +90,18 @@ async function nomeDoPartido(partidoId) {
 //   aqui) porque é exatamente o valor que os outros módulos usaram para
 //   desenhar; comparar contra qualquer outra coisa deixaria de responder
 //   "o que está na tela ficou velho?".
-export function iniciarPerfilAoVivo({ userId, partidoAtual }) {
+// sidcAtual / aoMudarSimbolo (2026-09-14): o painel do instrutor ganhou um
+// editor do SÍMBOLO do aluno, e sem isto a correção não chegava ao aparelho
+// dele sem F5.
+//
+// A resposta é DIFERENTE da troca de força, e é o ponto deste módulo: o
+// símbolo não entra em fn_usuarios_visiveis() nem na hostilidade relativa —
+// ele só muda um desenho. Recarregar a página por causa dele seria derrubar a
+// sessão de mapa de alguém em campo para trocar um ícone. Então aqui o evento
+// vira um callback, e quem sabe redesenhar (gps.js) redesenha.
+export function iniciarPerfilAoVivo({ userId, partidoAtual, sidcAtual, aoMudarSimbolo }) {
   partidoConhecido = partidoAtual || null;
+  sidcConhecido = sidcAtual || null;
 
   canal = supabase
     .channel(`perfil-${userId}`)
@@ -103,10 +114,20 @@ export function iniciarPerfilAoVivo({ userId, partidoAtual }) {
         filter: `id=eq.${userId}`,
       },
       async (payload) => {
+        const novoSidc = payload.new?.sidc || null;
+        if (novoSidc && novoSidc !== sidcConhecido) {
+          sidcConhecido = novoSidc;
+          try {
+            if (aoMudarSimbolo) aoMudarSimbolo(novoSidc);
+          } catch (e) {
+            console.error('aoMudarSimbolo falhou:', e);
+          }
+        }
+
         const novo = payload.new?.partido_id || null;
-        // Só interessa a troca de FORÇA. A mesma linha muda por outros
-        // motivos (nome de guerra, sidc, atualizado_em do trigger) e nenhum
-        // deles justifica derrubar a sessão de mapa de alguém.
+        // Só a troca de FORÇA recarrega. A mesma linha muda por outros
+        // motivos (nome de guerra, atualizado_em do trigger) e nenhum deles
+        // justifica derrubar a sessão de mapa de alguém.
         if (novo === partidoConhecido) return;
         partidoConhecido = novo;
         aoMudarPartido(await nomeDoPartido(novo));

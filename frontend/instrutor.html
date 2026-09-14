@@ -137,6 +137,49 @@
   }
   .forca-linha select:disabled { opacity:.4; cursor:not-allowed; }
   .forca-linha .grade-sub { max-width:46ch; }
+
+  /* Símbolo (avatar) do aluno — 2026-09-14. Mesma família visual da linha de
+     força: os dois são colunas de `perfis`, não permissões. */
+  .simbolo-linha {
+    display:flex; align-items:center; gap:10px; flex-wrap:wrap;
+    padding:9px 12px; margin:10px 0; border-radius:5px;
+    background:#16263a; border-left:3px solid #2a5a8c;
+  }
+  .simbolo-previa { display:inline-flex; align-items:center; min-width:38px; }
+  .simbolo-previa svg { display:block; max-height:38px; width:auto; }
+  .simbolo-nome { font-size:13px; color:#e8eaf0; }
+  .simbolo-linha .grade-sub { max-width:46ch; }
+  .btn-simbolo, .btn-remover-turma, .btn-salvar-simbolo {
+    padding:5px 12px; border-radius:4px; font-size:12px; font-family:inherit;
+    cursor:pointer; border:1px solid #2a4a6b; background:#0d1b2a; color:#a8c8e8;
+  }
+  .btn-simbolo:hover, .btn-salvar-simbolo:hover { border-color:#4a7ab0; color:#e8eaf0; }
+  .btn-simbolo:disabled, .btn-remover-turma:disabled, .btn-salvar-simbolo:disabled {
+    opacity:.4; cursor:not-allowed;
+  }
+  .simbolo-editor {
+    padding:12px; margin:0 0 10px; border-radius:5px;
+    background:#101d2e; border:1px solid #2a4a6b;
+  }
+  .simbolo-previa-caixa {
+    display:flex; align-items:center; gap:10px; margin:10px 0;
+    padding:8px; border-radius:4px; background:#0d1b2a;
+  }
+  .simbolo-previa-caixa svg { display:block; }
+  .simbolo-acoes { display:flex; gap:8px; }
+  .btn-salvar-simbolo { border-color:#2f6f3f; color:#8ce8a0; }
+  .btn-salvar-simbolo:hover { border-color:#4a9a5f; color:#c8f5d4; }
+
+  /* Remover da turma — vermelho discreto: é reversível (nada é apagado), e um
+     botão gritante aqui convidaria a tratar como exclusão o que não é. */
+  .remover-linha {
+    display:flex; align-items:center; gap:10px; flex-wrap:wrap;
+    padding:9px 12px; margin:10px 0; border-radius:5px;
+    background:#241a1a; border-left:3px solid #8c3a3a;
+  }
+  .remover-linha .grade-sub { max-width:52ch; }
+  .btn-remover-turma { border-color:#8c3a3a; color:#f0a0a0; }
+  .btn-remover-turma:hover { border-color:#c05050; color:#ffd0d0; }
   .grade-sub b { color:#a8c8e8; }
   .aviso-inline { color:#f5e07a; }
   .grade-secao {

@@ -301,6 +301,50 @@ function assinarCanal(turmaId, userId, { map }) {
         upsertAvatar(row, { map });
       }
     )
+    // ── Perfil do colega mudou (2026-09-14) ──────────────────────────────
+    // `perfisCache` é povoado UMA vez, no ativar(), e até aqui nada o
+    // invalidava: quando o painel do instrutor ganhou o editor de símbolo,
+    // trocar o avatar de um aluno não chegava a tela nenhuma sem F5 — e o
+    // instrutor não tem como saber que a correção dele não valeu.
+    //
+    // Só `sidc` e `nome_guerra` importam: são os dois campos que entram no
+    // desenho. Troca de `partido_id` NÃO é tratada aqui de propósito — ela
+    // muda quem cada um enxerga (fn_usuarios_visiveis), e quem responde a
+    // isso é perfil-ao-vivo.js, recarregando a página inteira.
+    //
+    // `perfis` já é publicada no Realtime desde a 0004 (ela existe para o
+    // perfil-ao-vivo.js), então nada de novo é preciso no banco.
+    .on(
+      'postgres_changes',
+      {
+        event: 'UPDATE',
+        schema: 'public',
+        table: 'perfis',
+        filter: `turma_id=eq.${turmaId}`,
+      },
+      (payload) => {
+        const row = payload.new;
+        if (!row || row.id === userId) return; // o próprio avatar é do gps.js
+        const estado = colegas.get(row.id);
+        const antigo = perfisCache.get(row.id);
+        const perfil = { ...(antigo || {}), ...row, partido: antigo?.partido ?? null };
+        perfisCache.set(row.id, perfil);
+        if (!estado) return; // ainda sem posição na tela — o cache já basta
+        estado.perfil = perfil;
+        const mudouDesenho = !antigo
+          || antigo.sidc !== row.sidc
+          || antigo.nome_guerra !== row.nome_guerra;
+        if (!mudouDesenho) return;
+        estado.marker.setIcon(criarIconeColega(perfil.sidc, perfil.nome_guerra, perfil.partido));
+        // setIcon() troca o elemento do marcador no DOM e leva junto a
+        // etiqueta de idade que estava escrita nele. Sem reescrever, um colega
+        // sem sinal há 10 minutos voltaria a parecer recente só porque o
+        // instrutor corrigiu o símbolo dele — mentira barata e difícil de
+        // rastrear depois. `aplicarIdade` é a mesma função que a vigia usa.
+        aplicarIdade(row.id, idadeMs(estado.ultimaAtualizacaoEm));
+        if (estado.ultimaLinha) estado.marker.bindPopup(popupColega(perfil, estado.ultimaLinha));
+      }
+    )
     .subscribe((estadoCanal) => {
       if (estadoCanal === 'SUBSCRIBED') {
         status(`${colegas.size} visível${colegas.size === 1 ? '' : 'eis'} (ao vivo)`, '#7af57a');

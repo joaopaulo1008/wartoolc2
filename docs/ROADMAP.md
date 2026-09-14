@@ -357,6 +357,21 @@ que agora abre com a ordem de prioridade para um tempo curto em campo.
   do alvo a um terceiro, e falta confirmar, de dentro da rede do Exército, se o
   BDGEx entrega elevação por ponto.
 
+- [x] **Símbolo do aluno e "Remover da turma", no painel** (2026-09-14,
+  migration `0012`). Duas colunas de `perfis` que só existiam como UPDATE no
+  SQL Editor viraram controles na linha do aluno, vizinhos do seletor de força.
+  O editor de símbolo reusa os seletores de `catalogo-form.js` e **aceita o
+  "Comando Nomeado"**, ao contrário da paleta — no avatar a sigla existe
+  sempre, é o nome de guerra. **A remoção precisou de migration por um motivo
+  que só apareceu rodando contra Postgres de verdade:** o UPDATE de
+  `turma_id = null` é recusado pela policy de **SELECT** (`perfis_ler`), não
+  pela de UPDATE — a linha deixa de ser visível para quem a alterou. Virou
+  `fn_remover_da_turma()`, `security definer`, mesmo padrão de
+  `entrar_na_turma()`. Nada é apagado além da posição ATUAL (senão o removido
+  vira fantasma no mapa do instrutor); conta, marcações e rastro ficam.
+  **Registrado sem conserto:** pela API, um aluno consegue trocar o próprio
+  `sidc` — a decisão da 9b vale para a interface, não para o banco.
+
 ## A fazer, em ordem
 
 - [ ] **Etapa 2 — Autenticação e papéis** *(em andamento — dividida em 2a e 2b)*

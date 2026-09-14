@@ -33,7 +33,17 @@ import {
   buscarTurmasDoInstrutor,
   buscarPartidosDaTurma,
   definirPartidoDoUsuario,
+  definirSidcDoUsuario,
+  removerDaTurma,
 } from './auth.js';
+import {
+  getSIDC, decomporSidc, descreverSidc, categoriaPorId, CATEGORIAS,
+  validarSidcDePerfil,
+} from './simbolos.js';
+import { svgDoSimbolo } from './icones.js';
+import {
+  opcoesCategoria, opcoesItem, opcoesModificador, opcoesEscalao,
+} from './catalogo-form.js';
 import {
   buscarCatalogo,
   buscarEfetivasDaTurma,
@@ -63,6 +73,11 @@ const permissoesDaTurma = new Map();
 
 // 'turma' (padrão da turma inteira) ou o uuid de um usuário.
 let selecionado = 'turma';
+
+// uuid do aluno cujo editor de símbolo está ABERTO, ou null. Mora no módulo,
+// e não no DOM, porque toda gravação chama renderizar() e redesenha a grade
+// inteira — um estado guardado só no HTML sumiria a cada salvamento.
+let editandoSimbolo = null;
 
 // Etapa 6b: quem quer saber em que turma o painel está trabalhando.
 // O seletor de turma mora aqui (é este módulo que o desenha e que decide a
@@ -359,6 +374,111 @@ function blocoForca(usuario) {
     </div>`;
 }
 
+// ── Símbolo (avatar) do aluno ────────────────────────────────────────────
+// Vizinho de blocoForca() pelo mesmo motivo que ele existe: é um campo de
+// `perfis`, não uma permissão, e é a outra coisa que o instrutor precisa
+// ajustar por pessoa. Até 2026-09-14 só existia como UPDATE no SQL Editor —
+// exatamente a situação em que a força estava antes da Etapa 6a.
+//
+// Os seletores são os MESMOS de catalogo-form.js que o aluno usa para marcar e
+// que o instrutor usa para montar a paleta. Nenhuma lista montada aqui: a
+// segunda cópia de uma regra de catálogo é a que oferece uma combinação que
+// não existe e gera um SIDC que a milsymbol desenha como outra coisa.
+//
+// `somenteComDesenho` fica DESLIGADO aqui, ao contrário da paleta: o avatar
+// sempre desenha o nome de guerra como uniqueDesignation (colegas.js, gps.js),
+// então "Comando Nomeado" — a moldura com a sigla no centro — é justamente o
+// caso em que aquele símbolo funciona. Ver validarSidcDePerfil() em simbolos.js.
+function blocoSimbolo(usuario) {
+  const sidcAtual = usuario.sidc || '';
+  const previa = svgDoSimbolo(sidcAtual, { tamanho: 34, partidoElemento: usuario.partido || null });
+  const nome = descreverSidc(sidcAtual) || 'símbolo não reconhecido';
+
+  if (usuario.papel === 'instrutor') {
+    return `
+      <div class="simbolo-linha">
+        <span class="forca-rotulo">Símbolo</span>
+        <span class="simbolo-previa">${previa}</span>
+        <span class="simbolo-nome">${esc(nome)}</span>
+        <span class="grade-sub">o instrutor não manda posição, então este símbolo não aparece no mapa de ninguém.</span>
+      </div>`;
+  }
+
+  const aberto = editandoSimbolo === usuario.id;
+  const linha = `
+    <div class="simbolo-linha">
+      <span class="forca-rotulo">Símbolo</span>
+      <span class="simbolo-previa">${previa}</span>
+      <span class="simbolo-nome">${esc(nome)}</span>
+      <button type="button" class="btn-simbolo" id="btn-simbolo"${podeEscrever ? '' : ' disabled'}>
+        ${aberto ? 'Cancelar' : 'Alterar'}
+      </button>
+      <span class="grade-sub">É o avatar dele no mapa. O nome de guerra aparece escrito ao lado do símbolo.</span>
+    </div>`;
+
+  if (!aberto) return linha;
+
+  // Pré-preenchido com o que ele TEM hoje, não com a primeira opção da lista:
+  // o instrutor quase sempre vem corrigir um detalhe (o escalão, um
+  // modificador), não montar do zero. Mesmo raciocínio do "Editar" da
+  // marcação, que a Etapa 9b fez abrir preenchido.
+  const d = decomporSidc(sidcAtual);
+  const categoriaId = d.categoriaId || CATEGORIAS[0].id;
+  const cat = categoriaPorId(categoriaId);
+
+  const blocosMod = [];
+  if (cat && cat.mod1.length) {
+    blocosMod.push(`<div class="campo"><label for="sim-mod1">Modificador 1</label>
+      <select id="sim-mod1">${opcoesModificador(cat.mod1, d.mod1)}</select></div>`);
+  }
+  if (cat && cat.mod2.length) {
+    blocosMod.push(`<div class="campo"><label for="sim-mod2">Modificador 2</label>
+      <select id="sim-mod2">${opcoesModificador(cat.mod2, d.mod2)}</select></div>`);
+  }
+
+  return `${linha}
+    <div class="simbolo-editor">
+      <div class="campo"><label for="sim-categoria">Categoria</label>
+        <select id="sim-categoria">${opcoesCategoria(categoriaId)}</select></div>
+      <div class="campo"><label for="sim-item">Tipo</label>
+        <select id="sim-item">${opcoesItem(categoriaId, d.codigoEntidade)}</select></div>
+      <div class="campo"><label for="sim-escalao">Escalão</label>
+        <select id="sim-escalao">${opcoesEscalao(d.escalao || 'NONE')}</select></div>
+      <div id="sim-mods">${blocosMod.join('')}</div>
+      <div class="simbolo-previa-caixa">
+        <span id="sim-previa"></span>
+        <span class="grade-sub" id="sim-previa-nome"></span>
+      </div>
+      <div class="simbolo-acoes">
+        <button type="button" class="btn-salvar-simbolo" id="btn-salvar-simbolo">Salvar símbolo</button>
+      </div>
+    </div>`;
+}
+
+// ── Tirar o aluno da turma ───────────────────────────────────────────────
+// O rótulo diz "Remover da turma" e NÃO "Excluir" porque nada é excluído — e
+// o texto ao lado repete isso, porque a palavra que a pessoa tem na cabeça ao
+// procurar esse botão é "excluir". Ver removerDaTurma() em auth.js para por
+// que a exclusão de verdade não está aqui (o cascade levaria o rastro e as
+// marcações junto, e apagar conta do Auth exige a service_role).
+//
+// Não aparece para instrutor nem para a própria conta: tirar a si mesmo da
+// turma derrubaria o acesso do painel à turma em que se está trabalhando.
+function blocoRemover(usuario) {
+  if (usuario.papel === 'instrutor' || usuario.id === meuUserId) return '';
+  return `
+    <div class="remover-linha">
+      <button type="button" class="btn-remover-turma" id="btn-remover-turma"${podeEscrever ? '' : ' disabled'}>
+        Remover da turma
+      </button>
+      <span class="grade-sub">
+        Ele some do mapa e desta lista, junto com a última posição dele.
+        <b>A conta, as marcações e o rastro ficam</b> — o debriefing não perde
+        nada, e ele volta digitando o código da turma.
+      </span>
+    </div>`;
+}
+
 function renderizarGradeUsuario(usuario) {
   const mapa = efetivasPorUsuario.get(usuario.id) || new Map();
   const ehInstrutor = usuario.papel === 'instrutor';
@@ -395,6 +515,8 @@ function renderizarGradeUsuario(usuario) {
     <div class="grade-cabecalho">
       <h2>${esc(nomeDoUsuario(usuario))}</h2>
       ${blocoForca(usuario)}
+      ${blocoSimbolo(usuario)}
+      ${blocoRemover(usuario)}
       ${nota}
     </div>
     <h3 class="grade-secao">Funções</h3>
@@ -452,6 +574,8 @@ function ligarEventosGrade({ alvoTurma, usuarioId }) {
     });
   }
 
+  if (!alvoTurma) ligarEventosPerfil(grade, usuarioId);
+
   grade.querySelectorAll('.btn-limpar').forEach((botao) => {
     botao.addEventListener('click', () => {
       const chave = botao.dataset.chave;
@@ -464,13 +588,132 @@ function ligarEventosGrade({ alvoTurma, usuarioId }) {
   });
 }
 
+// ── Símbolo e remoção: os dois controles que escrevem em `perfis` ────────
+// Separados de ligarEventosGrade() porque não são permissão: não passam pelas
+// tabelas de permissão nem pela view de precedência.
+function sidcDoEditor() {
+  const grade = document.getElementById('grade-permissoes');
+  if (!grade) return '';
+  const categoriaId = grade.querySelector('#sim-categoria')?.value || '';
+  const codigo = grade.querySelector('#sim-item')?.value || '';
+  if (!categoriaId || !codigo) return '';
+  return getSIDC({
+    dimensao: categoriaId,
+    natureza_code: codigo,
+    escalao: grade.querySelector('#sim-escalao')?.value || '',
+    mod1: grade.querySelector('#sim-mod1')?.value || '',
+    mod2: grade.querySelector('#sim-mod2')?.value || '',
+  });
+}
+
+// A prévia é desenhada pelo MESMO caminho do mapa (svgDoSimbolo ->
+// sidcParaObservador), com o partido do aluno decidindo a cor. É o que deixa
+// um engano visível aqui, antes de o aluno aparecer errado para a turma toda.
+function atualizarPreviaSimbolo(usuario) {
+  const grade = document.getElementById('grade-permissoes');
+  const alvo = grade?.querySelector('#sim-previa');
+  const desc = grade?.querySelector('#sim-previa-nome');
+  if (!alvo) return;
+  const sidc = sidcDoEditor();
+  if (!sidc) { alvo.innerHTML = ''; if (desc) desc.textContent = ''; return; }
+  alvo.innerHTML = svgDoSimbolo(sidc, { tamanho: 44, partidoElemento: usuario?.partido || null }) || '';
+  if (desc) desc.textContent = descreverSidc(sidc) || '';
+}
+
+function ligarEventosPerfil(grade, usuarioId) {
+  const usuario = usuarios.find((u) => u.id === usuarioId) || null;
+
+  const btnSimbolo = grade.querySelector('#btn-simbolo');
+  if (btnSimbolo) {
+    btnSimbolo.addEventListener('click', () => {
+      editandoSimbolo = editandoSimbolo === usuarioId ? null : usuarioId;
+      renderizar();
+    });
+  }
+
+  const editor = grade.querySelector('.simbolo-editor');
+  if (editor) {
+    atualizarPreviaSimbolo(usuario);
+
+    // Trocar de categoria troca a lista inteira de tipos E de modificadores —
+    // os modificadores são POR CATEGORIA no catálogo oficial, então manter os
+    // antigos produziria um SIDC que significa outra coisa.
+    grade.querySelector('#sim-categoria')?.addEventListener('change', (ev) => {
+      const categoriaId = ev.target.value;
+      const item = grade.querySelector('#sim-item');
+      if (item) item.innerHTML = opcoesItem(categoriaId, '');
+      const cat = categoriaPorId(categoriaId);
+      const mods = grade.querySelector('#sim-mods');
+      if (mods) {
+        const blocos = [];
+        if (cat && cat.mod1.length) {
+          blocos.push(`<div class="campo"><label for="sim-mod1">Modificador 1</label>
+            <select id="sim-mod1">${opcoesModificador(cat.mod1, '')}</select></div>`);
+        }
+        if (cat && cat.mod2.length) {
+          blocos.push(`<div class="campo"><label for="sim-mod2">Modificador 2</label>
+            <select id="sim-mod2">${opcoesModificador(cat.mod2, '')}</select></div>`);
+        }
+        mods.innerHTML = blocos.join('');
+        mods.querySelectorAll('select').forEach((s) =>
+          s.addEventListener('change', () => atualizarPreviaSimbolo(usuario)));
+      }
+      atualizarPreviaSimbolo(usuario);
+    });
+
+    ['#sim-item', '#sim-escalao', '#sim-mod1', '#sim-mod2'].forEach((sel) => {
+      grade.querySelector(sel)?.addEventListener('change', () => atualizarPreviaSimbolo(usuario));
+    });
+
+    grade.querySelector('#btn-salvar-simbolo')?.addEventListener('click', () => {
+      const v = validarSidcDePerfil(sidcDoEditor());
+      if (!v.ok) { aviso(v.erro, 'erro'); return; }
+      editandoSimbolo = null;
+      gravar(() => definirSidcDoUsuario(usuarioId, v.valor));
+    });
+  }
+
+  const btnRemover = grade.querySelector('#btn-remover-turma');
+  if (btnRemover) {
+    btnRemover.addEventListener('click', () => {
+      const nome = usuario ? nomeDoUsuario(usuario) : 'este aluno';
+      if (!confirm(
+        `Remover ${nome} da turma?\n\n` +
+        'Ele some do mapa e do painel na hora, inclusive a última posição dele ' +
+        'no seu mapa.\n\n' +
+        'A conta, as marcações que ele fez e o rastro inteiro do exercício ' +
+        'CONTINUAM guardados — o debriefing não perde nada.\n\n' +
+        'Para voltar, ele digita o código da turma no app.'
+      )) return;
+      if (editandoSimbolo === usuarioId) editandoSimbolo = null;
+      gravar(() => removerDaTurma(usuarioId), { aoFalhar: erroDeRemocao });
+    });
+  }
+}
+
+// `fn_remover_da_turma` (0012) já levanta mensagens em português explicando
+// cada recusa ("Somente o instrutor da turma pode remover alguém dela.").
+// O que falta é o caso em que a própria FUNÇÃO não existe: o painel novo
+// rodando contra um banco onde a 0012 ainda não foi aplicada. O sintoma cru
+// ("Could not find the function public.fn_remover_da_turma") não diz o que
+// fazer, e é o erro mais provável logo depois de um deploy.
+function erroDeRemocao(error) {
+  const msg = error.message || '';
+  if (/fn_remover_da_turma/.test(msg) && /function|schema cache|not find/i.test(msg)) {
+    return 'Este botão depende da migration 0012, que ainda não foi aplicada neste '
+      + 'banco. Rode backend/supabase/0012_remover_da_turma.sql no SQL Editor do '
+      + 'Supabase (é idempotente) e tente de novo.';
+  }
+  return null;
+}
+
 // Toda escrita passa por aqui: desabilita a grade enquanto grava (para dois
 // cliques rápidos não gerarem duas escritas concorrentes com o mesmo estado
 // de partida), relê e redesenha. A releitura é obrigatória, não cosmética: o
 // valor efetivo depois da escrita depende da precedência, e quem resolve
 // precedência é a view — não este arquivo.
 let gravando = false;
-async function gravar(operacao) {
+async function gravar(operacao, { aoFalhar = null } = {}) {
   if (gravando) return;
   gravando = true;
   aviso('');
@@ -481,7 +724,8 @@ async function gravar(operacao) {
   if (error) {
     // A causa mais comum aqui é RLS: o instrutor não é o responsável pela
     // turma nem está lotado nela (ver fn_sou_instrutor_da_turma em 0002).
-    aviso(`Não foi possível salvar: ${error.message}`, 'erro');
+    const especifico = aoFalhar ? aoFalhar(error) : null;
+    aviso(especifico || `Não foi possível salvar: ${error.message}`, 'erro');
   }
 
   await recarregarDados();

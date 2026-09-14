@@ -399,6 +399,35 @@ export function sidcExigeDesignacao(sidc) {
   return exigeDesignacao(sidc.slice(4, 6), sidc.slice(10, 16));
 }
 
+// ── O SIDC que pode virar AVATAR de uma pessoa ───────────────────────────
+// `perfis.sidc` é `not null check (sidc ~ '^[0-9]{20}$')` desde a 0001. Esta
+// função é a tradução dessa regra para o cliente: ela existe para o painel do
+// instrutor nunca MANDAR ao banco um valor que o `check` vai devolver como
+// erro cru de Postgres.
+//
+// POR QUE ELA NÃO RECUSA O "COMANDO NOMEADO", AO CONTRÁRIO DA PALETA
+// -------------------------------------------------------------------
+// A regra do projeto desde 2026-09-14 é "onde há campo de sigla, avisa; onde
+// não há, recusa" — e um avatar SEMPRE tem sigla: `colegas.js` e `gps.js`
+// passam o **nome de guerra** como `designacao` (uniqueDesignation) ao
+// desenhar. Ou seja, `10:000000` no avatar é o caso em que aquele símbolo
+// FUNCIONA: a moldura com o nome de guerra no centro é exatamente o que ele
+// significa. Recusá-lo aqui seria copiar a conclusão da paleta sem copiar o
+// motivo dela — que era a AUSÊNCIA de um campo onde guardar a sigla.
+//
+// Recusar o vazio é o ponto: a coluna é `not null`, então "apagar o símbolo"
+// não é um estado que exista. Quem quer um avatar neutro escolhe um símbolo
+// neutro.
+export function validarSidcDePerfil(sidc) {
+  if (typeof sidc !== 'string' || sidc === '') {
+    return { ok: false, erro: 'Escolha uma categoria e um tipo antes de salvar.' };
+  }
+  if (!/^[0-9]{20}$/.test(sidc)) {
+    return { ok: false, erro: 'Símbolo inválido: o SIDC precisa ter 20 dígitos.' };
+  }
+  return { ok: true, valor: sidc };
+}
+
 // Um resumo em português do que um SIDC representa, para popup e listagem —
 // "Infantaria · Pelotão · Aeromóvel". Devolve '' quando não dá para dizer
 // nada (SIDC inválido ou categoria desconhecida), e nunca lança.

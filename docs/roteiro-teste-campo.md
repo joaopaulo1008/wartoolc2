@@ -35,9 +35,9 @@ Sem isto pronto, nenhum item abaixo funciona:
 1. **GitHub Pages publicando via Actions.** ~~Deploy from branch → `main` / `/ (root)`~~ — **isto mudou na Etapa 9a**: com o Vite, o que precisa ser publicado é `dist/`, não a raiz do repo. Settings → Pages → Source = **"GitHub Actions"**. Confirmado funcionando em 2026-08-02 (o workflow roda em ~35 s por push). URL: `https://joaopaulo1008.github.io/wartoolc2/`.
 
    **Confira que o site no ar é o build atual antes de sair**: desde 2026-09-14 isso ficou trivial — **o rodapé do app mostra a data/hora do build**. Se ela não mudar depois de uma correção, o navegador está servindo a versão antiga (recarregue segurando Shift, ou abra numa aba anônima). O jeito antigo (F12 → Network, comparar o hash dos arquivos em `/wartoolc2/assets/` com o do último `npm run build` local) continua valendo como segunda opinião. Um push que falhou no Actions deixa o site anterior no ar, sem erro visível.
-2. **Migrations aplicadas** no SQL Editor do Supabase: `0001`-`0003` (desde etapas anteriores), `0004_perfis_realtime.sql`, `0005_rastro_historico.sql`, `0006_calcos.sql`, `0007_codigo_turma_valido.sql`, `0008_imagem_geo.sql`, **`0009_auditoria_edicao_e_preferencias.sql`** (Etapa 9b), **`0010_icones_rapidos.sql`** e **`0011_alvo_altitude_dimensoes.sql`** (2026-09-14).
+2. **Migrations aplicadas** no SQL Editor do Supabase: `0001`-`0003` (desde etapas anteriores), `0004_perfis_realtime.sql`, `0005_rastro_historico.sql`, `0006_calcos.sql`, `0007_codigo_turma_valido.sql`, `0008_imagem_geo.sql`, **`0009_auditoria_edicao_e_preferencias.sql`** (Etapa 9b), **`0010_icones_rapidos.sql`**, **`0011_alvo_altitude_dimensoes.sql`** e **`0012_remover_da_turma.sql`** (2026-09-14).
 
-   **A `0010` e a `0011` foram aplicadas em produção em 2026-09-14** — não é preciso rodar de novo. As duas são idempotentes de propósito (rodar duas vezes não quebra nem perde dado), então, na dúvida, rodar outra vez é seguro.
+   **A `0010` e a `0011` foram aplicadas em produção em 2026-09-14** — não é preciso rodar de novo. **A `0012` é a única PENDENTE**: sem ela o botão "Remover da turma" avisa na tela que falta a migration (não falha calado), e o editor de símbolo funciona normalmente. Todas são idempotentes de propósito (rodar duas vezes não quebra nem perde dado), então, na dúvida, rodar outra vez é seguro.
 
    A `0009` é a única cujo efeito não aparece sozinho na tela — se ela faltar (ou se só parte dela for colada), o app funciona normalmente e apenas a linha "Corrigido por …" nunca aparece no popup, o que é indistinguível de "o instrutor não corrigiu nada". Vale confirmar, é uma consulta só:
    ```sql
@@ -559,5 +559,50 @@ pode rodar de novo.
   frente"**. Deixe em branco: nenhuma das duas linhas aparece.
 - [ ] 15aw. Tente gravar frente 0: o navegador barra pelo `min=1`; se passar,
   o banco recusa (é o `check` da 0011).
+
+### Símbolo do aluno e "Remover da turma" (2026-09-14, migration 0012)
+
+**Aplicar a `0012` no Supabase antes destes itens** (`backend/supabase/0012_remover_da_turma.sql`,
+SQL Editor). É idempotente. Sem ela o editor de símbolo funciona, mas o botão
+"Remover da turma" avisa na tela que a migration falta — não falha calado.
+
+Os dois controles ficam na **linha do aluno selecionado**, na aba "Permissões e
+forças", logo abaixo do seletor de Força.
+
+- [ ] 15ax. Selecione um aluno: aparece a linha **Símbolo**, com o desenho
+  atual dele e o nome oficial ao lado ("Infantaria · Pelotão"). Toque em
+  **Alterar**: abrem categoria, tipo, escalão e modificadores, **já preenchidos
+  com o que ele tem**, não na primeira opção da lista.
+- [ ] 15ay. Mexa nos campos: a **prévia** muda na hora, na cor da força dele.
+- [ ] 15az. Salve. O símbolo novo aparece na linha do aluno e na lista.
+- [ ] 15ba. **Com o aparelho do aluno na mão, sem tocar em nada**: o avatar
+  dele muda sozinho, em segundos. **A página NÃO pode recarregar** — diferente
+  da troca de força, que recarrega de propósito. Se recarregar, é defeito.
+- [ ] 15bb. No aparelho de um COLEGA da mesma força: o avatar daquele aluno
+  também muda sozinho, sem F5.
+- [ ] 15bc. Se o aluno estava com etiqueta de idade (ex.: `3m`), ela
+  **continua** depois da troca de símbolo, com o mesmo número. Voltar a parecer
+  recente é defeito — foi o cuidado específico desta entrega.
+- [ ] 15bd. Vá para "Situação atual" e volte: o avatar dele lá também está com
+  o símbolo novo.
+- [ ] 15be. Escolha **Unidades → Comando Nomeado** para um aluno e salve: aqui
+  ele é **aceito** (ao contrário da paleta), e o avatar sai com o **nome de
+  guerra no centro**. É o caso em que esse símbolo funciona.
+- [ ] 15bf. Selecione a si mesmo (instrutor): a linha Símbolo aparece **sem
+  botão**, dizendo que o instrutor não aparece no mapa. E **não há** botão de
+  remover.
+
+- [ ] 15bg. **Remover da turma**: selecione um aluno e clique. A confirmação
+  tem que dizer que a conta, as marcações e o rastro ficam. Confirme.
+- [ ] 15bh. Ele some da lista de usuários da turma na hora.
+- [ ] 15bi. Some do mapa dos **colegas** e do mapa da aba **"Situação atual"** —
+  os dois. Ficar em um e sumir do outro é o defeito que a 0012 evita.
+- [ ] 15bj. Abra o **Debriefing** e busque o rastro dele no período: **o rastro
+  continua lá**. As marcações que ele fez também continuam no mapa. É a
+  promessa do botão.
+- [ ] 15bk. Peça para ele digitar o código da turma no app: **volta**, agora
+  sem força (o banco zera o partido ao sair). O instrutor redistribui.
+- [ ] 15bl. Clique em remover duas vezes seguidas num aluno já removido: não
+  pode dar erro na tela (a função é idempotente de propósito).
 
 Qualquer item marcado como falha vira a prioridade do próximo chat — cole este checklist preenchido para retomar com contexto completo.

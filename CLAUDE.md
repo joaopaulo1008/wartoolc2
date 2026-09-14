@@ -1260,6 +1260,123 @@ observador usa bússola, a diferença é real — decide-se em campo, item 14c) 
 coordenada de alvo para serviço público de terceiro é decisão de emprego, não
 detalhe de implementação — precisa de confirmação de dentro da rede do EB).
 
+### Símbolo do aluno e saída da turma, pelo painel (2026-09-14) — migration 0012
+
+Pedido de quem conduz a instrução, em duas partes: *"como eu posso agora, como
+instrutor, editar o símbolo dos usuários?"* e *"quero poder excluir alunos
+também"*. As duas viraram controles na linha do aluno selecionado, vizinhos do
+seletor de força — que é o lugar certo porque são a mesma natureza de coisa:
+colunas de `perfis`, não permissões.
+
+**1. Editor de símbolo — autoridade que existia e não tinha tela.** A policy
+`perfis_editar_instrutor` (0002) já liberava, e `fn_proteger_campos_do_perfil`
+nunca protegeu `sidc` — o comentário de `sidcDeFabrica()` em `simbolos.js` diz,
+desde a 9b, que "corrigir o símbolo de um aluno é atribuição do instrutor". O
+único caminho era o SQL Editor. Agora é `blocoSimbolo()` em
+`instrutor-permissoes.js`, usando os MESMOS seletores de `catalogo-form.js` que
+o aluno usa para marcar e o instrutor usa para montar a paleta — nenhuma lista
+montada à mão, pelo critério de sempre.
+
+- **`somenteComDesenho` fica DESLIGADO aqui, ao contrário da paleta**, e isso
+  não é incoerência: é a regra "onde há campo de sigla, avisa; onde não há,
+  recusa" aplicada a um lugar onde a sigla SEMPRE existe. `colegas.js` e
+  `gps.js` passam o **nome de guerra** como `uniqueDesignation`, então
+  "Comando Nomeado" (`10:000000`) no avatar é justamente o caso em que aquele
+  símbolo funciona. `validarSidcDePerfil()` (novo, em `simbolos.js`) aceita-o
+  de propósito, e há teste travando isso — se alguém "uniformizar" as duas
+  validações copiando a recusa da paleta, quebra ali.
+- **Descoberta desconfortável, registrada em vez de escondida:** pela API, com
+  o token dele, **um aluno CONSEGUE trocar o próprio `sidc`**. A decisão da 9b
+  ("símbolo é atribuição, não preferência") e o item 13b do roteiro valem para
+  a INTERFACE, que não oferece o caminho — não para o banco. Fechar é uma linha
+  em `fn_proteger_campos_do_perfil`; ficou de fora porque é decisão de escopo,
+  não consequência do pedido. O grupo B da `04` afirma o comportamento de hoje,
+  com a explicação do lado e a instrução de como invertê-lo.
+
+**2. "Remover da turma" — e a migration que não deveria precisar existir.**
+Das três leituras possíveis de "excluir aluno", a escolhida foi a que não apaga
+nada: `turma_id = null`. As outras duas foram descartadas com os números na
+mão: apagar a conta exige `service_role` (nunca no navegador) e, pelos
+`on delete cascade` de `elementos_marcados.autor_id`,
+`posicoes_historico.usuario_id` e `calcos.autor_id`, levaria o debriefing
+daquele aluno junto; `perfis.ativo = false` não BARRA nada hoje (nenhuma policy
+olha a coluna) e fazê-la valer exigiria mexer em `fn_usuarios_visiveis()`, que
+a Etapa 6.5 já vai reescrever.
+
+**Isso parecia não precisar de migration, e o Postgres disse que sim.** O
+UPDATE direto é recusado com `42501 / new row violates row-level security
+policy`, mesmo com o instrutor lotado na turma. A causa NÃO é a policy de
+UPDATE: trocar o `with check` dela por `true` não muda nada. **A barreira é
+`perfis_ler`, a policy de SELECT** — com `turma_id` indo a nulo, a linha deixa
+de casar com qualquer termo dela para aquele instrutor, e o banco recusa a
+escrita em vez de deixar alguém empurrar a linha para fora do próprio campo de
+visão. Medido com dois experimentos isolados (`perfis_ler using(true)` →
+passa; `with check (true)` na policy de UPDATE → continua recusando), não
+deduzido — a primeira hipótese, que era sobre lotação do instrutor, estava
+errada e foi o teste contra Postgres de verdade que derrubou.
+
+A saída é `fn_remover_da_turma()` (`0012`), `security definer`, mesmo padrão e
+mesmo motivo de `entrar_na_turma()` (0002): a operação atravessa a fronteira do
+que o chamador enxerga, então quem confere é a função. Quatro guardas
+(autenticado, instrutor DAQUELA turma, ninguém se remove, instrutor não é
+removido pelo painel) e idempotente — dois cliques em campo não podem virar
+exceção. **Afrouxar `perfis_ler` foi recusado**: alargar leitura para viabilizar
+escrita troca uma garantia real por conveniência de interface.
+
+- **A posição ATUAL sai junto, e só ela.** Sem isso o removido continuaria
+  desenhado no mapa do INSTRUTOR (a linha de `posicoes_atuais` guarda o
+  `turma_id` de quando foi gravada, e `posicoes_ler` libera tudo da turma para
+  ele), enquanto sumiria para os colegas — some para uns e fica para outros,
+  com quem clicou no botão sendo justamente quem veria o fantasma.
+  `posicoes_historico` fica intocado: é o que sustenta a frase do botão.
+- **Quem zera o partido é o banco**, não o cliente: `fn_normalizar_partido_do_perfil`
+  (0003) só dispara quando o partido chega INALTERADO junto com a troca de
+  turma, então mandar `partido_id: null` desarmaria o caminho já testado.
+
+**3. Propagação — o defeito que teria voltado.** Três telas desenhavam avatar a
+partir de `perfis` e nenhuma reagia a mudança: `colegas.js` povoa `perfisCache`
+uma vez, `perfil-ao-vivo.js` só olhava `partido_id`, e `situacao.js` carrega a
+turma uma vez só. Corrigido nos três, com respostas diferentes de propósito:
+
+- **`colegas.js`** ganhou um segundo listener no canal que já existe (em
+  `perfis`, publicada no Realtime desde a 0004 — nada novo no banco) e troca o
+  ícone. Só `sidc` e `nome_guerra` importam: `partido_id` continua sendo
+  assunto do `perfil-ao-vivo.js`.
+- **`perfil-ao-vivo.js`** ganhou `sidcAtual`/`aoMudarSimbolo` e **não
+  recarrega**: o símbolo não entra em `fn_usuarios_visiveis()` nem na
+  hostilidade relativa: recarregar a página de alguém em campo para trocar um
+  ícone seria perder rastreamento por nada. Quem redesenha é
+  `atualizarMeuSimbolo()` (novo, em `gps.js`).
+- **`situacao.js`** passou a reler a turma a CADA abertura da aba, não só na
+  primeira. Valia igual para a troca de força, que tinha a mesma janela de
+  defasagem e ninguém tinha notado.
+- Nos dois lugares onde o ícone é trocado, **a etiqueta de idade é reescrita
+  logo depois**: `setIcon()` recria o elemento do marcador e levaria a etiqueta
+  junto, fazendo alguém sem sinal há 10 minutos voltar a parecer recente só
+  porque o instrutor corrigiu o símbolo dele.
+
+**Verificação.** `backend/testes/04_teste_perfil_instrutor.sql` (novo, 28 casos,
+28/28) contra Postgres 16 + PostGIS em banco limpo, com `0001`–`0012` aplicadas
+e a `0012` rodada duas vezes (idempotência). **A primeira versão desse teste
+tinha três falhas próprias, e as três valem como lição**: o helper registrava só
+"passou/bloqueado" e não distinguia **exceção** de **zero linhas** — que é como
+a cláusula `USING` de uma policy recusa (ela FILTRA, não reclama), e ler isso
+como "passou" daria aprovação falsa num teste de segurança; duas asserções
+liam `perfis` ainda como o instrutor, depois da remoção, e recebiam NULO pela
+mesma mecânica que a 0012 existe para contornar; e o caso "instrutor não remove
+instrutor" apontava para um instrutor sem turma, parando no atalho de
+idempotência antes de exercitar a guarda. Mais: as outras três suítes de SQL
+verdes em bancos limpos (43+26+11), `valida_sql.py` nas 0001–0012,
+**732 casos de frontend** em onze suítes (`simbolos.teste.mjs` 35 → 48) e
+`npm run build`.
+
+**PENDENTE DE TESTE AO VIVO** (acrescentado a `docs/roteiro-teste-campo.md`):
+aplicar a `0012`; corrigir o símbolo de um aluno com o aparelho dele na mão e
+confirmar que o avatar muda **sem F5 e sem recarregar**; conferir que o colega
+dele também vê a troca; e remover um aluno confirmando que ele some dos dois
+mapas (o dos colegas e o do instrutor) e que o rastro dele continua no
+debriefing.
+
 ## Estrutura de pastas
 
 ```

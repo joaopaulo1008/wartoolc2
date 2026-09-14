@@ -357,6 +357,68 @@ export async function definirPartidoDoUsuario(usuarioId, partidoId) {
   return { error };
 }
 
+// Símbolo (avatar) de um aluno — 2026-09-14.
+//
+// A autoridade já existia e nunca teve tela: a policy `perfis_editar_instrutor`
+// (0002) libera o instrutor da turma, e `fn_proteger_campos_do_perfil` (0002)
+// protege `papel` e `turma_id` mas NUNCA protegeu `sidc` — de propósito, como
+// está escrito em sidcDeFabrica() (simbolos.js): "corrigir o símbolo de um
+// aluno é atribuição do instrutor". Até aqui o único caminho era o SQL Editor.
+//
+// O `check (sidc ~ '^[0-9]{20}$')` da 0001 é a barreira final; quem chama deve
+// passar por validarSidcDePerfil() antes, para o instrutor ver uma frase em
+// português em vez do erro cru do Postgres.
+export async function definirSidcDoUsuario(usuarioId, sidc) {
+  const { error } = await supabase
+    .from('perfis')
+    .update({ sidc })
+    .eq('id', usuarioId);
+  return { error };
+}
+
+// Tirar um aluno da turma — 2026-09-14.
+//
+// É EXCLUSÃO NENHUMA, e o nome diz isso: `turma_id = null`. A conta continua,
+// as marcações continuam, o rastro continua, e ele volta digitando o código da
+// turma. Foi a forma escolhida em 2026-09-14 depois de olhar o que as outras
+// duas custariam:
+//   - apagar a conta de verdade exige a `service_role` (que nunca vai ao
+//     navegador) E leva junto, por `on delete cascade`, as marcações
+//     (`elementos_marcados.autor_id`), o rastro inteiro
+//     (`posicoes_historico.usuario_id`) e os calcos dele — o debriefing
+//     daquele exercício perderia a parte dele, sem desfazer;
+//   - `perfis.ativo = false` (a coluna existe desde a 0001 e ninguém escreve
+//     nela) não BARRA nada hoje: nenhuma policy olha `ativo`, então o aluno
+//     desativado continuaria mandando posição. Fazer valer exigiria mexer em
+//     fn_usuarios_visiveis(), que é o coração da RLS.
+//
+// SÓ `turma_id` VAI NO UPDATE, e isso é deliberado: quem zera o partido é o
+// banco. `fn_normalizar_partido_do_perfil` (0003) tem a regra "partido é por
+// turma: sair da turma zera o partido", e ela só dispara quando o partido
+// chega INALTERADO junto com a troca de turma. Mandar `partido_id: null` aqui
+// desarmaria justamente o caminho testado.
+//
+// POR QUE É RPC, E NÃO UM UPDATE COMO definirPartidoDoUsuario()
+// --------------------------------------------------------------
+// Foi tentado como UPDATE direto primeiro, e o Postgres recusou:
+// `42501 / new row violates row-level security policy for table "perfis"`.
+// A barreira NÃO é a policy de UPDATE (trocá-la por `with check (true)` não
+// muda nada) — é a de **SELECT**: com `turma_id` indo a nulo, a linha deixa de
+// casar com qualquer termo de `perfis_ler` para aquele instrutor, e o banco não
+// deixa alguém escrever a linha para fora do próprio campo de visão. Está
+// medido em backend/testes/04_teste_perfil_instrutor.sql e explicado no
+// cabeçalho da 0012.
+//
+// A função é `security definer` e confere ela mesma quem chamou — mesmo padrão
+// (e mesmo motivo) de `entrar_na_turma()`: a operação atravessa a fronteira do
+// que o chamador enxerga. Ela também apaga a POSIÇÃO ATUAL do aluno, para ele
+// não ficar como fantasma no mapa do instrutor; o rastro histórico e as
+// marcações não são tocados.
+export async function removerDaTurma(usuarioId) {
+  const { error } = await supabase.rpc('fn_remover_da_turma', { p_usuario: usuarioId });
+  return { error };
+}
+
 // Turmas que ESTE instrutor pode administrar. A policy `turmas_ler` (0002)
 // devolve tanto a turma em que ele está lotado (perfis.turma_id) quanto as
 // que ele responde (turmas.instrutor_id) — que é exatamente o mesmo par de

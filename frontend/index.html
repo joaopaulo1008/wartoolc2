@@ -357,7 +357,7 @@ import { iniciarPerfilAoVivo } from './perfil-ao-vivo.js';
 // para calcular distância e azimute daqui até cada elemento marcado — o vetor
 // do observador avançado. gps.js é o dono de "onde eu estou"; marcacoes.js
 // não o importa, recebe a função por parâmetro (mesmo padrão de `map`).
-import { iniciarRastreamentoProprio, minhaPosicao } from './gps.js';
+import { iniciarRastreamentoProprio, minhaPosicao, atualizarMeuSimbolo } from './gps.js';
 import { iniciarColegas } from './colegas.js';
 import { iniciarMarcacoes } from './marcacoes.js';
 import { iniciarCamadas } from './camadas.js';
@@ -753,9 +753,14 @@ if (resultado) {
     // ver, então a reação é recarregar a página (com aviso) em vez de tentar
     // remendar o estado dos três módulos acima — ver o cabeçalho de
     // perfil-ao-vivo.js para o raciocínio.
+    // `sidcAtual`/`aoMudarSimbolo` (2026-09-14): o instrutor passou a poder
+    // corrigir o símbolo de um aluno pelo painel. Diferente da troca de força,
+    // isso NÃO recarrega — só redesenha o avatar (ver perfil-ao-vivo.js).
     iniciarPerfilAoVivo({
       userId: session.user.id,
       partidoAtual: perfil.partido_id,
+      sidcAtual: perfil.sidc,
+      aoMudarSimbolo: (sidc) => atualizarMeuSimbolo(sidc),
     });
 
     // Etapa 7: camadas de arquivo — os calcos KML/KMZ que o instrutor publicou

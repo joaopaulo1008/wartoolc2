@@ -14,7 +14,7 @@
 
 import {
   HOSTILIDADE, getSIDC, hostilidadeRelativa, aplicarHostilidade, sidcParaObservador,
-  ENTIDADES_SEM_DESENHO, exigeDesignacao,
+  ENTIDADES_SEM_DESENHO, exigeDesignacao, validarSidcDePerfil,
 } from './simbolos.js';
 import { CATEGORIAS } from './simbolos-catalogo.js';
 
@@ -170,6 +170,44 @@ if (ms) {
     exigeDesignacao('10', '121100'), false);
   ok('exigeDesignacao casa o par symbolSet+entidade, não só a entidade',
     exigeDesignacao('01', '000000'), false);
+}
+
+// ── O símbolo que pode virar AVATAR de uma pessoa (2026-09-14) ─────────────
+// O painel do instrutor ganhou um editor do símbolo do aluno, e esta é a
+// validação que fica entre ele e o `check (sidc ~ '^[0-9]{20}$')` da 0001.
+//
+// O caso que mais importa aqui é o TERCEIRO: o "Comando Nomeado" é ACEITO
+// como avatar, ao contrário do que validarPreset() faz com um preset da
+// paleta. Não é incoerência — é a mesma regra ("onde há campo de sigla,
+// avisa; onde não há, recusa") aplicada a um lugar onde a sigla SEMPRE
+// existe: colegas.js e gps.js desenham o nome de guerra como
+// uniqueDesignation. Se alguém "uniformizar" as duas validações copiando a
+// recusa para cá, é este teste que quebra.
+console.log('\nSIDC de perfil (avatar do aluno)');
+{
+  const bom = getSIDC({ dimensao: 'unidades', natureza_code: '121100', escalao: 'PEL' });
+  ok('um SIDC montado pelo catálogo é aceito', validarSidcDePerfil(bom).ok, true);
+  ok('e volta com o valor intacto', validarSidcDePerfil(bom).valor, bom);
+
+  const comandoNomeado = getSIDC({ dimensao: 'unidades', natureza_code: '000000' });
+  ok('"Comando Nomeado" É aceito como avatar (o nome de guerra é a sigla)',
+    validarSidcDePerfil(comandoNomeado).ok, true);
+  ok('e ele é mesmo o símbolo que a paleta recusa',
+    exigeDesignacao('10', '000000'), true);
+
+  ok('vazio é recusado (a coluna é not null — "sem símbolo" não existe)',
+    validarSidcDePerfil('').ok, false);
+  ok('e a recusa do vazio fala de escolher, não de formato',
+    /categoria/i.test(validarSidcDePerfil('').erro), true);
+  ok('19 dígitos é recusado', validarSidcDePerfil('1003100000000000000').ok, false);
+  ok('21 dígitos é recusado', validarSidcDePerfil('100310000000000000000').ok, false);
+  ok('com letra no meio é recusado', validarSidcDePerfil('1003100000000000000X').ok, false);
+  ok('null é recusado sem lançar', validarSidcDePerfil(null).ok, false);
+  ok('undefined é recusado sem lançar', validarSidcDePerfil(undefined).ok, false);
+  ok('número não é string e é recusado',
+    validarSidcDePerfil(10031000000000000000).ok, false);
+  ok('o próprio default do schema (perfis.sidc) é aceito',
+    validarSidcDePerfil('10031000000000000000').ok, true);
 }
 
 console.log(`\n${passou} passou, ${falhou} falhou, ${passou + falhou} total\n`);

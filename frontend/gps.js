@@ -185,6 +185,26 @@ function criarIconeProprio(sidc, nomeGuerra) {
   });
 }
 
+// O instrutor corrigiu o meu símbolo (2026-09-14).
+//
+// Chamado por perfil-ao-vivo.js quando `perfis.sidc` muda por baixo da
+// sessão. Redesenhar em vez de recarregar: o símbolo não muda quem eu vejo
+// nem a hostilidade de nada na tela — recarregar a página de alguém em campo
+// para trocar um ícone seria perder rastreamento e contexto por nada.
+//
+// `perfil` é o objeto que esta sessão inteira usa para desenhar; atualizá-lo
+// é o que faz a próxima leitura de GPS (e o popup) já nascerem com o símbolo
+// novo, em vez de voltar ao antigo no primeiro movimento.
+export function atualizarMeuSimbolo(sidc) {
+  const perfil = contexto?.perfil;
+  if (!perfil || typeof sidc !== 'string' || !/^[0-9]{20}$/.test(sidc)) return;
+  if (perfil.sidc === sidc) return;
+  perfil.sidc = sidc;
+  if (marcadorProprio) {
+    marcadorProprio.setIcon(criarIconeProprio(perfil.sidc, perfil.nome_guerra));
+  }
+}
+
 // ── Vigia de perda de sinal ───────────────────────────────────────────────
 // Não existe um evento de "perdi o sinal de GPS": se o sinal cair no meio da
 // sessão (ex.: entrou num prédio), o navegador simplesmente PARA de chamar o
