@@ -30,6 +30,12 @@ import { observarPermissao, pode } from './permissoes.js';
 // pura) atrás de preferencias.js (qual formato) — porque colegas.js e
 // marcacoes.js mostram a mesma coisa e três cópias divergiriam.
 import { formatarCoordenada, observarFormatoCoordenada } from './preferencias.js';
+// `rotuloIdade()` é o MESMO rótulo que o instrutor vê ao lado do avatar de
+// quem parou de reportar ("12m", "1h35") — ver a retomada em segundo plano,
+// logo abaixo. Usar a função de lá, e não um formatador próprio, é o que
+// garante que o aluno leia a lacuna com as mesmas palavras e o mesmo limiar
+// com que ela apareceu na tela de quem estava acompanhando.
+import { rotuloIdade } from './vigia-ausencia.js';
 
 // ── watchPosition ────────────────────────────────────────────────────────
 // `navigator.geolocation.watchPosition(sucesso, erro, opcoes)` é a API do
@@ -76,6 +82,12 @@ let ultimaPosGravada = null; // { lat, lon } da última gravação aceita no ban
 let ultimoEnvioEm    = 0;    // Date.now() da última gravação aceita
 let ultimaLeituraEm  = 0;    // Date.now() da última leitura do GPS, aceita ou não
 let vigiaSinalId      = null;
+// Retomada depois de a página ser CONGELADA pelo sistema (ver o bloco grande
+// mais abaixo). `forcarProximoEnvio` faz a próxima leitura furar o throttling;
+// `lacunaRetomada` é o rótulo da lacuna, mostrado até a gravação acontecer.
+let forcarProximoEnvio = false;
+let lacunaRetomada = '';
+let ouvindoRetomada = false;
 
 // Etapa 6a: contexto guardado no início para o watch poder ser religado
 // quando o instrutor reabilitar a permissão no meio da sessão.
@@ -132,6 +144,10 @@ function distanciaMetros(a, b) {
 
 function deveGravar(novaPos) {
   const agora = Date.now();
+  // Retomada: fura as TRÊS regras, inclusive o teto de frequência. É o único
+  // lugar que faz isso, e o motivo é que as três existem para conter excesso
+  // de gravação — e aqui o problema é o oposto: acabou de haver um buraco.
+  if (forcarProximoEnvio) return true;
   if (agora - ultimoEnvioEm < INTERVALO_MINIMO_MS) return false; // regra 1: teto de frequência
   if (!ultimaPosGravada) return true;                            // primeira leitura: sempre grava
   if (distanciaMetros(ultimaPosGravada, novaPos) >= DISTANCIA_MINIMA_M) return true; // regra 2
@@ -184,6 +200,75 @@ function iniciarVigiaSinal() {
       status(`sem sinal há ${Math.round(semSinalHa / 1000)}s`, '#f5c842');
     }
   }, 5_000);
+}
+
+// ── Retomada depois do congelamento do sistema (2026-09-14) ───────────────
+//
+// Pergunta de campo: *"tem como o app ficar ativo em segundo plano? Ou sempre
+// que apagar a tela do celular perderei a atualização da posição?"*
+//
+// **Perde, e não há como não perder na web.** Com a tela apagada ou o app em
+// segundo plano, o sistema CONGELA a página: os temporizadores param, os
+// callbacks de `fetch` não executam e o `watchPosition` deixa de entregar
+// leitura. Não é defeito deste módulo — é o ciclo de vida de página
+// (`hidden` -> `frozen`), e no iOS acontece quase imediatamente. Geolocalização
+// em segundo plano foi proposta ao Chromium em 2016 e NUNCA foi implementada;
+// não existe API para ligar. Rastrear com o celular no bolso exige embrulhar
+// o app em nativo (serviço de primeiro plano no Android,
+// `allowsBackgroundLocationUpdates` no iOS) — outro projeto.
+//
+// Wake Lock (manter a tela acesa) foi considerado e RECUSADO por quem usa, com
+// razão: o preço é bateria, que num exercício de várias horas sem carregador é
+// caro demais para resolver só metade do problema (ele é liberado assim que a
+// página deixa de estar visível, então não cobre o celular no bolso de
+// qualquer forma).
+//
+// O que dá para fazer, e é o que está aqui: **não fingir que o buraco não
+// existiu**. Ao despertar, duas coisas —
+//
+//   1. **Grava na hora**, furando o throttling, em vez de esperar até 30s pelo
+//      próximo heartbeat. O mapa de quem acompanha volta a estar certo assim
+//      que o aparelho volta, não meio minuto depois.
+//   2. **Diz quanto tempo ficou sem enviar**, na linha de status, com o MESMO
+//      rótulo e o MESMO limiar que o instrutor viu no avatar (`rotuloIdade`,
+//      de vigia-ausencia.js). Abaixo desse limiar não há o que relatar: o
+//      rótulo devolve '' e ninguém do outro lado chegou a ver lacuna nenhuma.
+//
+// É a mesma postura do resto do projeto: a Etapa 6b avisa quantas leituras
+// cada ponto do replay representa, a Etapa 7 avisa quando simplificou uma
+// geometria, e desde a etiqueta de idade o avatar parado não some — ele fica
+// na última posição conhecida dizendo há quanto tempo. Uma lacuna declarada é
+// informação; uma lacuna silenciosa é uma afirmação errada.
+function aoDespertar() {
+  // `ultimoEnvioEm` é 0 antes da primeira gravação da sessão — aí não há
+  // lacuna, há um começo, e quem cuida disso é a carga normal.
+  if (!ultimoEnvioEm) return;
+
+  const lacuna = rotuloIdade(Date.now() - ultimoEnvioEm);
+  if (!lacuna) return; // curta demais para alguém ter visto: nada a dizer
+
+  forcarProximoEnvio = true;
+  lacunaRetomada = lacuna;
+  status(`retomando — ${lacuna} sem enviar`, '#f5c842');
+
+  // O vigia de sinal mede "há quanto tempo não chega LEITURA". Congelado, ele
+  // também ficou parado, e sem zerar aqui ele acusaria "sem sinal há 600s" no
+  // primeiro ciclo depois de despertar — o que é verdade sobre o relógio e
+  // mentira sobre o GPS: não houve perda de sinal, houve um aparelho dormindo.
+  // A lacuna real está sendo dita pela linha acima, com o nome certo.
+  ultimaLeituraEm = Date.now();
+}
+
+function ouvirRetomada() {
+  if (ouvindoRetomada || typeof document === 'undefined') return;
+  ouvindoRetomada = true;
+  // `visibilitychange` cobre o caso comum (tela reacesa, app de volta ao
+  // primeiro plano). `pageshow` com `persisted` cobre a volta pelo cache de
+  // navegação do histórico, que não dispara o primeiro.
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') aoDespertar();
+  });
+  window.addEventListener('pageshow', (ev) => { if (ev.persisted) aoDespertar(); });
 }
 
 // ── Ponto de entrada ──────────────────────────────────────────────────────
@@ -266,6 +351,11 @@ function ligarWatch() {
     WATCH_OPTIONS
   );
   iniciarVigiaSinal();
+  // Registrado uma vez só (o próprio ouvirRetomada() se protege): os
+  // ouvintes são de `document`/`window`, não do watch, e removê-los e
+  // recolocá-los a cada liga/desliga de permissão só criaria a chance de
+  // sobrar um duplicado.
+  ouvirRetomada();
 }
 
 function pararWatch() {
@@ -283,6 +373,11 @@ function pararWatch() {
   ultimaPosGravada = null;
   ultimoEnvioEm = 0;
   ultimaLeituraEm = 0;
+  // Uma retomada pendente também: sem rastreamento não há lacuna de envio a
+  // relatar, e deixar o sinalizador ligado faria a PRIMEIRA leitura depois de
+  // religar mostrar uma recuperação que não aconteceu.
+  forcarProximoEnvio = false;
+  lacunaRetomada = '';
 }
 
 function removerMarcadorProprio() {
@@ -337,6 +432,18 @@ function aoReceberPosicao(posicao, { map, userId, perfil }) {
   if (!deveGravar(novaPos)) return;
   ultimaPosGravada = novaPos;
   ultimoEnvioEm = Date.now();
+
+  // A retomada termina aqui, e não no momento em que a página voltou a ficar
+  // visível: o que fecha a lacuna é a POSIÇÃO ter sido enviada, não o celular
+  // ter acordado. Entre uma coisa e outra pode haver vários segundos de GPS
+  // procurando sinal, e durante eles a linha de status continua, com razão,
+  // dizendo que estamos retomando.
+  if (forcarProximoEnvio) {
+    forcarProximoEnvio = false;
+    const quanto = lacunaRetomada;
+    lacunaRetomada = '';
+    status(`ativo — recuperado após ${quanto} sem enviar`, '#7af57a');
+  }
 
   gravarPosicao({
     userId, turmaId: perfil.turma_id,

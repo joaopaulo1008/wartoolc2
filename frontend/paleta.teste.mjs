@@ -291,5 +291,33 @@ for (const [rotulo, sidc] of PALETA_PADRAO) {
 }
 
 // =============================================================================
+// A lacuna de envio quando o celular dorme (2026-09-14)
+// =============================================================================
+//
+// Pergunta de campo: *"sempre que apagar a tela do celular perderei a
+// atualização da posição?"* Sim — o sistema congela a página e não há API web
+// de geolocalização em segundo plano. O que gps.js faz ao despertar é gravar
+// na hora e DIZER quanto tempo ficou sem enviar.
+//
+// A decisão de "vale relatar?" não é uma regra nova: é `rotuloIdade()`, a
+// mesma que escreve a etiqueta ao lado do avatar na tela de quem acompanha.
+// Isso amarra as duas pontas por construção — o aluno só é avisado de uma
+// lacuna que alguém do outro lado teve chance de ver, e com as MESMAS
+// palavras. Se alguém mexer no limiar, as duas mudam juntas ou nenhuma muda.
+console.log('\n── Lacuna de envio: o aluno lê o que o instrutor viu ────');
+
+ok('lacuna curta (um piscar de tela) não vira relato',
+  rotuloIdade(AVISO_PARADO_MS - 1), '');
+ok('no limiar em que o instrutor passa a ver etiqueta, o aluno passa a ser avisado',
+  rotuloIdade(AVISO_PARADO_MS), '1m');
+ok('celular no bolso por 12 minutos -> "12m", igual ao que o instrutor viu',
+  rotuloIdade(12 * 60_000), '12m');
+ok('exercício inteiro com a tela apagada -> "+24h", sem número absurdo',
+  rotuloIdade(30 * 60 * 60_000), '+24h');
+ok('e o rótulo cabe na linha de status (nunca mais que 5 caracteres)',
+  [0, AVISO_PARADO_MS, 12 * 60_000, 95 * 60_000, 30 * 60 * 60_000]
+    .every((ms) => rotuloIdade(ms).length <= 5), true);
+
+// =============================================================================
 console.log(`\n${passou} passou, ${falhou} falhou, ${passou + falhou} total\n`);
 process.exit(falhou > 0 ? 1 : 0);

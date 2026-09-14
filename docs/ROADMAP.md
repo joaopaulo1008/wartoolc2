@@ -447,6 +447,31 @@ Três entregas fora da fila de etapas, todas nascidas do app na mão em campo
   `data/` deixou de ser copiada no build; `legacy-qgis/` ficou, como
   importador opcional e proveniência documentada, sem nada a consumir.
 
+- [x] **Cartões do painel nascem recolhidos, marcação antiga se explica, e
+  carimbo de build no rodapé** (2026-09-14). Pedido: *"em todo F5 os cards de
+  configuração abrem. Quero que eles abram somente se o usuário clicar."* O
+  estado inicial virou o **padrão** de `tornarRecolhivel()`, não uma opção
+  repetida em cada ponto de montagem. Junto: a marcação **já gravada** com um
+  símbolo sem desenho e sem sigla passou a dizer no popup por que sai vazia (as
+  correções anteriores só valiam daqui para a frente); e o rodapé das duas
+  telas passou a mostrar a data do build, porque "continua igual" já foi cache
+  do navegador duas vezes e não havia como conferir isso de fora.
+
+- [x] **Retomada honesta do GPS ao despertar** (2026-09-14). Pergunta de campo:
+  *"tem como o app ficar ativo em segundo plano?"* **Não — o sistema congela a
+  página e não existe API web de geolocalização em segundo plano** (proposta ao
+  Chromium em 2016, nunca implementada). Wake Lock foi avaliado e recusado por
+  quem usa: o preço é bateria e cobre só metade do problema. O que foi feito é
+  não esconder o buraco — ao voltar, `gps.js` grava na hora (furando o
+  throttling) e diz quanto tempo ficou sem enviar, com o mesmo rótulo e limiar
+  que o instrutor viu no avatar. Ver "App em segundo plano" no `CLAUDE.md`.
+
+- [ ] **Etapa futura (só se o uso justificar) — embrulho nativo do app.**
+  Capacitor/Cordova com plugin de localização em segundo plano: serviço de
+  primeiro plano no Android, `allowsBackgroundLocationUpdates` no iOS. É a
+  ÚNICA forma de rastrear com a tela apagada. Custo: vira app instalável, com
+  assinatura, distribuição e um segundo alvo para manter. Complexidade: alta.
+
 ## Como abrir cada etapa
 
 No início do chat, algo como:

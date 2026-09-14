@@ -447,4 +447,36 @@ saíram do app. **Isto é a conferência de que nada quebrou junto.**
 - [ ] 15ac. Console do navegador limpo de 404: nada mais pede
   `data/cop_tatico.geojson` nem `data/man5bdacbld.geojson`.
 
+### Cartões, marcação antiga e carimbo de versão (2026-09-14)
+
+- [ ] 15ad. **ANTES DE TUDO**: olhe o rodapé. Ele mostra a data/hora do build
+  que está no seu navegador. Se depois de uma correção esse número não mudar, o
+  navegador está servindo a versão antiga — recarregue segurando Shift, ou abra
+  numa aba anônima. **Sem isso, todo o resto deste checklist mede a versão
+  errada.**
+- [ ] 15ae. Dê F5 no app: **todos** os cartões do painel aparecem fechados, só
+  com o título. Tocar num título abre; tocar de novo fecha.
+- [ ] 15af. Abra um cartão e dê F5: ele volta fechado (é por sessão, de
+  propósito — não guardamos esse estado).
+- [ ] 15ag. Abra o popup da marcação que estava saindo como losango vazio: tem
+  que aparecer uma linha âmbar **"Sem desenho"** explicando que o símbolo usa a
+  sigla da unidade. Toque em Editar, preencha "Designação da unidade", salve —
+  a sigla aparece no centro do símbolo e a linha âmbar some.
+
+### Celular dormindo: a lacuna tem que aparecer (2026-09-14)
+
+**O app NÃO rastreia com a tela apagada** — nenhum app web rastreia. O que se
+testa aqui é se a lacuna é declarada em vez de passar batido.
+
+- [ ] 15ah. Com o app aberto e o GPS ativo, apague a tela do celular e espere
+  uns 3 minutos. Reacenda: a linha de status tem que dizer **"retomando — 3m
+  sem enviar"** e, assim que o GPS pegar, **"ativo — recuperado após 3m sem
+  enviar"**.
+- [ ] 15ai. Na tela do instrutor, durante esses 3 minutos, o avatar do aluno
+  fica na última posição com a etiqueta de idade — e volta ao normal poucos
+  segundos depois de a tela reacender (não até 30s depois, que era o antigo
+  heartbeat).
+- [ ] 15aj. Apague e reacenda a tela rapidamente (menos de 1 minuto): **não**
+  deve aparecer relato nenhum de lacuna — ninguém do outro lado viu nada.
+
 Qualquer item marcado como falha vira a prioridade do próximo chat — cole este checklist preenchido para retomar com contexto completo.

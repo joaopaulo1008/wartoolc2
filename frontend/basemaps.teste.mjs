@@ -157,6 +157,33 @@ okVerdade('e são as mesmas cores de CORES_CAMADA (kml.js)',
   CORES_CAMADA.some((c) => c.valor === '#4a90d9') && CORES_CAMADA.some((c) => c.valor === '#e05252'));
 
 // ─────────────────────────────────────────────────────────────────────────
+// Duas correções de campo de 2026-09-14 que vivem no HTML/no módulo, e que
+// falhariam em silêncio se alguém as desfizesse sem querer.
+console.log('\n── Correções de campo que moram no HTML ─────────────────');
+
+const instrutorHtml = readFileSync(join(aqui, 'instrutor.html'), 'utf-8');
+const painelJs = readFileSync(join(aqui, 'painel-lateral.js'), 'utf-8');
+
+// 1. Carimbo de build no rodapé. "Continua igual" foi cache do navegador duas
+//    vezes; o carimbo é o que torna isso conferível de fora. Sem o <span> o
+//    módulo não tem onde escrever e volta a não haver como saber a versão.
+okVerdade('index.html tem o <span id="versao-build"> no rodapé',
+  /id="versao-build"/.test(html));
+okVerdade('instrutor.html também (é o instrutor quem costuma perguntar)',
+  /id="versao-build"/.test(instrutorHtml));
+okVerdade('e as duas telas chamam mostrarVersao()',
+  /mostrarVersao\(\)/.test(html) && /mostrarVersao\(\)/.test(instrutorHtml));
+
+// 2. Cartão do painel nasce RECOLHIDO. O pedido foi "que eles abram somente se
+//    o usuário clicar" — e o estado inicial virou o padrão do módulo, não uma
+//    opção repetida em cada ponto de montagem. Um `recolhido = false` de volta
+//    na assinatura desfaz isso em todos os cartões de uma vez, calado.
+okVerdade('tornarRecolhivel() nasce recolhido por padrão',
+  /recolhido\s*=\s*true/.test(painelJs) && !/recolhido\s*=\s*false\s*\}\s*=\s*\{\}/.test(painelJs));
+okVerdade('e index.html não reabre nenhum cartão passando { recolhido: false }',
+  !/recolhido:\s*false/.test(html));
+
+// ─────────────────────────────────────────────────────────────────────────
 console.log(`\n${'─'.repeat(58)}`);
 console.log(`${passou} passaram, ${falhou} falharam de ${passou + falhou}`);
 if (falhou > 0) process.exit(1);

@@ -730,6 +730,7 @@
   WartoolC2 — Etapa 6a: permissões e forças &nbsp;|&nbsp; Etapa 6c: situação atual
   &nbsp;|&nbsp; Etapa 6b: debriefing do rastro &nbsp;|&nbsp; Etapa 7: calcos KML/KMZ &nbsp;|&nbsp; Etapa 8b: imagem georreferenciada
   &nbsp;|&nbsp; Marcação rápida
+  &nbsp;|&nbsp; <span id="versao-build" title="Data do build que está no ar. Se este número não mudou depois de uma correção, o navegador está servindo a versão antiga — recarregue segurando Shift, ou abra numa aba anônima.">—</span>
   &nbsp;<span id="debriefing-status"></span>
 </div>
 
@@ -748,6 +749,10 @@ import { iniciarDebriefing, aoAbrirDebriefing, definirTurmaDebriefing, abrirRast
 import { iniciarSituacao, aoAbrirSituacao, definirTurmaSituacao } from './situacao.js';
 import { iniciarPainelCalcos, definirTurmaCalcos } from './instrutor-calcos.js';
 import { iniciarPaletaInstrutor, definirTurmaPaleta } from './instrutor-paleta.js';
+// Carimbo de build no rodapé (ver versao.js). Mesma razão do app do aluno:
+// é o instrutor quem costuma perguntar se a correção chegou.
+import { mostrarVersao } from './versao.js';
+mostrarVersao();
 
 const resultado = await exigirSessao('instrutor');
 if (resultado) {

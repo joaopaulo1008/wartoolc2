@@ -322,6 +322,7 @@
        setInterval do COP de junho. O que há hoje no mapa chega por Realtime,
        na hora — dizer "a cada 2 minutos" passou a ser mentira. -->
   Simbologia APP-6D / MD33-C-01
+  &nbsp;|&nbsp; <span id="versao-build" title="Data do build que está no ar. Se este número não mudou depois de uma correção, o navegador está servindo a versão antiga — recarregue segurando Shift, ou abra numa aba anônima.">—</span>
 </div>
 
 <!-- ── Sessão e roteamento por papel (Etapa 2b) ────────────────────────────
@@ -363,6 +364,12 @@ import { iniciarCamadas } from './camadas.js';
 import { iniciarOfflineMapa } from './offline-tela.js';
 import { iniciarPaleta } from './paleta-tela.js';
 import { iniciarPainelRecolhivel, tornarRecolhivel, LARGURA_PAINEL_ABERTO } from './painel-lateral.js';
+// Carimbo de build no rodapé — ver o cabeçalho de versao.js para por que
+// ele existe. Fora do bloco de sessão de propósito: ele precisa aparecer
+// mesmo quando a tela não abre, que é justamente quando alguém vai
+// perguntar qual versão está no ar.
+import { mostrarVersao } from './versao.js';
+mostrarVersao();
 
 // ── Mapas base ────────────────────────────────────────────────────────────
 // SEIS opções, não as onze do protótipo. A lista foi cortada a pedido de quem
@@ -784,11 +791,16 @@ if (resultado) {
     // tornarRecolhivel() envolve o que já existe no cartão. Rodando antes, ele
     // não teria o que envolver.
     //
-    // "Mapa Base" nasce recolhido porque é o maior cartão e o menos usado:
-    // depois de escolher a carta no começo do exercício, ninguém volta nele.
-    // Os outros nascem abertos — são os que a pessoa liga e desliga o tempo
-    // todo.
-    tornarRecolhivel(document.getElementById('card-mapa-base'), { recolhido: true });
+    // TODO cartão nasce recolhido desde 2026-09-14 — é o padrão de
+    // tornarRecolhivel() agora, não uma opção passada aqui (ver o comentário
+    // grande em painel-lateral.js). Por isso esta chamada não tem mais
+    // `{ recolhido: true }`: repetir o padrão em cada ponto de montagem é como
+    // um deles acaba divergindo.
+    tornarRecolhivel(document.getElementById('card-mapa-base'));
+    // "Coordenada" é escrito à mão no HTML e até hoje não passava por aqui —
+    // ou seja, era o único cartão que nem título clicável tinha. Entra agora,
+    // junto com os outros.
+    tornarRecolhivel(document.getElementById('card-coordenada'));
     // O cartão "Camadas de arquivo" não entra aqui: camadas.js já o torna
     // recolhível ao montá-lo, porque ele também é usado na aba "Situação
     // atual" do instrutor, que não passa por este bloco.

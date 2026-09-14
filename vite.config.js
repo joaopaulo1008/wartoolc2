@@ -36,9 +36,40 @@ import { resolve } from 'node:path';
 // `configLoader: 'native'` virar padrão.
 const aqui = import.meta.dirname;
 
+// ── Carimbo de versão (2026-09-14) ────────────────────────────────────────
+// Três vezes seguidas uma correção entregue foi relatada como "continua
+// igual", e nas duas primeiras a causa foi o navegador servindo a versão
+// anterior. Não dá para consertar isso pelo cache: GitHub Pages não permite
+// configurar header por arquivo (registrado como ponto de atenção desde a
+// Etapa 11), e o `index.html` — que é quem aponta para os assets com hash —
+// fica atrás da CDN do Pages com validação por ETag.
+//
+// O que DÁ para fazer é parar de adivinhar. Este carimbo aparece no rodapé das
+// duas telas: quem está em campo lê um número, e a pergunta "você está vendo a
+// versão nova?" vira um fato conferível em vez de uma suposição de quem está
+// do outro lado. Não conserta o cache — torna o cache VISÍVEL, que é a parte
+// que faltava para não gastar uma sessão inteira consertando o que já estava
+// consertado.
+//
+// A data/hora é a do BUILD (UTC, minuto), não a do commit: é ela que responde
+// "o que está no ar agora". O SHA do commit vem junto quando o build roda no
+// GitHub Actions (`GITHUB_SHA`), e fica vazio num build local — onde o
+// relógio já basta.
+const carimboData = new Date().toISOString().slice(0, 16).replace('T', ' ');
+const carimboSha = (process.env.GITHUB_SHA || '').slice(0, 7);
+const CARIMBO_VERSAO = carimboSha ? `${carimboData} · ${carimboSha}` : carimboData;
+
 export default defineConfig({
   root: '.',
   base: '/wartoolc2/',
+
+  // Substituição em tempo de build. `__VERSAO_BUILD__` não existe em tempo de
+  // execução — o Vite troca o identificador pelo literal antes de empacotar —,
+  // por isso o valor precisa ser JSON.stringify'ado: o que é injetado é código
+  // fonte, não um valor.
+  define: {
+    __VERSAO_BUILD__: JSON.stringify(CARIMBO_VERSAO),
+  },
 
   build: {
     outDir: 'dist',

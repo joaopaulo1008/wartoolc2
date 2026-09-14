@@ -87,7 +87,26 @@ function injetarEstilos() {
 // os que foram escritos à mão no HTML antes deste módulo existir.
 //
 // Idempotente: chamar duas vezes no mesmo cartão não empilha invólucros.
-export function tornarRecolhivel(cartao, { recolhido = false } = {}) {
+//
+// ── `recolhido` passou a ser TRUE por padrão (2026-09-14) ─────────────────
+// Pedido de campo: *"em todo F5 os cards de configuração abrem. Quero que eles
+// abram somente se o usuário clicar."* Até aqui só "Mapa Base" nascia
+// recolhido, com o argumento de que os outros eram "os que a pessoa liga e
+// desliga o tempo todo". O uso real desmentiu isso: o que a pessoa faz o tempo
+// todo é OLHAR O MAPA, e cada recarga devolvia quatro cartões abertos por cima
+// dele — ainda mais depois que a Etapa 11 cortou dois cartões e os que
+// sobraram ficaram maiores.
+//
+// Inverter o PADRÃO, em vez de passar `{ recolhido: true }` em cada chamada, é
+// o que faz a regra valer também para o cartão que alguém acrescentar amanhã:
+// o estado inicial deixa de ser uma escolha que se repete em cada ponto de
+// montagem e passa a ser o comportamento do módulo. Quem quiser um cartão
+// aberto de saída agora precisa PEDIR (`{ recolhido: false }`) — e justificar.
+//
+// Continua sem estado persistido (ver o cabeçalho deste arquivo): o que a
+// pessoa abre vale para a sessão. A diferença é que agora o padrão é o que ela
+// quase sempre quer, então não abrir nada é o caminho barato.
+export function tornarRecolhivel(cartao, { recolhido = true } = {}) {
   if (!cartao || cartao.dataset.plRecolhivel === '1') return cartao;
   injetarEstilos();
   cartao.dataset.plRecolhivel = '1';

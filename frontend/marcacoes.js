@@ -27,6 +27,7 @@ import { supabase, traduzirErro, buscarPerfilBasico, buscarPartidosDaTurma } fro
 import {
   getSIDC, decomporSidc, descreverSidc,
   CATEGORIAS, categoriaPorId, nomeDoItem, designacaoDoMapa, exigeDesignacao,
+  sidcExigeDesignacao,
 } from './simbolos.js';
 import { formatarCoordenada, observarFormatoCoordenada } from './preferencias.js';
 // Distância e azimute de quem observa até o elemento marcado — o vetor que o
@@ -264,6 +265,24 @@ function construirPopupHtml(row, autorPerfil, editorPerfil) {
       `<span class="popup-value">${escapar(editorNome)} às ${quandoEdicao}</span></div>`;
   }
 
+  // A marcação que saiu como losango vazio explica a si mesma (2026-09-14).
+  //
+  // O aviso no formulário e a recusa na paleta só valem daqui para a frente.
+  // O que JÁ está gravado com um símbolo cujo desenho é a sigla — e sem sigla
+  // — continua no mapa, e continuaria para sempre, sem nada na tela dizendo
+  // por que aquele elemento não tem desenho. É o mesmo defeito que gerou o
+  // relato de campo, só que na cópia que ninguém corrigiu ainda.
+  //
+  // A linha aparece SÓ quando as duas coisas são verdade (símbolo exige sigla
+  // E a designação está vazia); com a sigla preenchida o símbolo desenha
+  // certo e não há nada a dizer. Quem tem o botão Editar logo abaixo resolve
+  // em dois toques — e é por isso que o texto termina apontando para ele.
+  const linhaSemDesenho = (sidcExigeDesignacao(row.sidc) && !designacao)
+    ? `<div class="popup-row mc-sem-desenho"><span class="popup-label">Sem desenho</span>` +
+      `<span class="popup-value">Este símbolo é desenhado com a SIGLA da unidade no centro. ` +
+      `Sem "Designação da unidade" ele sai vazio no mapa — edite e preencha a sigla.</span></div>`
+    : '';
+
   // Etapa 6a: o autor só vê Editar/Remover se `editar_marcacao_propria`
   // estiver habilitada. O instrutor não depende dessa chave (a própria view
   // já devolve tudo habilitado para ele, mas a policy
@@ -291,6 +310,7 @@ function construirPopupHtml(row, autorPerfil, editorPerfil) {
       linhaVisada +
       `<div class="popup-row"><span class="popup-label">Marcado por</span><span class="popup-value">${escapar(autorNome)} às ${quando}</span></div>` +
       linhaEdicao +
+      linhaSemDesenho +
       botoes +
     `</div>`
   );
@@ -560,6 +580,11 @@ function injetarEstilos() {
     .mc-btn { padding:3px 10px; border-radius:4px; font-size:11px; cursor:pointer; border:1px solid #999; background:#f0f0f0; }
     .mc-btn-remover { border-color:#c0392b; color:#c0392b; }
     .mc-corrigida .popup-value { color:#f5c842; }
+    /* Mesma cor do aviso de sigla no formulário: é o mesmo assunto, visto do
+       outro lado (lá antes de gravar, aqui depois). Âmbar e não vermelho —
+       a marcação está lá e vale, só não consegue se desenhar. */
+    .mc-sem-desenho .popup-value { color:#f5c842; line-height:1.45; }
+    .mc-sem-desenho .popup-label { color:#b08900; }
   `;
   document.head.appendChild(style);
 }

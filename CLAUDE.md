@@ -955,6 +955,119 @@ Canoinhas: "MMT", "Roubo Explosivos", "Manifestação"). Saiu tudo.
   num Chromium headless sob o caminho de publicação (`/wartoolc2/`) até o
   redirecionamento para `login.html` — sem erro de JavaScript.
 
+### Três ajustes do segundo relato (2026-09-14)
+
+*"Pra mim continua igual o problema. Outro problema é que em todo F5 os cards
+de configuração abrem. Quero que eles abram somente se o usuário clicar."*
+
+**1. Os cartões do painel nascem todos recolhidos.** Até aqui só "Mapa Base"
+nascia fechado, com o argumento de que os outros eram "os que a pessoa liga e
+desliga o tempo todo". O uso real desmentiu isso: **o que a pessoa faz o tempo
+todo é olhar o mapa**, e cada recarga devolvia quatro cartões abertos por cima
+dele. O que mudou foi o **padrão de `tornarRecolhivel()`** (`recolhido = true`),
+não uma opção passada em cada chamada — assim a regra vale também para o cartão
+que alguém acrescentar amanhã, e quem quiser um cartão aberto de saída precisa
+pedir e justificar. "Coordenada", que era escrito à mão no HTML e nunca passava
+por `tornarRecolhivel()`, entrou junto: era o único sem título clicável.
+Continua sem estado persistido (decisão da 7.1) — a diferença é que agora o
+padrão é o que a pessoa quase sempre quer.
+
+**2. A marcação JÁ GRAVADA sem desenho passou a se explicar no mapa.** Aqui
+estava o furo das duas correções anteriores: o aviso no formulário e a recusa
+na paleta valem **daqui para a frente**. O que já estava em
+`elementos_marcados` com um símbolo cujo desenho é a sigla, e sem sigla,
+continuava um losango vazio — para sempre, sem nada na tela dizendo por quê. É
+o mesmo defeito do relato original, na cópia que ninguém tinha corrigido. O
+popup ganhou uma linha âmbar dizendo que o símbolo é desenhado com a sigla no
+centro e que editar e preencher "Designação da unidade" resolve — e o botão
+Editar está logo abaixo. A linha só aparece quando as duas coisas são verdade
+(o símbolo exige sigla **e** a designação está vazia).
+
+**3. Carimbo de build no rodapé das duas telas.** Três relatos seguidos de
+"continua igual", e nos dois primeiros a causa foi o navegador servindo a
+versão anterior — não o código. **Cada um custou uma sessão reconferindo o que
+já estava certo**, porque de fora não há como saber que versão está na mão de
+quem está em campo. Consertar o cache não está ao nosso alcance (GitHub Pages
+não deixa configurar header por arquivo — ponto de atenção registrado desde a
+Etapa 11, e o `index.html`, que aponta para os assets com hash, fica atrás da
+CDN do Pages com validação por ETag). O que dá para fazer é **tornar o cache
+visível**: `vite.config.js` injeta `__VERSAO_BUILD__` (data/hora UTC do build,
+mais os 7 primeiros do `GITHUB_SHA` quando o build roda no Actions) e
+`frontend/versao.js` escreve isso no rodapé. A pergunta "você está vendo a
+versão nova?" vira um fato conferível em um olhar, e o `title` do rodapé já diz
+o que fazer quando o número não muda (recarregar com Shift, ou aba anônima).
+
+**Verificação**: as onze suítes verdes (`basemaps.teste.mjs` 20 → 25, travando
+o `<span id="versao-build">` nas duas telas e o padrão recolhido — os dois são
+do tipo que alguém desfaz sem querer e ninguém percebe); `npm run build`; e
+duas checagens em Chromium headless contra o `dist/` servido sob `/wartoolc2/`
+— o carimbo aparecendo no rodapé do app e do painel (`—` e depois a data), e um
+harness provando que um cartão nasce recolhido, que `{ recolhido: false }`
+continua abrindo, e que o clique no título abre.
+
+**Sobre "continua igual":** o deploy foi conferido nesta sessão e **estava
+atualizado** — o site publicado serve exatamente o build de `b71a21c`, com a
+herança de junho já fora. Então o relato aponta para o item 2 acima (a marcação
+antiga ainda no mapa) ou para cache — que é precisamente a ambiguidade que o
+item 3 existe para eliminar da próxima vez.
+
+### App em segundo plano: o que dá e o que não dá (2026-09-14)
+
+*"Tem como o app ficar ativo em segundo plano? Ou sempre que apagar a tela do
+celular perderei a atualização da posição? A ideia era ficar on até o logoff."*
+
+**Perde, e não há como não perder na web.** Isto ficou registrado aqui porque
+é o tipo de pergunta que volta, e responder de novo custa uma sessão:
+
+- **Com a tela apagada ou o app em segundo plano, o sistema CONGELA a página.**
+  Ciclo de vida de página: `hidden` → `frozen` → `discarded`. No estado
+  congelado os temporizadores param, os callbacks de `fetch` não executam e o
+  `watchPosition` deixa de entregar leitura. O iOS congela quase
+  imediatamente; no Android é mais lento, mas chega lá.
+- **Não existe API web de geolocalização em segundo plano.** Foi proposta ao
+  Chromium em 2016, exatamente para este caso de uso, e **nunca foi
+  implementada** — a discussão no W3C segue aberta. Não há o que ligar.
+- **Wake Lock foi avaliado e RECUSADO por quem usa.** Ele manteria a tela
+  acesa enquanto o app está visível, o que evitaria o bloqueio automático —
+  mas o preço é bateria, o maior consumidor do aparelho, num exercício de
+  várias horas sem carregador. E ele cobre só metade: é liberado assim que o
+  documento deixa de estar visível, então o celular no bolso continua fora.
+  **Não implementar foi decisão de campo, não esquecimento.**
+- **O único caminho real é embrulhar em nativo** (Capacitor/Cordova, serviço de
+  primeiro plano no Android, `allowsBackgroundLocationUpdates` no iOS). Vira
+  app instalável, com assinatura e distribuição — etapa própria, se um dia o
+  uso justificar.
+
+**O que foi feito, então: não fingir que o buraco não existiu.** Ao despertar
+(`visibilitychange` para visível, ou `pageshow` com `persisted`), `gps.js`:
+
+1. **Grava na hora**, furando as três regras de throttling — é o único lugar
+   que as fura, e o motivo é que elas existem para conter EXCESSO de gravação,
+   enquanto aqui o problema é o oposto. Sem isso, o mapa de quem acompanha
+   ficaria errado por até mais 30s depois de o aparelho voltar.
+2. **Diz quanto tempo ficou sem enviar**, com o MESMO rótulo e o MESMO limiar
+   que o instrutor viu no avatar — `rotuloIdade()` de `vigia-ausencia.js`, não
+   um formatador próprio. Isso amarra as duas pontas por construção: o aluno só
+   é avisado de uma lacuna que alguém do outro lado teve chance de ver, e nas
+   mesmas palavras. Abaixo do limiar a função devolve `''` e não há relato,
+   porque não houve nada a relatar.
+
+Dois detalhes que não são zelo:
+
+- **A retomada só fecha quando a posição É ENVIADA, não quando a tela acende.**
+  Entre uma coisa e outra há segundos de GPS reprocurando sinal, e durante eles
+  a linha de status continua dizendo que está retomando — que é a verdade.
+- **O vigia de sinal é zerado ao despertar.** Ele mede "há quanto tempo não
+  chega leitura"; congelado, ele parou junto, e sem zerar acusaria "sem sinal
+  há 600s" no primeiro ciclo. Seria verdade sobre o relógio e mentira sobre o
+  GPS: não houve perda de sinal, houve um aparelho dormindo. A lacuna real é
+  dita pela linha de retomada, com o nome certo.
+
+É a postura de sempre: a Etapa 6b avisa quantas leituras cada ponto do replay
+representa, a Etapa 7 avisa quando simplificou uma geometria, e desde a
+etiqueta de idade o avatar parado não some. **Uma lacuna declarada é
+informação; uma lacuna silenciosa é uma afirmação errada.**
+
 ## Estrutura de pastas
 
 ```
@@ -1005,7 +1118,10 @@ frontend/       app web (Leaflet + milsymbol + stanag-app6). Login/cadastro/rote
                 do catálogo, extraída de marcacoes.js ao ganhar o segundo consumidor.
                 A paleta NÃO tem listener de clique no mapa nem estado "armado": o
                 formulário já sabe ONDE quando a abre, e marcacoes.js continua sendo
-                o único que escreve em elementos_marcados
+                o único que escreve em elementos_marcados. versao.js escreve no rodapé
+                o carimbo de build injetado por vite.config.js (__VERSAO_BUILD__) —
+                existe para "continua igual" virar um fato conferível em vez de
+                suposição, ver a seção das correções de 2026-09-14
 data/           só `simbologia-eb/` desde 2026-09-14 — os dois GeoJSON do exercício de junho
                 (cop_tatico, man5bdacbld) saíram junto com o COP legado, e `data/` deixou de
                 ser copiada para dist/ no build
