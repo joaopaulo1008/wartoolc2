@@ -1,42 +1,94 @@
-Avatares param de esmaecer + paleta de marcação rápida (migration 0010)
+Etiqueta de idade nos avatares + paleta de marcação rápida (migration 0010)
 
-Dois pedidos de campo, na véspera de um teste.
+Dois pedidos de campo, mais três correções feitas a partir do primeiro uso
+real. Detalhe completo em CLAUDE.md.
 
-1. O avatar não esmaece mais; ele marca a última posição conhecida do
-   elemento. É a segunda correção no mesmo lugar (a de 2026-08-01 fez o
-   avatar parar de SER REMOVIDO). No lugar do esmaecimento entra a
-   ETIQUETA DE IDADE — "12m" em âmbar, vermelho passando de SEM_SINAL_MS:
-   tirar o esmaecimento sem pôr nada no lugar deixaria uma posição de 40
-   minutos idêntica a uma de 5 segundos, que é a falha silenciosa que o
-   projeto recusa desde a Etapa 6b.
+1. OS AVATARES NÃO ESMAECEM MAIS
 
-   - vigia-ausencia.js: rotuloIdade() (puro), REMOVER_MS -> SEM_SINAL_MS,
-     e iniciarVigia() com um aoConferir por ciclo (a etiqueta CONTA; um
-     callback de cruzamento de limiar não conta) mais aoFim.
-   - icones.js: definirEtiquetaIdade() escreve no <span> que todo símbolo
-     já carrega, em vez de recriar o divIcon de 60 marcadores a cada 15s.
-   - colegas.js, situacao.js e o replay de debriefing.js pararam de mexer
-     em opacidade. O replay acompanha por SIMETRIA (Etapa 6b), usando a
-     idade daquele instante do replay, nunca Date.now().
+Segunda correção no mesmo lugar (a de 2026-08-01 fez o avatar parar de ser
+REMOVIDO). Agora ele marca a última posição conhecida com opacidade cheia.
 
-2. Paleta de ícones rápidos (0010_icones_rapidos.sql): o instrutor monta
-   até 12 presets por turma; o aluno toca no botão e depois no mapa.
-   Partido híbrido (com força grava direto, sem força pergunta só a
-   força); toque longo abre o formulário completo pré-preenchido. Toda
-   turma nasce com 8 presets, por trigger.
+No lugar do esmaecimento entrou a ETIQUETA DE IDADE — "12m" em âmbar,
+vermelho passando de SEM_SINAL_MS. Tirar o esmaecimento sem pôr nada no
+lugar seria pior do que mantê-lo: sem nenhum sinal, uma posição de 40
+minutos fica idêntica a uma de 5 segundos, e num vetor de tiro ler posição
+velha como atual é erro caro.
 
-   - A paleta NÃO registra um segundo map.on('click'): arma um preset
-     dentro de marcacoes.js, que segue sendo o único a escrever em
-     elementos_marcados.
-   - Nenhuma chave nova de permissão — criar_marcacao_inimiga já é dona.
-   - catalogo-form.js extrai as construtoras de <option> do catálogo ao
-     ganharem o segundo consumidor.
+  - vigia-ausencia.js: rotuloIdade() (puro), REMOVER_MS -> SEM_SINAL_MS, e
+    iniciarVigia() com um aoConferir por ciclo (a etiqueta CONTA; um callback
+    de cruzamento de limiar não conta) mais aoFim.
+  - icones.js: definirEtiquetaIdade() escreve no <span> que todo símbolo já
+    carrega, em vez de recriar o divIcon de 60 marcadores a cada 15s.
+  - colegas.js, situacao.js e o replay de debriefing.js pararam de mexer em
+    opacidade. O replay acompanha por SIMETRIA (Etapa 6b), usando a idade
+    daquele instante do replay, nunca Date.now().
+  - A lista lateral do instrutor não mudou: continua "parado há 2m05s".
 
-Verificação: 0001-0010 EXECUTADAS contra um Postgres 16 + PostGIS real
-(nunca feito da 0004 em diante); 01_teste_partidos.sql 43/43 com as dez
-aplicadas; 02_teste_icones_rapidos.sql novo, 26/26; valida_sql.py sem
-falhas; 11 suítes de frontend verdes (654 casos); npm run build OK.
+2. PALETA DE MARCAÇÃO RÁPIDA (backend/supabase/0010_icones_rapidos.sql)
+
+O instrutor monta até 12 presets por turma; o aluno toca no mapa e depois no
+botão. Marcar pelo catálogo custava oito toques — ferramenta de precisão que
+não cabe num contato de 20 segundos.
+
+  - Tabela por turma, RLS no molde de calcos (0006), exclusão lógica da
+    Etapa 1, Realtime, e paleta padrão de 8 criada por trigger em toda turma
+    nova (molde de fn_criar_partidos_padrao, 0003), com backfill das turmas
+    existentes.
+  - O trigger se chama trg_turmas_z_icones_rapidos_padrao: o "z_" é
+    funcional, garante que ele rode DEPOIS do trigger que cria os partidos.
+  - Os SIDCs padrão saíram de getSIDC() sobre o catálogo oficial e foram
+    conferidos por descreverSidc() — não foram escritos à mão.
+  - partido_padrao_id NÃO é calcos.partido_id: lá diz para quem o calco é
+    visível; aqui, que partido a marcação recebe (nulo = perguntar ao aluno).
+  - Quatro policies em vez de um "for all": com for all + criado_por =
+    auth.uid() no with check, o instrutor não conseguiria editar a paleta
+    PADRÃO (criado_por nulo). Apanhado pelo teste antes de ir para o ar.
+  - Nenhuma chave nova de permissão: criar_marcacao_inimiga já é dona.
+  - A paleta nunca é um segundo caminho até o banco — o insert em
+    elementos_marcados continua sendo só o de salvarMarcacao().
+  - Novos no frontend: paleta.js (puro), icones-rapidos.js (banco/Realtime),
+    paleta-tela.js (a fileira de botões), instrutor-paleta.js (aba de
+    montagem) e catalogo-form.js (os <option> do catálogo, extraídos de
+    marcacoes.js ao ganharem o segundo consumidor).
+
+3. CORREÇÕES DO PRIMEIRO USO REAL
+
+a) uuid da turma. observarTurma() entrega a LINHA INTEIRA de `turmas`, não o
+   uuid; definirTurmaPaleta chamava o parâmetro de `turmaId` e o mandava para
+   .eq('turma_id', ...). O MESMO engano existia em definirTurmaCalcos desde a
+   Etapa 7 — ou seja, publicar calco pelo painel nunca funcionou. Os dois
+   corrigidos; o contrato de observarTurma() ficou escrito no próprio export e
+   icones-rapidos.js ganhou exigirUuid(), que diz no console qual função
+   recebeu o quê em vez de deixar o objeto chegar ao PostgREST.
+
+b) todos os botões saíam amarelos. svgDoSimbolo() desenhava o SIDC CRU, cujo
+   dígito de hostilidade é sempre placeholder — a hostilidade é RELATIVA desde
+   a Etapa 4.5 e tem que ser derivada na renderização. Não existe "desenho
+   neutro do SIDC" correto neste projeto: qualquer lugar que desenhe um
+   símbolo precisa do par (quem olha, o que é olhado), inclusive fora do mapa.
+
+c) a paleta mudou de LUGAR. Era um cartão no painel lateral onde tocar
+   ARMAVA o preset e o toque seguinte no mapa gravava. Passou a ser uma
+   fileira DENTRO do formulário de marcação: o toque no mapa já disse ONDE, e
+   o que falta é o QUÊ. Com isso SUMIU o estado "armado" — um modo invisível
+   que mudava o significado do próximo toque, com botão de cancelar, status
+   para explicar e mais uma forma de gravar sem querer. Saíram de
+   marcacoes.js: armarPreset, desarmarPreset, temPresetArmado,
+   gravarPeloPreset, consumirPreset, abrirEscolhaDePartido e o desvio no
+   handler de clique. A aba "Situação atual" do instrutor ganhou a paleta sem
+   código novo.
+
+VERIFICAÇÃO
+
+As migrations 0001-0010 foram EXECUTADAS contra um Postgres 16 + PostGIS real
+— o que nunca tinha acontecido da 0004 em diante. 01_teste_partidos.sql segue
+43/43 com as dez aplicadas (a 0010 não regride visibilidade), e o novo
+02_teste_icones_rapidos.sql passa 26/26. valida_sql.py sem falhas; 11 suítes
+de frontend verdes (654 casos, incluindo paleta.teste.mjs, nova);
+node --check + acorn em todos os módulos e nos <script> embutidos;
+npm run build OK.
+
+PENDENTE: aplicar a 0010 no Supabase de produção antes do exercício.
 
 Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
 Claude-Session: https://claude.ai/code/session_01Lx1krT1GFindNs39bVGHvc
-

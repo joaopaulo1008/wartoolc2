@@ -25,6 +25,10 @@ import {
   validarPreset, cabeMaisUm, ordenarPaleta, vigentes, proximaOrdem,
   modoDoPreset, valoresDaMarcacao, MAX_PRESETS, MAX_ROTULO, PASSO_ORDEM,
 } from './paleta.js';
+// Para a seção de hostilidade da paleta. svgDoSimbolo() em si não é testável
+// aqui (importa leaflet/milsymbol, que não rodam em Node) — mas a regra que
+// ela precisa aplicar é esta, e é puramente de simbolos.js.
+import { sidcParaObservador } from './simbolos.js';
 
 let passou = 0, falhou = 0;
 function ok(descricao, obtido, esperado) {
@@ -176,6 +180,42 @@ ok('preset sem força e sem escolha grava partido nulo',
 // oficial inteiro atravessando o mapa ao lado do símbolo.
 ok('a designação sai vazia (o tipo já está no SIDC)',
   valoresDaMarcacao(comPartido).designacao, '');
+
+// =============================================================================
+console.log('\nPaleta — a COR do botão (regressão de 2026-09-14)');
+// =============================================================================
+// Bug relatado no primeiro uso: TODOS os botões da paleta saíam amarelos, o
+// losango de "desconhecido" do APP-6D. Causa: svgDoSimbolo() desenhava o SIDC
+// CRU, e o dígito de hostilidade gravado é sempre um placeholder — a
+// hostilidade é RELATIVA desde a Etapa 4.5 e tem que ser derivada na hora de
+// desenhar, em QUALQUER lugar que desenhe, não só no mapa.
+//
+// Estes casos travam a regra que a paleta precisa aplicar. Se alguém "otimizar"
+// svgDoSimbolo() de volta para desenhar o SIDC gravado, a primeira asserção
+// abaixo continua passando (ela é sobre simbolos.js) — por isso a última
+// asserção é a que importa: ela declara, em uma linha, que o SIDC gravado NÃO
+// serve para desenhar.
+const AZUL = { id: 'a', tipo: 'beligerante', ordem: 1 };
+const VERM = { id: 'v', tipo: 'beligerante', ordem: 2 };
+const hostilidadeDe = (sidc) => sidc.slice(2, 4);
+
+ok('o SIDC GRAVADO tem hostilidade placeholder (nunca desenhe cru)',
+  hostilidadeDe(SIDC_OK), '01');
+ok('instrutor (sem força) vendo preset do Vermelho -> HOSTIL',
+  hostilidadeDe(sidcParaObservador(SIDC_OK, null, VERM)), '06');
+ok('instrutor (sem força) vendo preset do Azul -> AMIGO',
+  hostilidadeDe(sidcParaObservador(SIDC_OK, null, AZUL)), '03');
+ok('aluno do Azul vendo preset do Vermelho -> HOSTIL',
+  hostilidadeDe(sidcParaObservador(SIDC_OK, AZUL, VERM)), '06');
+// O MESMO preset, dois alunos, duas cores — é a prova de que o botão não pode
+// ter uma cor fixa gravada junto com ele.
+ok('aluno do Vermelho vendo o MESMO preset -> AMIGO',
+  hostilidadeDe(sidcParaObservador(SIDC_OK, VERM, VERM)), '03');
+ok('o mesmo preset desenha DIFERENTE para os dois lados',
+  sidcParaObservador(SIDC_OK, AZUL, VERM) !== sidcParaObservador(SIDC_OK, VERM, VERM), true);
+// Preset "Perguntar ao aluno": amarelo é a resposta certa, não um bug.
+ok('preset sem força continua desconhecido (a força quem escolhe é o aluno)',
+  hostilidadeDe(sidcParaObservador(SIDC_OK, AZUL, null)), '01');
 
 // =============================================================================
 console.log(`\n${passou} passou, ${falhou} falhou, ${passou + falhou} total\n`);

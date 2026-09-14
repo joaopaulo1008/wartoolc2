@@ -119,11 +119,28 @@ export function definirEtiquetaIdade(marker, texto, { semSinal = false } = {}) {
 // Devolve '' quando o SIDC é inválido: quem chama decide o que pôr no lugar
 // (um traço, o rótulo sozinho), porque aqui não há mapa nem âncora para um
 // ícone genérico fazer sentido.
-export function svgDoSimbolo(sidc, { tamanho = 32 } = {}) {
+//
+// PASSA PELO MESMO `sidcParaObservador()` que criarIconeSimbolo(), e isso não é
+// detalhe — foi um bug relatado no primeiro uso (2026-09-14): a primeira versão
+// desenhava o SIDC CRU, e como o dígito de hostilidade gravado é sempre um
+// placeholder (`01`, "pendente"), **todos os botões da paleta saíam amarelos**,
+// o losango de "desconhecido" do APP-6D. Um preset gravado como Vermelho
+// aparecia neutro no botão e vermelho no mapa — ou seja, exatamente a
+// discordância entre botão e mapa que o comentário desta função dizia impedir.
+//
+// A hostilidade é RELATIVA desde a Etapa 4.5: ela não está no dado, é derivada
+// do par (quem olha, o que é olhado). Qualquer lugar que desenhe um símbolo
+// tem que derivar — não existe "desenho neutro do SIDC" que seja correto.
+export function svgDoSimbolo(sidc, {
+  partidoObservador = null,
+  partidoElemento   = null,
+  tamanho           = 32,
+} = {}) {
+  const sidcFinal = sidcParaObservador(sidc, partidoObservador, partidoElemento);
   try {
-    return new ms.Symbol(sidc, { size: tamanho }).asSVG();
+    return new ms.Symbol(sidcFinal, { size: tamanho }).asSVG();
   } catch (e) {
-    console.warn('SIDC inválido ao desenhar fora do mapa:', sidc, e);
+    console.warn('SIDC inválido ao desenhar fora do mapa:', sidcFinal, e);
     return '';
   }
 }

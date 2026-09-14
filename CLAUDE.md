@@ -707,6 +707,95 @@ consultava `partidos` com uma query própria em vez de `buscarPartidosDaTurma()`
 partido desativado como opção de preset. Passou a usar a função compartilhada,
 que é o critério que moveu essa consulta para `auth.js` na Etapa 6a.
 
+#### Segunda correção do primeiro uso: os botões saíam todos amarelos
+
+Com a 0010 aplicada e a paleta funcionando, **todos os símbolos saíam no
+losango amarelo de "desconhecido" do APP-6D** — na paleta do aluno e na lista
+do instrutor.
+
+**Causa: `svgDoSimbolo()` desenhava o SIDC CRU.** O dígito de hostilidade
+gravado é sempre um placeholder (`01`, pendente) — a hostilidade é RELATIVA
+desde a Etapa 4.5 e é derivada na renderização por `sidcParaObservador()`. Todo
+o resto do app passa por lá (via `criarIconeSimbolo`); a função nova, escrita
+para desenhar FORA do mapa, não passava. O resultado é a própria coisa que o
+comentário dela dizia impedir: **o botão discordando do mapa** — preset gravado
+como Vermelho aparecia neutro no botão e vermelho na marcação.
+
+A lição que vale além deste bug: **não existe "desenho neutro do SIDC" que seja
+correto neste projeto.** Qualquer lugar que desenhe um símbolo precisa do par
+(quem olha, o que é olhado), inclusive fora do mapa. `svgDoSimbolo()` passou a
+aceitar os mesmos `partidoObservador`/`partidoElemento` de
+`criarIconeSimbolo()`:
+
+- **Aluno**: observador é ele (`perfil.partido`, novo parâmetro de
+  `iniciarPaleta`), elemento é o partido do preset. O mesmo botão desenha
+  vermelho para o Azul e azul para o Vermelho — como vai desenhar no mapa.
+- **Instrutor**: observador nulo, então vale a referência fixa da Etapa 11
+  (menor `ordem` = amigo). Azul azul, Vermelho vermelho.
+- **Preset "Perguntar ao aluno"**: continua amarelo, e isso é a resposta
+  CERTA — naquele preset quem decide a cor é o aluno, no momento da marcação.
+
+`paleta.teste.mjs` ganhou 7 casos que travam isso, incluindo a asserção de que
+o SIDC gravado tem hostilidade placeholder e **não serve para desenhar**, e a
+de que o mesmo preset desenha diferente para os dois lados.
+
+**Correção junto, de posição:** o cartão "Marcação rápida" era anexado ao FIM
+do painel lateral (depois de Mapa Base, Forças, Camadas e Mapa offline), ou
+seja fora da área visível sem rolar — provável motivo de "para o usuário ficou
+igual". Passou a ser o PRIMEIRO cartão (`prepend`): num contato de 20 segundos,
+com luva, é a coisa mais usada da tela.
+
+#### Terceira correção: a paleta mudou de LUGAR — vive dentro do formulário
+
+*"Na verdade, o banco de presets deve estar no menu do clique na tela."* É a
+correção mais importante das três, porque não é conserto de bug: é o desenho
+certo, e o que eu tinha feito estava errado na raiz.
+
+A primeira versão era um cartão "Marcação rápida" no painel lateral: tocar no
+botão ARMAVA o preset, e o toque seguinte no mapa gravava. Agora a fileira de
+botões é desenhada **dentro do próprio formulário de marcação**, no topo, logo
+abaixo da coordenada. Três razões, e só a primeira eu tinha visto:
+
+1. **O toque no mapa já disse ONDE.** O que falta é o QUÊ, e ele tem que estar
+   onde a pessoa já está olhando — não do outro lado da tela.
+2. **Sumiu o estado "armado".** Era a parte mais frágil do que eu tinha feito:
+   um modo invisível que mudava o significado do próximo toque no mapa, com
+   botão para cancelar, linha de status para explicar, e mais uma forma de
+   gravar sem querer. **Nada disso existe agora** — quando os botões aparecem,
+   o ponto já é conhecido. Saíram de `marcacoes.js`: `armarPreset`,
+   `desarmarPreset`, `temPresetArmado`, `gravarPeloPreset`, `consumirPreset`,
+   `abrirEscolhaDePartido` e o desvio no handler de clique.
+3. **Não depende do painel lateral estar aberto** (ele nasce fechado no celular
+   desde a 7.1) nem de rolar até o fim dele — que era, quase certamente, o
+   motivo de "para o usuário ficou igual".
+
+E a permissão deixou de precisar de tratamento próprio: o formulário só abre
+quando `criar_marcacao_inimiga` permite, então a fileira herda a mesma porta, em
+vez de um segundo observador que pudesse discordar dela.
+
+- **Os dois modos ficaram melhores no lugar novo.** Preset COM força grava ali
+  mesmo e fecha (duas ações no total: tocar o mapa, tocar o botão). Preset SEM
+  força **preenche o formulário** com o símbolo e leva o foco para o seletor de
+  força — o preset já poupou os cinco campos de simbologia, e o único que falta
+  é justamente o que o instrutor marcou como "pergunte". O painel separado de
+  escolha de partido, que a versão anterior precisava, deixou de existir.
+- **O toque longo ficou auto-explicativo.** Ele preenche o formulário sem
+  gravar — e agora o resultado aparece na hora, nos campos logo abaixo, em vez
+  de armar um modo invisível. O pré-preenchimento reusa `decomporSidc()`, o
+  MESMO caminho que abre uma edição: não existe um segundo jeito de "abrir um
+  SIDC no formulário" neste arquivo, que é o que impede os dois divergirem.
+- **A fileira NÃO aparece na edição.** Numa edição o elemento já tem símbolo, e
+  oferecer atalhos que o sobrescrevem em silêncio seria o oposto do que a
+  edição serve (corrigir um campo sem refazer o resto).
+- **A aba "Situação atual" do instrutor ganhou a paleta de graça.** Como ela já
+  reusa `marcacoes.js` desde a 6c, bastou carregar os presets da turma
+  (`iniciarPaleta`/`pararPaleta` ao lado de `iniciarMarcacoes`/
+  `pararMarcacoes`). Nenhuma cópia, nenhuma tela nova.
+- **`paleta-tela.js` deixou de montar cartão**: `iniciarPaleta()` só carrega os
+  presets e assina o Realtime; `montarPaleta(container, { aoEscolher })` desenha
+  a fileira onde mandarem. Se o instrutor mexer na paleta com o formulário
+  aberto na mão do aluno, a fileira se redesenha sozinha.
+
 **PENDENTE DE TESTE AO VIVO** (acrescentado a `docs/roteiro-teste-campo.md`):
 aplicar a 0010 no Supabase real; **publicar um calco pelo painel, que é o bug
 antigo corrigido aqui e nunca foi exercitado**; conferir a etiqueta de idade com um celular

@@ -99,7 +99,14 @@ function atualizarPrevia() {
   const desc = el('paleta-previa-nome');
   if (!alvo) return;
   if (!sidc) { alvo.innerHTML = ''; if (desc) desc.textContent = ''; return; }
-  alvo.innerHTML = svgDoSimbolo(sidc, { tamanho: 44 }) || '';
+  // O partido escolhido no formulário decide a COR da prévia, pelo mesmo
+  // caminho do mapa (sidcParaObservador, dentro de svgDoSimbolo). O instrutor
+  // não tem partido, então vale a referência fixa da Etapa 11: o partido de
+  // menor `ordem` (Azul) desenha como amigo, qualquer outro beligerante como
+  // hostil. "Perguntar ao aluno" (nulo) desenha amarelo/desconhecido — que é
+  // honesto: naquele preset quem decide a cor é o aluno, no momento da marcação.
+  const partidoSel = partidosDaTurma.find((x) => x.id === (el('paleta-partido')?.value || null)) || null;
+  alvo.innerHTML = svgDoSimbolo(sidc, { tamanho: 44, partidoElemento: partidoSel }) || '';
   if (desc) desc.textContent = descreverSidc(sidc) || '';
 }
 
@@ -141,9 +148,13 @@ function desenharLista() {
     const linha = document.createElement('div');
     linha.className = 'paleta-linha';
 
+    const partido = partidosDaTurma.find((p) => p.id === preset.partido_padrao_id) || null;
+
     const simbolo = document.createElement('span');
     simbolo.className = 'paleta-simbolo';
-    simbolo.innerHTML = svgDoSimbolo(preset.sidc, { tamanho: 30 }) || '';
+    // Mesma derivação da prévia: sem isto todo preset sairia amarelo
+    // ("pendente"), que foi o bug visto no primeiro uso.
+    simbolo.innerHTML = svgDoSimbolo(preset.sidc, { tamanho: 30, partidoElemento: partido }) || '';
     linha.appendChild(simbolo);
 
     const texto = document.createElement('div');
@@ -152,7 +163,6 @@ function desenharLista() {
     nome.textContent = preset.rotulo;
     texto.appendChild(nome);
     const sub = document.createElement('small');
-    const partido = partidosDaTurma.find((p) => p.id === preset.partido_padrao_id);
     sub.textContent = `${descreverSidc(preset.sidc) || 'símbolo não reconhecido'} · ` +
       (modoDoPreset(preset) === 'gravar'
         ? `grava como ${partido ? partido.nome : 'força removida'}`
@@ -328,6 +338,8 @@ export async function iniciarPaletaInstrutor({ userId } = {}) {
     el(id).addEventListener('change', atualizarPrevia);
   }
   el('paleta-modificadores').addEventListener('change', atualizarPrevia);
+  // Trocar a força muda a COR da prévia, não só o texto de baixo.
+  el('paleta-partido').addEventListener('change', atualizarPrevia);
   el('paleta-salvar').addEventListener('click', salvar);
   el('paleta-cancelar-edicao').addEventListener('click', () => {
     limparFormulario();

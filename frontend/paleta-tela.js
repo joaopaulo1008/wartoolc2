@@ -1,123 +1,188 @@
-// paleta-tela.js — o cartão "Marcação rápida" no app do aluno (2026-09-14).
+// paleta-tela.js — a fileira de presets DENTRO do formulário de marcação.
 //
-// A tela da paleta de ícones rápidos. A regra pura mora em paleta.js, o acesso
-// ao banco em icones-rapidos.js, e a gravação da marcação continua sendo a de
-// marcacoes.js — este arquivo só desenha os botões e arma o preset escolhido.
-// Mesmo quarteto de kml.js / calcos.js / camadas.js / instrutor-calcos.js.
+// A regra pura mora em paleta.js, o acesso ao banco em icones-rapidos.js, e a
+// gravação continua sendo a de marcacoes.js. Este arquivo só carrega a paleta
+// da turma (com Realtime) e desenha os botões dentro do contêiner que quem
+// chama entrega.
 //
-// Como em camadas.js e offline-tela.js, recebe `map` e o CONTÊINER do painel
-// por parâmetro, em vez de procurar um id fixo no documento — é o que
-// permitiria a mesma paleta servir a aba "Situação atual" do instrutor um dia
-// sem uma segunda cópia (hoje ela só é ligada em index.html; ver o comentário
-// no fim do arquivo).
+// ── Por que a paleta mora no formulário, e não num cartão do painel ────────
+//
+// A primeira versão (2026-09-14) era um cartão "Marcação rápida" no painel
+// lateral: o aluno tocava no botão, o preset ficava ARMADO, e o toque seguinte
+// no mapa gravava. Foi corrigido no mesmo dia, a pedido de quem usa: *"o banco
+// de presets deve estar no menu do clique na tela"*. E está certo, por três
+// motivos que só ficam óbvios com o app na mão:
+//
+//   1. **O toque no mapa já disse ONDE.** O que falta é o QUÊ — e ele tem que
+//      estar onde a pessoa já está olhando, não do outro lado da tela.
+//   2. **Sumiu o estado "armado".** Aquilo era a parte mais frágil da versão
+//      anterior: um modo invisível que mudava o significado do próximo toque
+//      no mapa, com botão para cancelar, linha de status para explicar, e uma
+//      forma a mais de gravar sem querer. Nada disso existe agora — o ponto já
+//      é conhecido quando os botões aparecem.
+//   3. **Não depende do painel lateral estar aberto** (ele nasce fechado no
+//      celular desde a 7.1) nem de rolar até o fim dele.
+//
+// De quebra, a permissão deixou de precisar de tratamento próprio aqui: o
+// formulário só abre quando `criar_marcacao_inimiga` permite (marcacoes.js já
+// checa no clique), então a fileira herda a mesma porta, sem um segundo
+// observador que pudesse discordar dela.
 import { svgDoSimbolo } from './icones.js';
+// O partido de QUEM OLHA é metade do par que decide a cor de cada símbolo —
+// mesma regra de colegas.js/marcacoes.js desde a Etapa 4.5. Sem ele, o botão
+// "CC" (gravado como Vermelho) sairia no amarelo de "desconhecido" no botão e
+// vermelho no mapa: foi o bug relatado no primeiro uso.
+import { buscarPartidosDaTurma } from './auth.js';
 import { buscarPaletaDaTurma, assinarPaleta, desassinarPaleta } from './icones-rapidos.js';
 import { ordenarPaleta, modoDoPreset } from './paleta.js';
-import { armarPreset, desarmarPreset } from './marcacoes.js';
-import { tornarRecolhivel } from './painel-lateral.js';
-// A MESMA chave que governa o formulário completo. Nenhuma chave nova entrou
-// no catálogo para a paleta, e isso é decisão registrada na 0010: a paleta é
-// um atalho para criar marcação, e criar marcação já tem dono
-// (`criar_marcacao_inimiga`, Etapa 6a). Dois interruptores para a mesma
-// capacidade é a forma mais fácil de deixar um aluno num estado que ninguém
-// sabe explicar em campo.
-import { observarPermissao } from './permissoes.js';
 
 const TAMANHO_SIMBOLO = 30;
 
-// Toque longo abre o formulário completo pré-preenchido. 500ms é o intervalo
-// que o próprio navegador usa para o menu de contexto em toque — usar o mesmo
-// número faz o gesto parecer nativo em vez de inventado.
+// Toque longo: preenche o formulário com o preset em vez de gravar. 500ms é o
+// intervalo que o próprio navegador usa para o menu de contexto em toque —
+// usar o mesmo número faz o gesto parecer nativo em vez de inventado. Agora
+// ele é muito mais legível que na versão anterior: o resultado aparece na
+// hora, nos campos logo abaixo, em vez de armar um modo invisível.
 const TOQUE_LONGO_MS = 500;
 
 let presets = [];
+let partidosDaTurma = [];
+let meuPartido = null;
 let canal = null;
-let armado = null;      // id do preset armado, ou null
-let modoArmado = null;  // 'gravar' | 'perguntar' | 'completo' — só para a frase de status
-let contêiner = null;   // o cartão inteiro
-let grade = null;       // a div dos botões
-let aviso = null;       // a linha de status abaixo dos botões
-let desligar = [];
-let permitido = true;
+// Contêineres desenhados agora (normalmente um: o formulário aberto).
+// Guardados para o Realtime poder redesenhar a fileira se o instrutor mexer na
+// paleta com o formulário aberto na mão do aluno.
+const montagens = new Set();
 
 // ── Estilos ──────────────────────────────────────────────────────────────
-// O cartão traz fundo/borda PRÓPRIOS, sem depender de `.panel-card` — a
-// armadilha que camadas.js documenta e que offline-tela.js só descobriu ao
-// ganhar um segundo consumidor (a classe existe em index.html e não existe no
-// painel do instrutor, então herdar dela funciona "por acidente" numa tela e
-// deixa a outra sem estilo nenhum).
 let estilosInjetados = false;
 function injetarEstilos() {
-  if (estilosInjetados) return;
+  if (estilosInjetados || typeof document === 'undefined') return;
   estilosInjetados = true;
   const s = document.createElement('style');
   s.textContent = `
-    #card-paleta {
-      background:rgba(13,27,42,.92); border:1px solid #23405e; border-radius:6px;
-      padding:10px 12px; margin-bottom:8px; color:#e8eaf0;
-      font-family:'Segoe UI',Arial,sans-serif;
+    .pal-fileira { margin: 2px 0 12px; }
+    .pal-titulo { font-size: 11px; color: #7a9ab8; margin: 0 0 6px; line-height: 1.35; }
+    .pal-grade { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+    /* Alto o bastante para um dedo com luva (44px é o mínimo recomendado para
+       alvo de toque; aqui passa disso por causa do símbolo). */
+    .pal-btn {
+      display: flex; flex-direction: column; align-items: center; justify-content: flex-end;
+      gap: 2px; min-height: 62px; padding: 4px 2px;
+      background: #16263a; border: 1px solid #2a4a6b; border-radius: 5px;
+      color: #e8eaf0; font-size: 10px; line-height: 1.15; cursor: pointer;
+      text-align: center; word-break: break-word; -webkit-tap-highlight-color: transparent;
     }
-    #card-paleta h3 {
-      font-size:12px; letter-spacing:.05em; text-transform:uppercase;
-      color:#a8c8e8; margin:0 0 8px;
+    .pal-btn:active { border-color: #f5c842; background: #22354d; }
+    .pal-btn svg { display: block; max-width: 100%; height: auto; }
+    .pal-btn:disabled { opacity: .5; cursor: default; }
+    .pal-separador { border: 0; border-top: 1px solid #23405e; margin: 14px 0 0; }
+    .pal-separador-txt {
+      display: block; width: fit-content; margin: -8px auto 10px; padding: 0 8px;
+      background: #0d1b2a; font-size: 11px; color: #5f7f9f;
     }
-    #card-paleta .pal-grade {
-      display:grid; grid-template-columns:repeat(4,1fr); gap:6px;
-    }
-    /* Botão alto o bastante para um dedo com luva (44px é o mínimo que as
-       diretrizes de toque recomendam; aqui passa disso por causa do símbolo). */
-    #card-paleta .pal-btn {
-      display:flex; flex-direction:column; align-items:center; justify-content:flex-end;
-      gap:2px; min-height:62px; padding:4px 2px;
-      background:#16263a; border:1px solid #2a4a6b; border-radius:5px;
-      color:#e8eaf0; font-size:10px; line-height:1.15; cursor:pointer;
-      text-align:center; word-break:break-word; -webkit-tap-highlight-color:transparent;
-    }
-    #card-paleta .pal-btn svg { display:block; max-width:100%; height:auto; }
-    #card-paleta .pal-btn.armado {
-      border-color:#f5c842; background:#2a2412; box-shadow:0 0 0 1px #f5c842 inset;
-    }
-    #card-paleta .pal-btn:disabled { opacity:.45; cursor:default; }
-    #card-paleta .pal-aviso {
-      font-size:11px; color:#7a9ab8; margin-top:8px; line-height:1.35;
-    }
-    #card-paleta .pal-aviso.ativo { color:#f5c842; }
   `;
   document.head.appendChild(s);
 }
 
-// ── Desenho ──────────────────────────────────────────────────────────────
-function dizer(texto, ativo = false) {
-  if (!aviso) return;
-  aviso.textContent = texto;
-  aviso.classList.toggle('ativo', ativo);
+// ── Carga dos dados ──────────────────────────────────────────────────────
+// Chamado uma vez por tela (app do aluno, aba do instrutor). NÃO desenha nada:
+// só deixa a paleta pronta para quando um formulário abrir.
+export async function iniciarPaleta({ turmaId, perfil } = {}) {
+  if (!turmaId) return;
+  injetarEstilos();
+  meuPartido = perfil?.partido || null;
+  partidosDaTurma = await buscarPartidosDaTurma(turmaId);
+
+  // Select inicial PRIMEIRO, assinatura depois — o Realtime não faz backfill
+  // (armadilha registrada desde a Etapa 4). Invertido, a paleta só teria
+  // botões se o instrutor mexesse nela durante a sessão.
+  const r = await buscarPaletaDaTurma(turmaId);
+  presets = r.presets;
+
+  canal = assinarPaleta(turmaId, {
+    aoMudar: (linha) => {
+      const i = presets.findIndex((p) => p.id === linha.id);
+      if (i >= 0) presets[i] = linha; else presets.push(linha);
+      presets = ordenarPaleta(presets);
+      redesenharMontagens();
+    },
+    aoSair: (id) => {
+      presets = presets.filter((p) => p.id !== id);
+      redesenharMontagens();
+    },
+  });
+
+  window.addEventListener('beforeunload', () => desassinarPaleta(canal));
 }
 
-function desenharGrade() {
-  if (!grade) return;
-  grade.textContent = '';
+// Teardown, no molde de pararMarcacoes() (Etapa 6c). O app do aluno nunca
+// chama (inicia uma vez por carga de página; trocar de turma lá recarrega a
+// página inteira, decisão da Etapa 6a) — quem precisa é a aba do instrutor,
+// que troca de turma sem recarregar.
+export function pararPaleta() {
+  desassinarPaleta(canal);
+  canal = null;
+  presets = [];
+  partidosDaTurma = [];
+  montagens.clear();
+}
 
-  if (presets.length === 0) {
-    // Estado normal, não erro: uma turma cujo instrutor apagou a paleta
-    // inteira. Dizer o que aconteceu é melhor que um cartão vazio, que parece
-    // app quebrado — mesma postura de `carregar_kml` nascer desabilitado COM
-    // explicação em vez de o botão sumir (Etapa 7).
-    dizer('O instrutor desta turma ainda não montou a paleta. Você continua podendo marcar tocando direto no mapa.');
-    return;
+// ── Desenho ──────────────────────────────────────────────────────────────
+// Monta a fileira dentro de `container` (um nó já no DOM, entregue pelo
+// formulário de marcacoes.js). `aoEscolher(preset, { completo })` é chamado no
+// toque; `completo` vem `true` no toque longo.
+//
+// Devolve `false` quando não há preset nenhum — assim quem chama decide o que
+// fazer com o espaço (hoje: o formulário fica exatamente como era antes desta
+// funcionalidade existir, sem separador nem espaço morto).
+export function montarPaleta(container, { aoEscolher } = {}) {
+  if (!container) return false;
+  injetarEstilos();
+  container.__aoEscolher = aoEscolher; // guardado para o redesenho do Realtime
+  montagens.add(container);
+  return desenhar(container);
+}
+
+export function desmontarPaleta(container) {
+  montagens.delete(container);
+}
+
+function redesenharMontagens() {
+  for (const c of [...montagens]) {
+    if (!c.isConnected) { montagens.delete(c); continue; }
+    desenhar(c);
   }
+}
+
+function desenhar(container) {
+  container.textContent = '';
+  if (presets.length === 0) return false;
+
+  const titulo = document.createElement('p');
+  titulo.className = 'pal-titulo';
+  titulo.textContent = 'Toque para gravar aqui. Toque longo preenche o formulário sem gravar.';
+  container.appendChild(titulo);
+
+  const grade = document.createElement('div');
+  grade.className = 'pal-grade';
 
   for (const preset of presets) {
+    const partidoDoPreset = partidosDaTurma.find((x) => x.id === preset.partido_padrao_id) || null;
+
     const btn = document.createElement('button');
     btn.type = 'button';
     btn.className = 'pal-btn';
-    btn.disabled = !permitido;
-    btn.classList.toggle('armado', preset.id === armado);
 
-    // O símbolo é desenhado com o MESMO renderizador do mapa (milsymbol, via
-    // icones.js): o botão mostra exatamente o desenho que vai aparecer no
-    // mapa. Um ícone "parecido" desenhado à parte seria a porta de entrada
-    // para o botão e o mapa discordarem.
-    const svg = svgDoSimbolo(preset.sidc, { tamanho: TAMANHO_SIMBOLO });
+    // O símbolo sai do MESMO renderizador do mapa, com a hostilidade derivada
+    // pelo MESMO caminho (sidcParaObservador, dentro de svgDoSimbolo) — é o
+    // que garante que o botão mostre a cor que a marcação vai ter. Desenhar o
+    // SIDC cru aqui foi o bug do primeiro uso: tudo saía amarelo.
+    const svg = svgDoSimbolo(preset.sidc, {
+      tamanho: TAMANHO_SIMBOLO,
+      partidoObservador: meuPartido,
+      partidoElemento: partidoDoPreset,
+    });
     const caixa = document.createElement('span');
     if (svg) caixa.innerHTML = svg;
     else caixa.textContent = '—'; // SIDC que a milsymbol recusou: o rótulo ainda identifica o botão
@@ -127,51 +192,45 @@ function desenharGrade() {
     rot.textContent = preset.rotulo;
     btn.appendChild(rot);
 
-    const modo = modoDoPreset(preset);
-    btn.title = modo === 'gravar'
-      ? `${preset.rotulo} — toque aqui e depois no mapa. Toque longo abre o formulário completo.`
-      : `${preset.rotulo} — vai perguntar de quem é. Toque longo abre o formulário completo.`;
+    btn.title = modoDoPreset(preset) === 'gravar'
+      ? `${preset.rotulo} — grava aqui, na hora.`
+      : `${preset.rotulo} — preenche o formulário e pede a força.`;
 
-    ligarGestos(btn, preset);
+    ligarGestos(btn, preset, container);
     grade.appendChild(btn);
   }
 
-  if (!permitido) {
-    dizer('Criar marcação está desabilitado pelo instrutor.');
-  } else if (armado) {
-    const p = presets.find((x) => x.id === armado);
-    // A frase diz o que VAI ACONTECER no próximo toque, não só que algo está
-    // armado — é a diferença entre gravar direto e abrir um formulário, e
-    // descobrir isso só depois de tocar no mapa seria a pior hora.
-    const oque = modoArmado === 'completo'
-      ? 'abre o formulário completo'
-      : modoArmado === 'perguntar' ? 'vai perguntar de quem é' : 'grava na hora';
-    dizer(p ? `${p.rotulo}: toque no mapa — ${oque}. Toque no botão de novo para cancelar.` : '', true);
-  } else {
-    dizer('Toque num botão e depois no mapa. Toque longo no botão abre o formulário completo.');
-  }
+  container.appendChild(grade);
+
+  // Separador dizendo o que vem abaixo. Sem ele, a fileira e os <select>
+  // parecem a mesma coisa, e não são: acima é atalho, abaixo é o catálogo
+  // inteiro.
+  const hr = document.createElement('hr');
+  hr.className = 'pal-separador';
+  container.appendChild(hr);
+  const txt = document.createElement('span');
+  txt.className = 'pal-separador-txt';
+  txt.textContent = 'ou descreva em detalhe';
+  container.appendChild(txt);
+
+  return true;
 }
 
-// Clique curto arma/desarma; toque longo abre o formulário completo já com
-// aquele SIDC. Implementado à mão com pointer events, sem plugin nem
-// biblioteca de gestos — mesmo espírito de marcacoes.js resolver "tocar no
-// mapa" e de offline-tela.js desenhar um retângulo sem leaflet-draw.
-function ligarGestos(btn, preset) {
+// Clique curto escolhe; toque longo escolhe em modo "completo". Implementado à
+// mão com pointer events, sem plugin nem biblioteca de gestos — mesmo espírito
+// de marcacoes.js resolver "tocar no mapa" e de offline-tela.js desenhar um
+// retângulo sem leaflet-draw.
+function ligarGestos(btn, preset, container) {
   let timer = null;
   let longo = false;
+  const escolher = (completo) => {
+    const cb = container.__aoEscolher;
+    if (cb) cb(preset, { completo });
+  };
 
   const comecar = () => {
     longo = false;
-    timer = setTimeout(() => {
-      longo = true;
-      // Toque longo NÃO abre o formulário agora: não existe ponto no mapa
-      // ainda, e um formulário sem coordenada teria que perguntar "onde?"
-      // depois de perguntar todo o resto. Ele arma o preset em modo
-      // "completo", e o próximo toque no mapa abre o formulário já
-      // pré-preenchido com este símbolo — mesmo gesto do modo rápido (botão,
-      // depois mapa), com outro destino.
-      armar(preset, { completo: true });
-    }, TOQUE_LONGO_MS);
+    timer = setTimeout(() => { longo = true; escolher(true); }, TOQUE_LONGO_MS);
   };
   const soltar = () => { if (timer) { clearTimeout(timer); timer = null; } };
 
@@ -185,107 +244,6 @@ function ligarGestos(btn, preset) {
 
   btn.addEventListener('click', () => {
     if (longo) { longo = false; return; } // já tratado pelo toque longo
-    if (preset.id === armado) cancelarArmado();
-    else armar(preset);
+    escolher(false);
   });
-}
-
-function armar(preset, { completo = false } = {}) {
-  armado = preset.id;
-  modoArmado = completo ? 'completo' : modoDoPreset(preset);
-  // marcacoes.js é quem grava — ver o comentário de armarPreset() lá para o
-  // porquê de a paleta NÃO registrar um segundo listener de clique no mapa.
-  armarPreset(preset, {
-    completo,
-    aoConsumir: () => { armado = null; modoArmado = null; desenharGrade(); },
-  });
-  desenharGrade();
-}
-
-function cancelarArmado() {
-  if (!armado) return;
-  armado = null;
-  modoArmado = null;
-  desarmarPreset();
-  desenharGrade();
-}
-
-// ── Dados ────────────────────────────────────────────────────────────────
-function aplicarMudanca(linha) {
-  const i = presets.findIndex((p) => p.id === linha.id);
-  if (i >= 0) presets[i] = linha; else presets.push(linha);
-  presets = ordenarPaleta(presets);
-  desenharGrade();
-}
-
-function aplicarSaida(id) {
-  const antes = presets.length;
-  presets = presets.filter((p) => p.id !== id);
-  if (presets.length === antes) return;
-  // O botão armado saiu da paleta no meio do exercício (o instrutor removeu):
-  // desarma, senão o próximo toque no mapa gravaria um preset que já não
-  // existe — e o aluno não teria como saber por que aquilo apareceu.
-  if (armado === id) { armado = null; desarmarPreset(); }
-  desenharGrade();
-}
-
-// ── Ponto de entrada ─────────────────────────────────────────────────────
-// containerPainel: onde o cartão é inserido (#side-panel no app do aluno).
-export async function iniciarPaleta({ turmaId, containerPainel } = {}) {
-  if (!containerPainel || !turmaId) return;
-  injetarEstilos();
-
-  contêiner = document.createElement('div');
-  contêiner.id = 'card-paleta';
-  const titulo = document.createElement('h3');
-  titulo.textContent = 'Marcação rápida';
-  contêiner.appendChild(titulo);
-  grade = document.createElement('div');
-  grade.className = 'pal-grade';
-  contêiner.appendChild(grade);
-  aviso = document.createElement('div');
-  aviso.className = 'pal-aviso';
-  contêiner.appendChild(aviso);
-  containerPainel.appendChild(contêiner);
-
-  // Conteúdo PRIMEIRO, tornarRecolhivel() por último — a ordem que
-  // offline-tela.js errou e que custou um bug de campo em 2026-08-01 (o cartão
-  // "recolhia" uma div vazia enquanto o conteúdo real, anexado depois, ficava
-  // sempre visível).
-  tornarRecolhivel(contêiner);
-
-  desligar.push(observarPermissao('criar_marcacao_inimiga', (habilitada) => {
-    permitido = habilitada;
-    if (!habilitada) cancelarArmado();
-    desenharGrade();
-  }));
-
-  // Select inicial PRIMEIRO, assinatura DEPOIS — o Realtime não faz backfill
-  // (armadilha registrada desde a Etapa 4). Invertido, a paleta apareceria
-  // vazia para quem acabou de abrir o app e só ganharia botões se o instrutor
-  // mexesse nela durante a sessão.
-  const r = await buscarPaletaDaTurma(turmaId);
-  presets = r.presets;
-  desenharGrade();
-  if (!r.ok) dizer('Não foi possível carregar a paleta. Você continua podendo marcar tocando direto no mapa.');
-
-  canal = assinarPaleta(turmaId, { aoMudar: aplicarMudanca, aoSair: aplicarSaida });
-
-  window.addEventListener('beforeunload', () => desassinarPaleta(canal));
-}
-
-// Teardown, no molde de pararMarcacoes() (Etapa 6c). Hoje ninguém chama: o app
-// do aluno inicia uma vez por carga de página, e trocar de turma lá recarrega
-// a página inteira (decisão da Etapa 6a). Existe para quando a aba "Situação
-// atual" do instrutor ganhar a paleta — é ela que troca de turma sem recarregar
-// e precisaria descartar a paleta da turma anterior.
-export function pararPaleta() {
-  desassinarPaleta(canal);
-  canal = null;
-  desligar.forEach((f) => { if (typeof f === 'function') f(); });
-  desligar = [];
-  cancelarArmado();
-  presets = [];
-  if (contêiner) { contêiner.remove(); contêiner = null; }
-  grade = null; aviso = null;
 }

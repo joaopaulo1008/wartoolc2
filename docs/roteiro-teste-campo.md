@@ -346,23 +346,34 @@ painel abre vazia e o cartão do aluno diz que o instrutor não montou a paleta.
 
 ### Paleta de marcação rápida
 
+- [ ] 15u. **Cor dos botões** (regressão corrigida em 2026-09-14): os presets
+  gravados como Vermelho têm que aparecer VERMELHOS na paleta do aluno do Azul
+  e na lista do instrutor — não amarelos. O "Vtr" (Perguntar ao aluno) é o
+  único que fica amarelo, e isso é correto. Entrando com uma conta do VERMELHO,
+  os mesmos botões viram AZUIS.
+- [ ] 15v. **Não existe mais** cartão "Marcação rápida" no painel lateral — a
+  paleta vive dentro do formulário do clique. Se o cartão ainda aparecer, o
+  navegador está com a versão antiga em cache (Ctrl+F5).
+
 - [ ] 15g. A turma já existente ganhou a paleta padrão de 8 botões (o backfill
   da 0010 semeia turmas antigas). Confira que os símbolos desenhados nos botões
   são os esperados — CC, VBTP, Inf, Inf Mec, Rec, Art Cmp, Mrt, Vtr.
-- [ ] 15h. **Modo rápido**: toque em "CC", depois no mapa. A marcação grava
-  **sem formulário**, e o símbolo que aparece no mapa é o mesmo do botão. Um
-  colega da mesma força vê aparecer em tempo real.
-- [ ] 15i. **Modo perguntar**: toque em "Vtr" (nasce sem força), depois no mapa.
-  Aparece só a escolha de força — nada mais. Escolha e confira que gravou.
-- [ ] 15j. **Toque longo** (~0,5s) num botão e depois no mapa: abre o
-  formulário **completo já pré-preenchido** com aquele símbolo, dá para pôr
-  escalão e designação. **Este é o gesto mais frágil da entrega** — se num
-  celular específico ele não disparar (ou disparar sozinho ao rolar o painel),
-  anote qual aparelho e navegador.
-- [ ] 15k. Tocar no botão armado **de novo** cancela (a borda amarela sai).
-- [ ] 15l. Com o preset armado, o toque no mapa **não** abre o formulário
-  normal por engano, e desenhar área offline continua funcionando sem abrir
-  marcação (o bug de 2026-08-01 não voltou).
+- [ ] 15h. **Modo rápido**: toque no mapa. O formulário abre com a fileira de
+  botões NO TOPO, acima de "Categoria". Toque em "CC": grava e fecha, sem mais
+  nada. O símbolo no mapa é o mesmo do botão.
+- [ ] 15i. **Modo perguntar**: toque no mapa e depois em "Vtr" (nasce sem
+  força). O formulário NÃO fecha: ele se preenche com o símbolo e o foco vai
+  para "Partido do elemento observado". Escolha e salve.
+- [ ] 15j. **Toque longo** (~0,5s) num botão: preenche o formulário sem gravar,
+  e dá para pôr escalão e designação antes de salvar. **É o gesto mais frágil
+  da entrega** — se num celular específico não disparar (ou disparar sozinho ao
+  rolar o formulário), anote qual aparelho e navegador.
+- [ ] 15k. Abra uma marcação existente para EDITAR: a fileira de botões **não**
+  aparece (só na criação).
+- [ ] 15l. Desenhar área offline continua funcionando sem abrir marcação (o bug
+  de 2026-08-01 não voltou).
+- [ ] 15l2. Na aba "Situação atual" do instrutor, tocar no mapa também abre o
+  formulário com a fileira.
 - [ ] 15m. Instrutor: acrescente um preset pela aba "Marcação rápida" com o
   aluno com o app aberto. O botão **aparece no aparelho dele na hora**, sem F5.
   Remova um: some na hora.

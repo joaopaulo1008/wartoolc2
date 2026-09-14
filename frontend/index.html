@@ -1127,19 +1127,15 @@ if (resultado) {
       turmaId: perfil.turma_id,
     });
 
-    // Paleta de marcação rápida (2026-09-14). Vem DEPOIS de iniciarMarcacoes():
-    // ela não registra listener de clique próprio — arma um preset dentro de
-    // marcacoes.js, que é quem já é dono do `map.on('click')` e de todas as
-    // guardas de permissão (ver o comentário de armarPreset() lá). Iniciar na
-    // ordem inversa deixaria a paleta desenhada e armável antes de existir
-    // quem responde ao toque no mapa.
+    // Paleta de marcação rápida (2026-09-14). NÃO desenha nada aqui: só carrega
+    // os presets da turma e assina o Realtime. Quem desenha a fileira de botões
+    // é o próprio formulário de marcacoes.js, no momento em que ele abre — ver
+    // o cabeçalho de paleta-tela.js para por que a paleta vive no formulário e
+    // não num cartão do painel lateral.
     //
-    // O cartão é montado pelo próprio módulo dentro de #side-panel, como
-    // camadas.js e offline-tela.js — não há HTML dele neste arquivo.
-    await iniciarPaleta({
-      turmaId: perfil.turma_id,
-      containerPainel: document.getElementById('side-panel'),
-    });
+    // `perfil` traz o partido de quem olha, metade do par que decide a cor de
+    // cada símbolo da paleta (igual ao que marcacoes.js já recebe).
+    await iniciarPaleta({ turmaId: perfil.turma_id, perfil });
 
     // Etapa 8a: mapa offline. Só o app do aluno (ver o cabeçalho de
     // offline-tela.js para o porquê de a aba "Situação atual" do instrutor

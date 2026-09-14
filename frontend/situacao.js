@@ -68,6 +68,11 @@ import * as L from 'leaflet';
 import { supabase, traduzirErro, buscarUsuariosDaTurma } from './auth.js';
 import { criarIconeSimbolo, definirEtiquetaIdade } from './icones.js';
 import { iniciarMarcacoes, pararMarcacoes } from './marcacoes.js';
+// Paleta de marcação rápida (2026-09-14). Desde que ela passou a morar DENTRO
+// do formulário de marcacoes.js, esta aba ganha os mesmos atalhos de graça —
+// só precisa carregar os presets da turma. É o mesmo tipo de reuso que a 6c já
+// fez com marcacoes.js: nenhuma cópia, nenhuma tela nova.
+import { iniciarPaleta, pararPaleta } from './paleta-tela.js';
 import {
   AVISO_PARADO_MS, SEM_SINAL_MS, idadeMs, iniciarVigia, rotuloIdade,
 } from './vigia-ausencia.js';
@@ -592,6 +597,10 @@ async function iniciarMarcacoesDaTurma(turmaId) {
     perfil: contexto.perfil,
     avaliarCriacaoExtra,
   });
+  // O instrutor normalmente não tem partido, então os símbolos da paleta saem
+  // pela referência fixa da Etapa 11 (menor `ordem` = amigo) — o mesmo que ele
+  // já vê nos avatares e nas marcações desta aba.
+  await iniciarPaleta({ turmaId, perfil: contexto.perfil });
 }
 
 // ── Ciclo de vida ──────────────────────────────────────────────────────────
@@ -628,6 +637,7 @@ function pararTudo() {
   if (camadaPosicoes) camadaPosicoes.clearLayers();
   posicoes.clear();
   pararMarcacoes(); // teardown aditivo de marcacoes.js (Etapa 6c) — seguro mesmo se nunca chamado iniciarMarcacoes()
+  pararPaleta();    // idem: a paleta é por turma, e esta aba troca de turma sem recarregar
 }
 
 // ── Ponto de entrada ─────────────────────────────────────────────────────
