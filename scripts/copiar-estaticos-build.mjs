@@ -1,16 +1,16 @@
 // scripts/copiar-estaticos-build.mjs — Etapa 9a: o que o Vite NÃO empacota
 // sozinho, depois de `vite build`.
 //
-// Três coisas, e por que cada uma precisa de cópia manual em vez de o Vite
+// Duas coisas, e por que cada uma precisa de cópia manual em vez de o Vite
 // achar sozinho:
 //
-// 1. `data/*.geojson` — são carregados por `fetch()` em tempo de execução
-//    (EXTRA_LAYERS e o polling do COP tático legado em frontend/index.html),
-//    nunca por `import`. O Vite só empacota o que consegue enxergar por
-//    análise estática de import/require; uma string de URL passada a
-//    `fetch()` é invisível para ele.
+// (Eram três até a Etapa 11. A que saiu era `data/*.geojson`, carregada por
+// `fetch()` em tempo de execução — EXTRA_LAYERS e o polling do COP tático de
+// junho, ambos removidos de frontend/index.html naquela etapa junto com os
+// dois arquivos. `data/` hoje só tem `simbologia-eb/`, que é FONTE e nunca
+// foi copiada: ver o comentário no lugar onde a cópia ficava, mais abaixo.)
 //
-// 2. `frontend/sw-bdgex.js` — é um Service Worker, registrado por
+// 1. `frontend/sw-bdgex.js` — é um Service Worker, registrado por
 //    `navigator.serviceWorker.register('./sw-bdgex.js')` (offline-tela.js),
 //    também uma STRING, não um import. Tem uma exigência a mais: o nome do
 //    arquivo tem que ser ESTÁVEL (sem hash de conteúdo), porque o navegador
@@ -18,7 +18,7 @@
 //    se o Vite processasse este arquivo como um asset comum, o hash mudaria
 //    a cada build e o registro pararia de bater.
 //
-// 3. `.nojekyll` dentro de `dist/` — o que hoje existe na raiz do repositório
+// 2. `.nojekyll` dentro de `dist/` — o que hoje existe na raiz do repositório
 //    evita o processador Jekyll do GitHub Pages mexer em pastas começando
 //    com "_" (nenhuma aqui, mas é a convenção). Com o build, o que é
 //    PUBLICADO é `dist/`, não a raiz do repo — o marcador precisa estar
@@ -41,19 +41,15 @@ if (!existsSync(dist)) {
   process.exit(1);
 }
 
-// Etapa 9b: `data/simbologia-eb/` fica de fora da cópia, embora esteja dentro
-// de `data/`. Não é esquecimento — aquele diretório é FONTE, não recurso de
-// tempo de execução: o catálogo do MD/EB chega ao navegador como módulo
-// empacotado (`frontend/simbolos-catalogo.js`, gerado por
-// scripts/gerar-catalogo-simbologia.mjs), justamente para não depender de um
-// `fetch()` em campo. Publicar os JSON junto seria ~63 kB que ninguém baixa.
-const FORA_DA_COPIA = new Set(['simbologia-eb']);
-
-cpSync(join(raiz, 'data'), join(dist, 'data'), {
-  recursive: true,
-  filter: (origem) => !FORA_DA_COPIA.has(origem.split(/[\\/]/).pop()),
-});
+// `data/` NÃO é copiada, e desde a Etapa 11 a pasta inteira ficou de fora.
+// O único diretório que sobrou lá dentro é `data/simbologia-eb/`, que é
+// FONTE, não recurso de tempo de execução: o catálogo do MD/EB chega ao
+// navegador como módulo empacotado (`frontend/simbolos-catalogo.js`, gerado
+// por scripts/gerar-catalogo-simbologia.mjs), justamente para não depender de
+// um `fetch()` em campo. Publicar os JSON junto seriam ~63 kB que ninguém
+// baixa. Se um dia voltar a existir arquivo de dados servido por `fetch()`,
+// é aqui que a cópia volta.
 cpSync(join(raiz, 'frontend', 'sw-bdgex.js'), join(dist, 'frontend', 'sw-bdgex.js'));
 writeFileSync(join(dist, '.nojekyll'), '');
 
-console.log('Copiados para dist/: data/ (sem simbologia-eb/, que é fonte), frontend/sw-bdgex.js, .nojekyll');
+console.log('Copiados para dist/: frontend/sw-bdgex.js, .nojekyll');

@@ -400,4 +400,38 @@ tinha visto.
 - [ ] 15t. Confira no app do aluno que a camada publicada aparece — isso fecha
   de uma vez os itens 9 e os cinco pendentes da 8b.
 
+### Símbolo sem desenho central (2026-09-14)
+
+Relatado com foto: um losango vermelho liso no mapa. Não era bug de desenho —
+"Comando Nomeado" é assim porque o conteúdo dele é a SIGLA, não um ícone.
+
+- [ ] 15u. No formulário de marcação, escolha **Unidades → Comando Nomeado** e
+  deixe "Designação da unidade" em branco: tem que aparecer o **aviso âmbar**
+  explicando que o símbolo sai vazio sem a sigla.
+- [ ] 15v. Digite uma sigla no campo: o aviso **some na hora**, sem sair do
+  campo.
+- [ ] 15w. Grave assim mesmo (sem sigla): tem que **deixar gravar**. O aviso
+  avisa, não impede — pode-se marcar um comando cuja sigla ainda não se sabe.
+- [ ] 15x. Grave com a sigla: no mapa, o símbolo sai com a sigla no centro.
+
+### Fim da herança de junho (2026-09-14)
+
+O COP estático do exercício de junho de 2026 e as camadas fixas do repositório
+saíram do app. **Isto é a conferência de que nada quebrou junto.**
+
+- [ ] 15y. Abra o app do aluno: **nenhum símbolo de União da Vitória /
+  Canoinhas** no mapa ("MMT", "Roubo Explosivos", "Manifestação"). O painel
+  lateral não tem mais os cartões **"Forças"** nem **"Camadas"** (o cartão
+  "Camadas de arquivo", montado por `camadas.js`, CONTINUA existindo).
+- [ ] 15z. A topbar não tem mais os contadores F/I/N/D nem o "Atualizado:
+  hh:mm". Os cinco status (GPS, Colegas, Marcações, Permissões, Camadas)
+  continuam lá e continuam mudando.
+- [ ] 15aa. Com o GPS pegando, o mapa **centraliza na sua posição** — não mais
+  em União da Vitória.
+- [ ] 15ab. Publique um calco de manobra e desligue `camada_manobra` para o
+  aluno: o calco tem que sumir na tela dele. Mesmo teste com `camada_inimigo`.
+  **É o item que prova que as chaves não ficaram órfãs.**
+- [ ] 15ac. Console do navegador limpo de 404: nada mais pede
+  `data/cop_tatico.geojson` nem `data/man5bdacbld.geojson`.
+
 Qualquer item marcado como falha vira a prioridade do próximo chat — cole este checklist preenchido para retomar com contexto completo.

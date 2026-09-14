@@ -13,9 +13,9 @@
 // clássico de `index.html`, que não podia importar módulo e por isso não
 // tinha como ler a primeira. A Etapa 9a (migração para bundler) fechou essa
 // cópia: index.html agora importa `criarBasemaps`/`BASEMAP_FALLBACK` direto
-// de basemaps.js e `CORES_CAMADA`/`FAIXAS_PANE`/`escaparHtml` direto de
-// kml.js — não há mais um segundo objeto BASEMAPS nem uma segunda
-// CORES_CAMADA para divergir da fonte.
+// de basemaps.js — não há mais um segundo objeto BASEMAPS para divergir da
+// fonte. (Ele também importava de kml.js, por causa das camadas fixas do
+// repositório; isso acabou na Etapa 11, junto com elas.)
 //
 // O que continua sendo cópia de verdade, e por isso continua testado aqui, é
 // o HTML dos rádios do seletor (`<input name=basemap value=...>`): esses são
@@ -99,8 +99,15 @@ console.log('\n── Etapa 9a: index.html IMPORTA em vez de duplicar ───�
 // como `ReferenceError` em vez de silêncio.
 okVerdade("index.html importa criarBasemaps/BASEMAP_FALLBACK de basemaps.js",
   /import\s*\{[^}]*criarBasemaps[^}]*\}\s*from\s*'\.\/basemaps\.js'/.test(html));
-okVerdade("index.html importa CORES_CAMADA/FAIXAS_PANE/escaparHtml de kml.js",
-  /import\s*\{[^}]*CORES_CAMADA[^}]*\}\s*from\s*'\.\/kml\.js'/.test(html));
+// Etapa 11: index.html deixou de importar de kml.js, e a asserção INVERTEU de
+// sentido. CORES_CAMADA/FAIXAS_PANE/escaparHtml chegavam aqui por causa das
+// camadas fixas do repositório (EXTRA_LAYERS), removidas junto com o COP de
+// junho. Quem usa kml.js hoje é camadas.js — e é lá que deve continuar. Um
+// import desses reaparecendo em index.html quer dizer que uma camada de
+// arquivo voltou a ser desenhada pela TELA em vez de pelo módulo dela, que é
+// a divergência que este arquivo existe para pegar.
+okVerdade('index.html NÃO importa de kml.js (as camadas de arquivo são de camadas.js)',
+  !/from\s*'\.\/kml\.js'/.test(html));
 okVerdade('e não voltou a declarar um BASEMAPS ou CORES_CAMADA locais',
   !/const BASEMAPS = \{/.test(html) && !/const CORES_CAMADA = \[/.test(html));
 
@@ -131,15 +138,21 @@ okVerdade('basemaps.js: o BDGEx herda o protocolo da página (sem http:// fixo)'
   !/http:\/\/bdgex\.eb\.mil\.br/.test(basemapsJs));
 
 // ─────────────────────────────────────────────────────────────────────────
-console.log('\n── A legenda de forças — cores que precisam bater à mão ──');
+console.log('\n── Cores de camada: uma fonte só (a legenda de forças saiu) ──');
 
-// Azul e vermelho não são cores quaisquer: são os MESMOS tons dos pontinhos
-// de Amigo e Hostil na legenda de forças do painel, e das opções de
-// CORES_CAMADA (kml.js) para as camadas do repositório. Este trecho da
-// legenda é HTML/CSS estático, não código — por isso continua comparado à
-// mão, mesmo depois da Etapa 9a.
-okVerdade('o azul é o mesmo da legenda "Amigo"', html.includes('background:#4a90d9'));
-okVerdade('o vermelho é o mesmo da legenda "Hostil"', html.includes('background:#e05252'));
+// Até a Etapa 11 este bloco comparava à mão os tons de CORES_CAMADA (kml.js)
+// com os pontinhos "Amigo"/"Hostil" da legenda de forças de index.html — um
+// par de valores hexadecimais escritos duas vezes, em HTML estático e em
+// JavaScript, que só um teste mantinha juntos.
+//
+// A legenda saiu com o COP de junho, e com ela a duplicação. Restou UM lugar
+// escrevendo cada cor, que é o estado desejado — então a asserção que vale
+// hoje é a que trava o valor na FONTE e prova que a cópia não voltou.
+okVerdade('CORES_CAMADA continua com o azul e o vermelho da simbologia (amigo/hostil)',
+  CORES_CAMADA.some((c) => c.valor === '#4a90d9') &&
+  CORES_CAMADA.some((c) => c.valor === '#e05252'));
+okVerdade('e index.html não tem mais cor de camada escrita à mão no HTML',
+  !html.includes('background:#4a90d9') && !html.includes('background:#e05252'));
 okVerdade('e são as mesmas cores de CORES_CAMADA (kml.js)',
   CORES_CAMADA.some((c) => c.valor === '#4a90d9') && CORES_CAMADA.some((c) => c.valor === '#e05252'));
 

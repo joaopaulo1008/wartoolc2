@@ -151,9 +151,11 @@ function status(texto, cor) {
 
 // ── Ícone (símbolo NATO via milsymbol) ───────────────────────────────────
 // O SIDC já vem pronto de perfis.sidc (schema da Etapa 1, default "amigo +
-// unidade") — este módulo NÃO monta o código na mão, diferente do getSIDC()
-// usado no painel COP legado dentro de index.html (que monta a partir de
-// planilha). Desenho do ícone em si é criarIconeSimbolo(), compartilhado com
+// unidade") — este módulo NÃO monta o código na mão. (Até a Etapa 11 havia um
+// contraste a fazer aqui: index.html montava o SIDC com getSIDC() a partir da
+// planilha do COP de junho. Aquele caminho não existe mais; getSIDC()
+// continua em simbolos.js, hoje usado só pelo formulário de marcação.)
+// Desenho do ícone em si é criarIconeSimbolo(), compartilhado com
 // colegas.js e marcacoes.js desde a Etapa 5 (ver frontend/icones.js).
 // partidoObservador/partidoElemento ficam de fora de propósito: o próprio
 // avatar não tem hostilidade relativa a resolver (a pessoa é sempre "amigo"
@@ -302,7 +304,7 @@ function aoReceberPosicao(posicao, { map, userId, perfil }) {
     if (!marcadorProprio) {
       marcadorProprio = L.marker([latitude, longitude], {
         icon: criarIconeProprio(perfil.sidc, perfil.nome_guerra),
-        zIndexOffset: 1000, // fica por cima dos ícones do painel COP legado
+        zIndexOffset: 1000, // o próprio avatar fica por cima de todo o resto
       }).addTo(map);
       if (!jaCentralizou) {
         map.setView([latitude, longitude], 16); // centraliza no próprio avatar só na primeira vez

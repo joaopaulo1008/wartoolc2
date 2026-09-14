@@ -176,8 +176,9 @@ async function upsertAvatar(row, { map }) {
   if (!estado) {
     const marker = L.marker([row.latitude, row.longitude], {
       icon: criarIconeColega(perfil.sidc, perfil.nome_guerra, perfil.partido),
-      // Abaixo do próprio avatar (gps.js usa zIndexOffset 1000), mas acima
-      // do painel COP legado (sem offset).
+      // Abaixo do próprio avatar (gps.js usa zIndexOffset 1000) e acima das
+      // marcações (sem offset): na dúvida de quem tapa quem, a ordem é eu,
+      // meus colegas, o resto.
       zIndexOffset: 500,
     }).addTo(map);
     estado = { marker, perfil };

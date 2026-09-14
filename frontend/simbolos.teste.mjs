@@ -14,7 +14,9 @@
 
 import {
   HOSTILIDADE, getSIDC, hostilidadeRelativa, aplicarHostilidade, sidcParaObservador,
+  ENTIDADES_SEM_DESENHO, exigeDesignacao,
 } from './simbolos.js';
+import { CATEGORIAS } from './simbolos-catalogo.js';
 
 const [argAzul, argVermelho] = process.argv.slice(2);
 
@@ -105,6 +107,70 @@ ok('monta a partir de rótulos humanos',
 ok('campos ausentes caem no default (desconhecido/unidade)',
   getSIDC({}), '10011000000000000000');
 ok('a tabela HOSTILIDADE é a mesma de antes', HOSTILIDADE.HOSTIL, '06');
+
+// ── Quais símbolos saem SEM desenho central (varredura contra a milsymbol) ──
+// Etapa 11: relatado em campo — *"um objeto marcado está saindo como
+// genérico"*, um losango vermelho liso no mapa. A causa não é um defeito de
+// desenho: "Comando Nomeado" (`10:000000`) É assim, porque o conteúdo dele é
+// a SIGLA da unidade, não um ícone. ENTIDADES_SEM_DESENHO existe para o
+// formulário poder avisar antes de gravar, e este teste é quem garante que a
+// lista continua batendo com a realidade.
+//
+// A varredura roda contra a milsymbol de verdade, item por item do catálogo.
+// É o único jeito honesto de manter uma lista escrita à mão: se uma versão
+// nova da biblioteca passar a desenhar algo no Comando Nomeado, ou se um item
+// novo do catálogo entrar sem desenho, o teste avisa em vez de a pessoa
+// descobrir no mapa, em campo.
+//
+// Critério: um símbolo sem desenho central tem UM elemento gráfico no SVG (a
+// moldura). Qualquer coisa dentro dela acrescenta pelo menos mais um — é o
+// que separa os 433 restantes do único caso.
+console.log('\nENTIDADES_SEM_DESENHO — varredura dos 434 itens do catálogo');
+let ms = null;
+try {
+  const mod = await import('milsymbol');
+  ms = mod.default || mod;
+} catch {
+  // `npm install` não foi rodado. Não é falha do código: é o teste dizendo o
+  // que não conseguiu provar, em vez de passar em silêncio.
+  console.log('  PULADO         milsymbol não instalada — rode `npm install` para esta parte valer');
+}
+if (ms) {
+  const elementosDesenhados = (sidc, opcoes = {}) =>
+    (new ms.Symbol(sidc, { size: 32, ...opcoes }).asSVG()
+      .match(/<(path|circle|rect|line|polyline|polygon|text|ellipse)/g) || []).length;
+  // Situação/HQ/escalão zerados: só a entidade importa para esta pergunta.
+  const sidcDe = (symbolSet, entidade) => `1003${symbolSet}0000${entidade}0000`;
+
+  const semDesenho = [];
+  let itens = 0;
+  for (const cat of CATEGORIAS) {
+    for (const grupo of cat.grupos) {
+      for (const [codigo] of grupo.itens) {
+        itens += 1;
+        if (elementosDesenhados(sidcDe(cat.symbolSet, codigo)) <= 1) {
+          semDesenho.push(`${cat.symbolSet}:${codigo}`);
+        }
+      }
+    }
+  }
+
+  ok('o catálogo não encolheu (434 itens varridos)', itens, 434);
+  ok('exatamente UM item do catálogo sai só com a moldura', semDesenho.length, 1);
+  ok('e ele é o Comando Nomeado', semDesenho[0], '10:000000');
+  ok('que ENTIDADES_SEM_DESENHO conhece', ENTIDADES_SEM_DESENHO.has('10:000000'), true);
+  ok('o código legado 120000 (Posto de Comando, pré-9b) também sai vazio',
+    elementosDesenhados(sidcDe('10', '120000')), 1);
+  ok('e ele também está na lista', ENTIDADES_SEM_DESENHO.has('10:120000'), true);
+  ok('a lista não tem nada ALÉM desses dois (senão o formulário avisa à toa)',
+    ENTIDADES_SEM_DESENHO.size, 2);
+  ok('com a sigla preenchida, o Comando Nomeado passa a desenhar alguma coisa',
+    elementosDesenhados(sidcDe('10', '000000'), { uniqueDesignation: '1ª Cia' }) > 1, true);
+  ok('um item qualquer do catálogo NÃO exige designação (Infantaria)',
+    exigeDesignacao('10', '121100'), false);
+  ok('exigeDesignacao casa o par symbolSet+entidade, não só a entidade',
+    exigeDesignacao('01', '000000'), false);
+}
 
 console.log(`\n${passou} passou, ${falhou} falhou, ${passou + falhou} total\n`);
 process.exit(falhou === 0 ? 0 : 1);

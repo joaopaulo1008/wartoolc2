@@ -6,10 +6,12 @@
 // Até a Etapa 4, as tabelas de conversão APP-6D (HOSTILIDADE, DIMENSAO,
 // SITUACAO, ESCALAO, HQTF) e a função getSIDC() viviam soltas dentro do
 // <script> clássico de index.html. Com a hostilidade virando RELATIVA, mais de
-// um arquivo passa a precisar dessa conversão (index.html para o COP legado,
+// um arquivo passa a precisar dessa conversão (index.html para o COP de junho,
 // colegas.js para os avatares, e a Etapa 5 para as marcações). Duas cópias das
 // mesmas tabelas é como o SIDC começa a divergir em silêncio — então elas
-// mudaram de casa para cá e index.html passou a consumir daqui.
+// mudaram de casa para cá e index.html passou a consumir daqui. Na Etapa 11 o
+// consumidor original (o COP de junho) saiu de cena; os outros dois ficaram, e
+// esta casa continua sendo a única.
 //
 // A regra da hostilidade relativa
 // -------------------------------
@@ -304,6 +306,41 @@ export function decomporSidc(sidc) {
     mod1,
     mod2,
   };
+}
+
+// ── Símbolos que NÃO têm desenho central próprio ─────────────────────────
+// Relatado em campo (2026-09-14): "um objeto marcado está saindo como
+// genérico" — no mapa, um losango vermelho liso, sem nada dentro.
+//
+// Não era defeito de renderização. Varrendo os 434 itens do catálogo oficial
+// contra a milsymbol (simbolos.teste.mjs refaz essa varredura a cada rodada),
+// **um único item** sai só com a moldura: `000000` do symbol set 10, "Comando
+// Nomeado". E ele é assim POR DEFINIÇÃO — o próprio nome oficial diz "(sigla
+// do Comando no setor central)": o conteúdo dele é a SIGLA, não um desenho.
+// Com `uniqueDesignation` preenchido, a milsymbol escreve a sigla no centro e
+// o símbolo passa a significar alguma coisa; sem, fica a moldura nua.
+//
+// `120000` entra na lista pelo mesmo efeito, mas por outro motivo: é um código
+// das tabelas escritas à mão da Etapa 5 ("Posto de Comando"), que o catálogo
+// oficial não tem — marcações anteriores à 9b podem carregá-lo.
+//
+// O formulário usa isto para AVISAR antes de salvar, em vez de deixar a pessoa
+// descobrir no mapa. É a mesma postura do aviso de código legado ao editar: o
+// problema não é o app não conseguir desenhar, é o usuário não saber por que
+// saiu vazio.
+//
+// Lista curta e explícita de propósito: são dois casos em 434. Calcular isso
+// em runtime exigiria renderizar o símbolo só para contar elementos do SVG —
+// caro e frágil. Quem garante que a lista continua certa é o teste, que refaz
+// a varredura contra a milsymbol de verdade.
+export const ENTIDADES_SEM_DESENHO = new Set([
+  '10:000000', // Comando Nomeado — a sigla É o símbolo
+  '10:120000', // Posto de Comando, das tabelas manuais pré-9b
+]);
+
+// symbolSet: os dígitos 5-6 do SIDC (o mesmo que `categoria.symbolSet`).
+export function exigeDesignacao(symbolSet, codigoEntidade) {
+  return ENTIDADES_SEM_DESENHO.has(`${symbolSet}:${codigoEntidade}`);
 }
 
 // Um resumo em português do que um SIDC representa, para popup e listagem —

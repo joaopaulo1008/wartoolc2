@@ -32,6 +32,12 @@ Duas coisas diferentes, que é fácil confundir:
 
 ## Estado atual (herdado do protótipo original)
 
+> **Esta seção é HISTÓRIA, não descrição do app de hoje.** O pipeline descrito
+> abaixo foi inteiramente substituído ao longo das Etapas 3-9, e os últimos
+> restos dele em tela (o COP estático de junho de 2026 e as camadas fixas do
+> repositório) foram removidos em 2026-09-14 — ver "Fim da herança de junho de
+> 2026", mais abaixo. Fica aqui porque explica de onde vieram várias decisões.
+
 Havia um protótipo funcional, porém **somente leitura** e sem GPS de celular:
 
 - **Frontend** (`frontend/index.html`): Leaflet + `milsymbol` já renderiza símbolos a partir de um SIDC. Seletor de mapa base já com 10 opções (OSM, Esri topo/satélite, OpenTopoMap, Google sat/híbrido, **BDGEx 1:50.000 do Exército**, CartoDB claro/escuro). Suporta camadas extras via GeoJSON com toggle de visibilidade (não tem controle de opacidade nem upload pelo usuário ainda). As tabelas de hostilidade/dimensão/natureza são hoje escritas à mão — candidatas a serem substituídas pelas tabelas oficiais do `stanag-app6`.
@@ -142,7 +148,7 @@ As três tabelas de permissão, a view e a RLS delas estão prontas desde a `000
 - **`colegas.js` fecha o canal Realtime quando `ver_posicao_outros` cai**, em vez de só esconder os avatares: com 60+ alunos mandando GPS, receber posição que não vai ser desenhada é tráfego à toa no aparelho de quem está proibido de ver. Ao religar, o módulo refaz o caminho completo (select inicial → assinatura), como faria numa carga de página.
 - **`window.WartoolCamadas` é a segunda ponte do projeto**, pelo mesmo motivo (e com o mesmo prazo de validade) de `window.WartoolSimbolos`: as camadas moram no `<script>` clássico de `index.html`, que não pode `import`. O script clássico publica comandos com nome de intenção ("pode/não pode ver a camada X") e o módulo só chama. **Some na Etapa 9.**
 - **Permissão e escolha do aluno são coisas diferentes e as duas são respeitadas**: a camada só aparece quando o instrutor PERMITE e o aluno MARCOU a caixa. Nenhuma função da ponte desmarca a caixa do aluno — ao reabilitar, ele volta ao estado que tinha escolhido, não a "tudo ligado".
-- **Mapeamento chave → interface que existe hoje:** `camada_manobra` → `EXTRA_LAYERS` (o GeoJSON "Limites e Eixos"); `camada_inimigo` → grupo I (hostis) do painel COP legado; `camada_bdgex` → a opção BDGEx do seletor de mapa base (se estiver aberta quando a permissão cair, volta para OSM na hora); `trocar_mapa_base` → o seletor inteiro; `ver_mapa` → uma cobertura sobre a área do mapa, com a topbar ainda visível (tela toda preta pareceria bug, não decisão do instrutor). ~~**`camada_logistica`, `camada_obstaculos`, `carregar_kml`, `carregar_imagem_geo` e `ver_historico_rastro` não têm interface ainda**~~ — `ver_historico_rastro` **passou a valer na Etapa 6b** (aba de debriefing); as outras quatro continuam sem interface. `CHAVES_APLICADAS`, em `permissoes.js`, é a lista única do que de fato surte efeito, e o painel do instrutor usa ela para marcar as demais com "sem efeito ainda" em vez de prometer o que não existe.
+- **Mapeamento chave → interface que existe hoje:** ~~`camada_manobra` → `EXTRA_LAYERS` (o GeoJSON "Limites e Eixos"); `camada_inimigo` → grupo I (hostis) do painel COP legado~~ — **os dois alvos fixos deixaram de existir em 2026-09-14** (ver "Fim da herança de junho de 2026"); as quatro chaves de camada valem hoje só nos calcos publicados, via `camadas.js`. `camada_bdgex` → a opção BDGEx do seletor de mapa base (se estiver aberta quando a permissão cair, volta para OSM na hora); `trocar_mapa_base` → o seletor inteiro; `ver_mapa` → uma cobertura sobre a área do mapa, com a topbar ainda visível (tela toda preta pareceria bug, não decisão do instrutor). ~~**`camada_logistica`, `camada_obstaculos`, `carregar_kml`, `carregar_imagem_geo` e `ver_historico_rastro` não têm interface ainda**~~ — `ver_historico_rastro` **passou a valer na Etapa 6b** (aba de debriefing); as outras quatro continuam sem interface. `CHAVES_APLICADAS`, em `permissoes.js`, é a lista única do que de fato surte efeito, e o painel do instrutor usa ela para marcar as demais com "sem efeito ainda" em vez de prometer o que não existe.
 - **O painel espelha `fn_sou_instrutor_da_turma()` no cliente** ("lotado nela OU responsável por ela") só para avisar antes, não para autorizar: se o instrutor não passar nessa condição, os controles saem desabilitados e o aviso já traz o `update` de correção pronto. Sem isso, ele clicaria em tudo e só descobriria pelo erro cru do PostgREST.
 - **O painel também distribui as forças (`perfis.partido_id`), e isso NÃO é permissão** — é coluna de `perfis`, mas era a outra coisa que o instrutor precisava ajustar por aluno e que só existia como `UPDATE` no SQL Editor (o `backend/README.md` documentava esse UPDATE). Nenhuma regra nova foi precisa: `perfis_editar_instrutor` (0002), `fn_proteger_campos_do_perfil` (que só barra quem *não* é instrutor) e `fn_normalizar_partido_do_perfil` (que valida se o partido é da turma) já cobriam desde a 0003. O seletor fica no cabeçalho do aluno, separado da grade de permissões, e avisa na tela que **partido nulo é restritivo** — é exatamente o estado em que um aluno recém-cadastrado cai, e o sintoma (mapa vazio) não sugere a causa.
 - **Trocar a força recarrega a página do aluno, de propósito.** É a única reação desta etapa que não é incremental, e é deliberado: o partido de quem olha é metade do par que decide a hostilidade de *cada símbolo já desenhado* e entra em `fn_usuarios_visiveis()`, que decide *quem ele enxerga*. Reagir "direito" significaria trocar `meuPartido` em dois módulos, recriar todo ícone no mapa, descartar quem saiu do alcance da RLS, refazer os dois selects iniciais e reassinar canais — cinco caminhos de estado novos em três módulos já testados, para uma operação que acontece uma ou duas vezes por exercício, na montagem. `location.reload()` chega ao mesmo lugar por um caminho que já é exercitado toda vez que alguém abre o app. **Se um dia a troca virar rotina, o lugar de pagar o preço do redesenho é o corpo de `aoMudarPartido()` em `frontend/perfil-ao-vivo.js`, sem mexer no resto.**
@@ -803,6 +809,98 @@ desligando o GPS; marcar pela paleta nos dois modos e conferir que o símbolo
 gravado é o do botão; e o toque longo num celular de verdade, que é o gesto
 mais frágil desta entrega.
 
+### "Um objeto marcado está saindo como genérico" (2026-09-14)
+
+Relatado no mesmo teste de campo, com foto: um losango vermelho liso no mapa,
+sem nada dentro. **Não era defeito de renderização — e é por isso que a
+correção não é no desenho.**
+
+- **Varredura, antes de teorizar.** Os 434 itens do catálogo oficial foram
+  renderizados um a um contra a `milsymbol` em Node. **Exatamente um** sai só
+  com a moldura: `000000` do symbol set 10, **"Comando Nomeado (sigla do
+  Comando no setor central)"**. O nome oficial já diz o que ele é: o conteúdo
+  daquele símbolo é a **sigla da unidade**, não um ícone. Com
+  `uniqueDesignation` preenchido, a `milsymbol` escreve a sigla no meio e o
+  símbolo passa a significar alguma coisa; sem, fica a moldura nua — que é
+  exatamente o que apareceu na foto.
+- **`120000` entra pelo mesmo efeito, por outro motivo:** é um código das
+  tabelas escritas à mão da Etapa 5 ("Posto de Comando"), que o catálogo
+  oficial não tem. Marcações anteriores à 9b podem carregá-lo.
+- **A correção é AVISAR, não impedir.** `ENTIDADES_SEM_DESENHO` +
+  `exigeDesignacao(symbolSet, codigo)` em `simbolos.js`; o formulário de
+  `marcacoes.js` mostra `#mc-aviso-sigla` (âmbar) quando o item escolhido está
+  na lista e "Designação da unidade" está vazia. Mesma postura do aviso de
+  código legado ao editar: **o problema não é o app não conseguir desenhar, é o
+  usuário não saber por que saiu vazio.** Quem quiser gravar assim, grava — há
+  motivo legítimo para marcar um comando cuja sigla ainda não se conhece.
+- **Lista curta e explícita de propósito** (dois casos em 434). Calcular isso em
+  runtime exigiria renderizar o símbolo só para contar elementos do SVG — caro
+  e frágil. **Quem garante que a lista continua certa é o teste**, que refaz a
+  varredura contra a `milsymbol` de verdade a cada rodada
+  (`simbolos.teste.mjs`, 35/35 — a primeira suíte do projeto a importar uma
+  dependência de runtime; sem `node_modules` ela PULA essa parte dizendo o
+  porquê, em vez de falhar por engano ou passar em silêncio).
+
+### Fim da herança de junho de 2026 (2026-09-14)
+
+*"Quero eliminar essas heranças de junho"* — o mapa do aluno ainda mostrava, em
+toda turma, os símbolos do exercício de junho de 2026 (União da Vitória /
+Canoinhas: "MMT", "Roubo Explosivos", "Manifestação"). Saiu tudo.
+
+- **O que era:** dois GeoJSON commitados no repositório, gerados no QGIS a
+  partir de uma planilha do Sheets e publicados a mão (`legacy-qgis/`) —
+  `data/cop_tatico.geojson`, relido por `fetch()` a cada 2 minutos (os grupos
+  `GRUPOS` F/I/N/D, `criarIcone()`, `criarPopup()`, `contadores()`, o cartão
+  "Forças"), e `data/man5bdacbld.geojson` ("Limites e Eixos", `EXTRA_LAYERS`,
+  com painel próprio de cor e opacidade).
+- **Por que sai agora, e não "quando der":** *tudo* o que eles faziam já é
+  feito por outro caminho, melhor, e **a coexistência das duas gerações na
+  mesma tela já era o defeito**. Os elementos do exercício são
+  `elementos_marcados` desde a Etapa 5 (qualquer aluno marca no toque, todo
+  mundo vê pelo Realtime, e a **hostilidade é relativa a quem olha** — o COP
+  antigo trazia hostilidade absoluta gravada no arquivo, que é justamente a
+  decisão que a 4.5 tomou ao contrário). O calco de limites e eixos é publicado
+  pelo instrutor desde a Etapa 7, por upload, sem um commit e um build por
+  exercício. E **os símbolos de junho ficavam no mapa de toda turma, para
+  sempre, sem pertencer a turma nenhuma**: não havia como apagá-los pela
+  interface, porque não vinham do banco.
+- **O cartão "Forças" saiu junto, e ele era pior do que inútil:** as quatro
+  caixas F/I/N/D ligavam e desligavam os grupos do COP estático — nada do que
+  hoje aparece no mapa. Colegas, marcações e calcos têm cada um o seu próprio
+  controle. Eram quatro caixas que não faziam efeito nenhum na tela do aluno.
+- **As chaves de permissão NÃO ficaram órfãs.** `camada_manobra` e
+  `camada_inimigo` continuam valendo — agora **só** no caminho de `camadas.js`
+  (os calcos publicados). O que acabou foi o *segundo* caminho, o das camadas
+  fixas escritas em `index.html`, e com ele a única razão de uma chave de
+  camada ter efeito em dois lugares diferentes. `camadasPermissao` ficou só com
+  mapa base e a cobertura de `ver_mapa`.
+- **A primeira vista do mapa mudou, para melhor.** Era o enquadramento dos
+  elementos de junho (`fitBounds`): o app abria em União da Vitória mesmo para
+  uma turma do outro lado do país, e só saía de lá quando o GPS pegava. Agora a
+  primeira vista é a posição do próprio aluno (`gps.js`, `setView(..., 16)` no
+  primeiro fix).
+- **Efeito colateral bom:** `data/` deixou de ser copiada no build
+  (`copiar-estaticos-build.mjs` fazia três coisas, agora faz duas) — o único
+  diretório que restou lá é `data/simbologia-eb/`, que é FONTE e nunca foi
+  publicada. `milsymbol`, `getSIDC`, `CORES_CAMADA`/`FAIXAS_PANE`/`escaparHtml`
+  saíram dos imports de `index.html`: eram do COP. Continuam vivos e usados em
+  `icones.js` e `camadas.js`.
+- **`FAIXAS_PANE.repositorio` (410) ficou VAGA, de propósito, e não foi
+  apagada.** Apagá-la renumeraria as duas faixas de cima, e são elas que
+  garantem que um calco nunca tapa um símbolo militar (`kml.teste.mjs` trava as
+  invariantes). Se um dia voltar a existir camada de fundo vinda do
+  repositório, é ali que ela entra sem mexer em mais nada.
+- **`legacy-qgis/` ficou onde estava** — preservado desde a Etapa 0 como
+  importador opcional. Não é código de aplicação: não é empacotado, não é
+  baixado por ninguém em campo e não desenha nada em tela. **Se a ordem for
+  "some com tudo de junho, inclusive o gerador", é um `git rm -r legacy-qgis/`
+  e três comentários de proveniência em `simbolos.js`/`CLAUDE.md`/`ROADMAP.md`
+  a ajustar.**
+- Build limpo, e conferido de verdade: `dist/` não tem mais nenhuma referência
+  a `data/*.geojson` nem aos ids removidos, e a página construída foi carregada
+  num Chromium headless sob o caminho de publicação (`/wartoolc2/`) até o
+  redirecionamento para `login.html` — sem erro de JavaScript.
+
 ## Estrutura de pastas
 
 ```
@@ -845,20 +943,26 @@ frontend/       app web (Leaflet + milsymbol + stanag-app6). Login/cadastro/rote
                 dos avatares SAIU — quem marca posição velha agora é a etiqueta de
                 idade, escrita por definirEtiquetaIdade() (icones.js) em colegas.js,
                 situacao.js e no replay de debriefing.js. paleta.js (puro) +
-                icones-rapidos.js (banco/Realtime) + paleta-tela.js (cartão do aluno)
-                + instrutor-paleta.js (aba de montagem) são a PALETA DE ÍCONES
+                icones-rapidos.js (banco/Realtime) + paleta-tela.js (a fileira de
+                botões, desenhada DENTRO do formulário de marcação) +
+                instrutor-paleta.js (aba de montagem) são a PALETA DE ÍCONES
                 RÁPIDOS (migration 0010): presets de marcação definidos pelo
                 instrutor, por turma. catalogo-form.js é a FONTE ÚNICA dos <option>
                 do catálogo, extraída de marcacoes.js ao ganhar o segundo consumidor.
-                A paleta NÃO tem listener de clique próprio: arma um preset dentro de
-                marcacoes.js, que continua sendo o único que escreve em
-                elementos_marcados
-data/           GeoJSON publicados (saída do pipeline atual; pode servir de seed pro backend novo)
+                A paleta NÃO tem listener de clique no mapa nem estado "armado": o
+                formulário já sabe ONDE quando a abre, e marcacoes.js continua sendo
+                o único que escreve em elementos_marcados
+data/           só `simbologia-eb/` desde 2026-09-14 — os dois GeoJSON do exercício de junho
+                (cop_tatico, man5bdacbld) saíram junto com o COP legado, e `data/` deixou de
+                ser copiada para dist/ no build
 data/simbologia-eb/  extrato do Portal de Simbologia Militar do MD/EB (Etapa 9b) + PROCEDENCIA.md
                 (URL, SHA-256 e data de cada um dos 12 arquivos originais, e como recapturar)
 scripts/        utilitários de build/manutenção rodados à mão ou pelo `npm run build`
                 (copiar-estaticos-build.mjs, gerar-catalogo-simbologia.mjs)
-legacy-qgis/    pipeline original QGIS + Sheets — mantido como importador opcional, não é mais a fonte de verdade
+legacy-qgis/    pipeline original QGIS + Sheets — mantido como importador opcional, não é mais a
+                fonte de verdade E NÃO É MAIS CONSUMIDO POR NADA: os GeoJSON que ele gerava saíram
+                do app em 2026-09-14. Não é empacotado nem baixado em campo. Sobrevive porque é
+                também a proveniência documentada das tabelas manuais de simbolos.js
 backend/        schema Supabase (migrations SQL + RLS) — ver backend/README.md
 backend/testes/ stub do ambiente Supabase + testes de RLS rodáveis num Postgres cru (não rodar
                 no Supabase): 01_teste_partidos.sql (Etapa 4.5) e 02_teste_icones_rapidos.sql

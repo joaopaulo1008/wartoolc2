@@ -94,9 +94,10 @@ const METROS_POR_GRAU = 111_320;
 //
 // Três opções, e não um seletor livre de cor. Não é limitação técnica: é que
 // calco militar tem convenção de cor, e um seletor livre convida a inventar
-// uma. Azul e vermelho são exatamente os mesmos tons já usados na legenda de
-// forças de index.html (`.layer-dot` de Amigo e Hostil), para a mesma cor
-// querer dizer a mesma coisa nos dois lugares da tela.
+// uma. Azul e vermelho são os tons de amigo e hostil da simbologia APP-6D —
+// até a Etapa 11 a mesma dupla aparecia na legenda "Forças" de index.html,
+// que saiu junto com o COP de junho; a convenção é que manda, não aquele
+// cartão.
 //
 // Preto não é `#000000` cheio: sobre a carta BDGEx e sobre imagem de satélite
 // escura, preto puro some no traço fino. `#1a1a1a` lê como preto e continua
@@ -185,8 +186,14 @@ export function planejarGuardar(guardados, novo) {
 // que veio do próprio KML.
 //
 // As três faixas, e por que nessa ordem (de baixo para cima):
-//   REPOSITÓRIO   — o GeoJSON commitado (EXTRA_LAYERS, em index.html). É o
-//                   fundo do exercício, o que está lá desde sempre.
+//   REPOSITÓRIO   — VAGA desde a Etapa 11. Era o GeoJSON commitado no
+//                   repositório (EXTRA_LAYERS, em index.html), removido junto
+//                   com o exercício de junho de 2026. A faixa continua
+//                   reservada de propósito, e não foi apagada: apagá-la
+//                   renumeraria as duas de cima, e são elas que garantem que
+//                   um calco nunca tapa um símbolo militar. Se um dia voltar
+//                   a existir camada de fundo vinda do repositório, é aqui
+//                   que ela entra, sem mexer em mais nada.
 //   COMPARTILHADO — o calco que o instrutor publicou. Vem por cima do fundo:
 //                   é a informação mais nova e é dele que a instrução trata.
 //   LOCAL         — o arquivo que o próprio aluno carregou. Fica por cima de

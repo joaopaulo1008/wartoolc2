@@ -42,9 +42,10 @@
 // MECANISMO do pane continua existindo e serviu para a imagem
 // georreferenciada da Etapa 8b sem mudança nenhuma no pane em si — só a
 // exposição de opacidade PARA CAMADA DE ARQUIVO é que tinha sido retirada da
-// interface. (Não confundir com a opacidade de `EXTRA_LAYERS`, painel
-// "Camadas" do `<script>` clássico de `index.html` — outra funcionalidade,
-// não mudou.)
+// interface. (Até a Etapa 11 havia uma segunda opacidade, a de
+// `EXTRA_LAYERS`, no painel "Camadas" de `index.html` — outra funcionalidade,
+// que saiu inteira junto com o exercício de junho. Hoje a opacidade de camada
+// de arquivo é só esta.)
 //
 // ETAPA 8b — IMAGEM GEORREFERENCIADA GANHA OPACIDADE DE VOLTA, SÓ ELA
 // ---------------------------------------------------------------------

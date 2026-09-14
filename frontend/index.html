@@ -6,10 +6,11 @@
   <title>WartoolC2</title>
 
   <!-- Etapa 9a: Leaflet/milsymbol deixaram de vir de CDN como globais `L`/`ms`
-       — o <script type="module"> no fim do arquivo importa os dois de
-       verdade (leaflet/milsymbol pinados em package.json), junto com
-       simbolos.js, basemaps.js e kml.js. O CSS do Leaflet é importado por
-       efeito colateral dentro daquele mesmo module. -->
+       — os módulos importam os dois de verdade (pinados em package.json). O
+       CSS do Leaflet é importado por efeito colateral no <script type=module>
+       do fim deste arquivo; a milsymbol saiu daqui na Etapa 11 (quem desenha
+       símbolo hoje é icones.js) e o Leaflet ficou, porque é este arquivo que
+       cria o `map`. -->
 
   <style>
     * { margin:0; padding:0; box-sizing:border-box; }
@@ -30,7 +31,7 @@
       color:#a8c8e8; text-transform:uppercase; white-space:nowrap;
     }
     #status-bar { display:flex; align-items:center; gap:16px; font-size:12px; flex-wrap:wrap; }
-    /* Etapa pós-campo: os itens de diagnóstico (contadores + os cinco status)
+    /* Etapa pós-campo: os itens de diagnóstico (os cinco status)
        viviam soltos direto no #status-bar. Numa tela estreita, flex-wrap os
        empurrava para 3-5 linhas — a topbar sozinha passava a ocupar boa parte
        da tela e, por estar fora do fluxo normal (ver #side-panel logo abaixo),
@@ -47,23 +48,11 @@
       font-family:inherit; line-height:1.6;
     }
     #status-toggle:hover { color:#c8d8e8; border-color:#3a6a9b; }
-    #last-update { color:#7a9ab8; display:flex; align-items:center; gap:5px; }
     #gps-status { color:#7a9ab8; white-space:nowrap; } /* Etapa 3: status do GPS próprio, atualizado por gps.js */
     #colegas-status { color:#7a9ab8; white-space:nowrap; } /* Etapa 4: status dos colegas em tempo real, atualizado por colegas.js */
     #marcacoes-status { color:#7a9ab8; white-space:nowrap; } /* Etapa 5: status das marcações no mapa, atualizado por marcacoes.js */
     #permissoes-status { color:#7a9ab8; white-space:nowrap; } /* Etapa 6a: o que o instrutor liberou, atualizado por permissoes.js */
     #camadas-status { color:#7a9ab8; white-space:nowrap; } /* Etapa 7: camadas de arquivo (calcos + KML próprio), atualizado por camadas.js */
-    #update-dot {
-      width:8px; height:8px; border-radius:50%; background:#4caf50;
-      display:inline-block; animation:pulse 2s infinite;
-    }
-    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
-    #contadores { display:flex; gap:6px; }
-    .cnt { padding:2px 10px; border-radius:4px; font-size:12px; font-weight:500; }
-    .cnt-f { background:#1a3a5c; color:#7ab8f5; border:1px solid #2a5a8c; }
-    .cnt-i { background:#5c1a1a; color:#f57a7a; border:1px solid #8c2a2a; }
-    .cnt-n { background:#1a3a1a; color:#7af57a; border:1px solid #2a6c2a; }
-    .cnt-d { background:#3a3a1a; color:#f5e07a; border:1px solid #6c5a2a; }
 
     /* ── Mapa ───────────────────────────────────────────────── */
     #map { flex:1; width:100%; }
@@ -95,7 +84,6 @@
       display:flex; align-items:center; gap:8px;
       margin-bottom:6px; cursor:pointer;
     }
-    .layer-dot { width:10px; height:10px; border-radius:2px; }
 
     /* Seletor de mapa base */
     .basemap-row {
@@ -118,10 +106,6 @@
     .popup-row { display:flex; gap:6px; margin-bottom:3px; }
     .popup-label { color:#666; min-width:80px; font-size:12px; }
     .popup-value { font-size:12px; }
-    .badge-host {
-      display:inline-block; padding:1px 8px;
-      border-radius:3px; font-size:11px; font-weight:500;
-    }
 
     /* ── Rodapé ─────────────────────────────────────────────── */
     #footer {
@@ -174,29 +158,10 @@
        que existe) mas não responde. */
     .bloqueado-por-permissao { opacity:.35; pointer-events:none; }
 
-    /* ── Opacidade das camadas do repositório (Etapa 7) ─────── */
-    /* O painel das camadas de ARQUIVO (calcos do instrutor e arquivo do
-       aluno) é montado inteiro por frontend/camadas.js, com CSS próprio —
-       o que está aqui vale só para as camadas de EXTRA_LAYERS, que moram
-       neste arquivo. */
-    .extra-linha { margin-bottom:8px; }
-    .extra-linha .layer-row { margin-bottom:2px; }
-    .extra-opacidade { display:flex; align-items:center; gap:6px; padding-left:18px; }
-    .extra-opacidade input[type=range] { flex:1; height:14px; cursor:pointer; }
-    .extra-pct { font-size:10px; color:#5a7a98; min-width:30px; text-align:right; }
-    /* Seletor de cor: três bolinhas. Fica no fim da linha, empurrado pelo
-       nome, para a coluna de nomes continuar alinhada. */
-    .extra-cores { display:flex; gap:3px; margin-left:auto; flex-shrink:0; }
-    .extra-cor {
-      width:13px; height:13px; border-radius:50%; padding:0; cursor:pointer;
-      border:1px solid #4a6a8a;
-    }
-    .extra-cor.ativa { border-color:#e8eaf0; box-shadow:0 0 0 1px #e8eaf0; }
-    .extra-detalhe {
-      background:transparent; border:none; color:#5a7a98; cursor:pointer;
-      font-size:12px; line-height:1; padding:0 2px; flex-shrink:0;
-    }
-    .extra-detalhe:hover { color:#c8d8e8; }
+    /* Etapa 11: o bloco `.extra-*` (opacidade e cor das camadas do
+       repositório) saiu junto com EXTRA_LAYERS. O painel das camadas de
+       ARQUIVO — calcos do instrutor e arquivo do aluno, que é o que ficou —
+       é montado inteiro por frontend/camadas.js, com CSS próprio. */
   </style>
 </head>
 <body style="visibility:hidden">
@@ -204,20 +169,16 @@
 <div id="topbar">
   <h1>🗺 WartoolC2</h1>
   <div id="status-bar">
-    <!-- status-detalhes agrupa só o que é diagnóstico (contadores + os cinco
-         status). Nasce oculto em tela estreita — ver #status-toggle no script
+    <!-- status-detalhes agrupa só o que é diagnóstico (os cinco status).
+         Nasce oculto em tela estreita — ver #status-toggle no script
          module do fim do arquivo, mesmo critério de largura de
-         painel-lateral.js (LARGURA_PAINEL_ABERTO). -->
+         painel-lateral.js (LARGURA_PAINEL_ABERTO).
+
+         Etapa 11: os contadores F/I/N/D e o "Atualizado: hh:mm · N elementos"
+         saíram daqui junto com o COP de junho. Os cinco status que sobraram
+         falam de coisa VIVA — GPS, colegas, marcações, permissões, camadas —
+         e cada um é escrito pelo módulo dono do assunto. -->
     <div id="status-detalhes">
-      <div id="contadores">
-        <span class="cnt cnt-f" id="cnt-f">F: 0</span>
-        <span class="cnt cnt-i" id="cnt-i">I: 0</span>
-        <span class="cnt cnt-n" id="cnt-n">N: 0</span>
-        <span class="cnt cnt-d" id="cnt-d">D: 0</span>
-      </div>
-      <span id="last-update">
-        <span id="update-dot"></span>Aguardando dados...
-      </span>
       <span id="gps-status">GPS: —</span>
       <span id="colegas-status">Colegas: —</span>
       <span id="marcacoes-status">Marcações: —</span>
@@ -339,57 +300,48 @@
     <div id="coordenada-nota" style="font-size:10px;color:#4a6a8a;margin-top:5px;line-height:1.4"></div>
   </div>
 
-  <!-- Camadas COP -->
-  <div class="panel-card" id="card-forcas">
-    <h3>Forças</h3>
-    <label class="layer-row">
-      <input type="checkbox" id="chk-f" checked>
-      <span class="layer-dot" style="background:#4a90d9"></span>Amigo
-    </label>
-    <label class="layer-row">
-      <input type="checkbox" id="chk-i" checked>
-      <span class="layer-dot" style="background:#e05252"></span>Hostil
-    </label>
-    <label class="layer-row">
-      <input type="checkbox" id="chk-n" checked>
-      <span class="layer-dot" style="background:#4caf50"></span>Neutro
-    </label>
-    <label class="layer-row">
-      <input type="checkbox" id="chk-d" checked>
-      <span class="layer-dot" style="background:#f5c842"></span>Desconhecido
-    </label>
-  </div>
+  <!-- Etapa 11: aqui moravam dois cartões do exercício de junho de 2026, que
+       saíram juntos com ele (ver o comentário no <script> abaixo):
 
-  <!-- Camadas extras (alimentadas pelo QGIS via GeoJSON separados) -->
-  <div class="panel-card" id="extra-layers-panel" style="display:none">
-    <h3>Camadas</h3>
-    <div id="extra-layers-list"></div>
-  </div>
+         "Forças"  — quatro caixas F/I/N/D que ligavam e desligavam os grupos
+                     do COP estático. Não valiam para NADA do que hoje aparece
+                     no mapa: colegas, marcações e calcos têm cada um o seu
+                     próprio controle. Ficaram quatro caixas que não faziam
+                     efeito nenhum na tela do aluno.
+         "Camadas" — o GeoJSON "Limites e Eixos" commitado no repositório.
+                     Substituído pelos calcos que o instrutor publica (Etapa 7,
+                     cartão "Camadas de arquivo", montado por camadas.js), que
+                     fazem a mesma coisa sem exigir um commit para cada
+                     exercício novo. -->
 
   </div>
 </div>
 
 <div id="footer">
-  Atualização automática a cada 2 minutos &nbsp;|&nbsp; Simbologia APP-6D / MD33-C-01
+  <!-- "Atualização automática a cada 2 minutos" saiu na Etapa 11: era o
+       setInterval do COP de junho. O que há hoje no mapa chega por Realtime,
+       na hora — dizer "a cada 2 minutos" passou a ser mentira. -->
+  Simbologia APP-6D / MD33-C-01
 </div>
 
 <!-- ── Sessão e roteamento por papel (Etapa 2b) ────────────────────────────
      Etapa 9a: até aqui, este bloco era DOIS <script>: um clássico (sem
-     import, dono do mapa/mapas-base/painel COP legado) e um module (sessão,
+     import, dono do mapa/mapas-base/painel COP de junho) e um module (sessão,
      permissões, os módulos da Etapa 3+). A separação existia só porque o
      primeiro precisava ficar visível como escopo global para o segundo ler
      (`typeof map !== 'undefined'`, `BASEMAPS.bdgex`) — join que só funciona
      com script clássico + module no MESMO documento. Com o Vite, é tudo um
      `import` de verdade: os dois viraram UM module só, nesta ordem (mapa e
-     camadas legadas primeiro, sessão/módulos da Etapa 3+ depois) — mesma
+     mapas-base primeiro, sessão/módulos da Etapa 3+ depois) — mesma
      ordem de execução de antes, sem a ponte. -->
 <script type="module">
 import 'leaflet/dist/leaflet.css';
 import * as L from 'leaflet';
-import ms from 'milsymbol';
-import { getSIDC } from './simbolos.js';
+// Etapa 11: `milsymbol`, `getSIDC` e `CORES_CAMADA`/`FAIXAS_PANE`/
+// `escaparHtml` saíram dos imports deste arquivo junto com o COP de junho —
+// eram dele. Continuam vivos e usados: milsymbol e simbolos.js em icones.js
+// (que desenha colegas e marcações), e kml.js em camadas.js.
 import { criarBasemaps, trocarBasemap as trocarCamadaBasemap, BASEMAP_FALLBACK } from './basemaps.js';
-import { CORES_CAMADA, FAIXAS_PANE, escaparHtml } from './kml.js';
 import { exigirSessao, sair, entrarNaTurmaComCodigo } from './auth.js';
 import { iniciarPermissoes, observarPermissao } from './permissoes.js';
 // Etapa 9b: preferências de VISUALIZAÇÃO do próprio usuário (hoje só o
@@ -442,352 +394,86 @@ document.querySelectorAll('input[name=basemap]').forEach(radio => {
   radio.addEventListener('change', () => selecionarBasemap(radio.value));
 });
 
-// ── Ícone milsymbol ──────────────────────────────────────────────────────
-function criarIcone(feature) {
-  const props = feature.properties;
-  const sidc  = getSIDC(props);
-  try {
-    const sym = new ms.Symbol(sidc, {
-      size:              32,
-      uniqueDesignation: props.designacao  || '',
-      higherFormation:   props.escalao_sup || '',
-    });
-    const anchor = sym.getAnchor();
-    const size   = sym.getSize();
-    return L.divIcon({
-      html:       sym.asSVG(),
-      className:  '',
-      iconSize:   [size.width, size.height],
-      iconAnchor: [anchor.x,   anchor.y],
-      popupAnchor:[0, -anchor.y],
-    });
-  } catch(e) {
-    // Fallback se SIDC inválido
-    return L.divIcon({
-      html: `<div style="background:#888;width:20px;height:20px;border-radius:50%;border:2px solid #fff"></div>`,
-      className:'', iconSize:[20,20], iconAnchor:[10,10],
-    });
-  }
-}
-
-// ── Grupos de camadas ────────────────────────────────────────────────────
-const GRUPOS = {
-  F: L.layerGroup().addTo(map),
-  I: L.layerGroup().addTo(map),
-  N: L.layerGroup().addTo(map),
-  D: L.layerGroup().addTo(map),
-};
-
-function grupoHost(host) {
-  const h = (host||'').toUpperCase();
-  if (['AMIGO','PRESUMIDO'].includes(h))  return 'F';
-  if (['HOSTIL','SUSPEITO'].includes(h))  return 'I';
-  if (h === 'NEUTRO')                     return 'N';
-  return 'D';
-}
-
-['f','i','n','d'].forEach(k => {
-  document.getElementById(`chk-${k}`).addEventListener('change', ev => {
-    ev.target.checked
-      ? map.addLayer(GRUPOS[k.toUpperCase()])
-      : map.removeLayer(GRUPOS[k.toUpperCase()]);
-  });
-});
-
-// ── Popup ────────────────────────────────────────────────────────────────
-const BADGE_STYLE = {
-  AMIGO:        'color:#1a5296;background:#c8dcff',
-  HOSTIL:       'color:#c0392b;background:#ffd0d0',
-  NEUTRO:       'color:#27ae60;background:#d0f0d0',
-  DESCONHECIDO: 'color:#d4a017;background:#fff3c0',
-};
-
-function criarPopup(props) {
-  const host   = (props.hostilidade||'DESCONHECIDO').toUpperCase();
-  const estilo = BADGE_STYLE[host] || BADGE_STYLE.DESCONHECIDO;
-  const badge  = `<span class="badge-host" style="${estilo}">${props.hostilidade||'—'}</span>`;
-
-  const campos = [
-    ['Hostilidade',   badge],
-    ['Natureza',      props.natureza],
-    ['Escalão',       props.escalao],
-    ['Esc. Superior', props.escalao_sup],
-    ['Situação',      props.situacao],
-    ['HQ/TF',         props.hqtf],
-    ['Mobilidade',    props.mobilidade],
-    ['Cond. Op.',     props.cond_operac],
-    ['Fonte',         props.fonte],
-    ['Timestamp',     props.timestamp_edicao],
-    ['Obs',           props.obs],
-  ].filter(([,v]) => v && String(v).trim() !== '');
-
-  return `
-    <div class="popup-content">
-      <div class="popup-title">${props.id||'—'} &nbsp;·&nbsp; ${props.designacao||'—'}</div>
-      ${campos.map(([l,v]) =>
-        `<div class="popup-row">
-          <span class="popup-label">${l}</span>
-          <span class="popup-value">${v}</span>
-        </div>`
-      ).join('')}
-    </div>`;
-}
-
-// ── Camadas extras (GeoJSON adicionais) ──────────────────────────────────
-// Para adicionar uma camada extra:
-//   1. Exporte do QGIS como GeoJSON e commite no repositório
-//   2. Adicione uma entrada neste array:
-const EXTRA_LAYERS = [
-  {
-    nome: 'Limites e Eixos',
-    arquivo: 'data/man5bdacbld.geojson',
-    cor: '#4a90d9',
-    tipo: 'line',
-  },
-];
-
-// Até a Etapa 11 isto apontava para raw.githubusercontent.com/.../main/ — uma
-// dependência externa desnecessária, já que os arquivos de data/ passam a ser
-// servidos pelo próprio site publicado (GitHub Pages), e frágil (exigia o
-// repositório ficar público para sempre, só por causa deste fetch). Agora é
-// caminho relativo: frontend/index.html -> ../data/... chega em data/ na raiz
-// do repositório, funcionando IGUAL em produção (GitHub Pages serve a partir
-// da raiz do repo) e em desenvolvimento local — DESDE QUE o servidor local
-// também sirva a partir da raiz do repo, não de dentro de frontend/ (ver
-// README.md, "Rodando localmente" — mudou nesta etapa por este motivo).
-const REPO_RAW = '../';
-const extraGrupos = {};
-// Etapa 6a: guarda o <input> de cada camada extra para a permissão
-// `camada_manobra` conseguir devolver a camada ao estado que o próprio aluno
-// tinha escolhido, em vez de forçar tudo ligado ao reabilitar.
-const extraChecks = {};
-// Etapa 7: o pane de cada camada extra. Opacidade = opacidade CSS do pane;
-// ordem = z-index dele. Mesmo mecanismo que frontend/camadas.js usa para os
-// calcos do instrutor e para o arquivo do aluno — um jeito só de fazer as
-// duas coisas, que também vai servir para a imagem georreferenciada da
-// Etapa 8. Ver FAIXAS_PANE em frontend/kml.js.
-const extraPanes = {};
-
-// FAIXA DE Z-INDEX DESTAS CAMADAS: FAIXAS_PANE.repositorio (frontend/kml.js,
-// importado no topo deste arquivo — até a Etapa 9a isto era uma cópia local,
-// porque o <script> clássico não podia importar).
-// As faixas: 410 aqui (GeoJSON do repositório), 440 calcos do instrutor,
-// 470 arquivo do aluno, teto em 500 (shadowPane) para nenhuma camada de
-// arquivo conseguir tapar um símbolo militar (markerPane é 600). O teste em
-// frontend/kml.teste.mjs trava essas invariantes.
+// ── O que morava aqui: o COP estático de junho de 2026 (removido na 11) ──
 //
-// Cores de camada: CORES_CAMADA (frontend/kml.js, importado no topo — mesma
-// história). Azul e vermelho são os MESMOS tons da legenda de forças logo
-// acima nesta tela — a mesma cor querendo dizer a mesma coisa nos dois
-// lugares. Preto não é #000: sobre a carta BDGEx e sobre satélite escuro,
-// preto puro some no traço fino.
+// Este arquivo nasceu como o visualizador de UM exercício: o de junho de 2026
+// (União da Vitória / Canoinhas). Os dados vinham de dois GeoJSON commitados
+// no repositório, gerados no QGIS e publicados a mão:
 //
-// Escapar texto de dentro de um arquivo de dados: escaparHtml() (frontend/
-// kml.js, importado no topo — até a Etapa 6b isto não existia e o popup
-// fazia `<b>${nome}</b>` direto; deixou de ser defensável quando esta etapa
-// abriu a porta para arquivo de fora).
-
-function carregarExtraLayers() {
-  if (EXTRA_LAYERS.length === 0) return;
-
-  const painel = document.getElementById('extra-layers-panel');
-  const lista  = document.getElementById('extra-layers-list');
-  painel.style.display = 'block';
-
-  EXTRA_LAYERS.forEach((cfg, indice) => {
-    const nomePane = `wt-extra-${indice}`;
-    map.createPane(nomePane);
-    map.getPane(nomePane).style.zIndex = String(FAIXAS_PANE.repositorio + indice);
-    extraPanes[cfg.nome] = nomePane;
-
-    const grupo = L.layerGroup().addTo(map);
-    extraGrupos[cfg.nome] = grupo;
-
-    // Linha do painel: caixa de visibilidade + controle de opacidade.
-    const linha = document.createElement('div');
-    linha.className = 'extra-linha';
-
-    const label = document.createElement('label');
-    label.className = 'layer-row';
-    const check = document.createElement('input');
-    check.type = 'checkbox';
-    check.checked = true;
-    const dot = document.createElement('span');
-    dot.className = 'layer-dot';
-    dot.style.background = cfg.cor;
-    const rotulo = document.createElement('span');
-    rotulo.textContent = cfg.nome;
-    label.append(check, dot, rotulo);
-
-    extraChecks[cfg.nome] = check;
-    check.addEventListener('change', ev => {
-      ev.target.checked ? map.addLayer(grupo) : map.removeLayer(grupo);
-    });
-
-    // Seletor de cor. As três opções (azul, preta, vermelha) vêm de
-    // CORES_CAMADA, importado de frontend/kml.js no topo deste arquivo.
-    //
-    // Cor foi pedida no lugar de opacidade porque é o que muda a leitura de um
-    // calco: azul e vermelho são as cores da própria legenda de forças logo
-    // acima, e preto é o traço de obstáculo/limite sobre a carta. A opacidade
-    // continua existindo, agora atrás do botão de detalhe — deixou de ser o
-    // controle principal.
-    const cores = document.createElement('div');
-    cores.className = 'extra-cores';
-    let corAtual = cfg.cor;
-    const grupoGeo = { layer: null };  // preenchido quando o fetch volta
-    CORES_CAMADA.forEach(opcao => {
-      const bolinha = document.createElement('button');
-      bolinha.type = 'button';
-      bolinha.className = 'extra-cor';
-      bolinha.style.background = opcao.valor;
-      bolinha.title = opcao.nome;
-      bolinha.setAttribute('aria-label', `Cor ${opcao.nome}`);
-      bolinha.addEventListener('click', () => {
-        corAtual = opcao.valor;
-        dot.style.background = corAtual;
-        cores.querySelectorAll('.extra-cor').forEach(b =>
-          b.classList.toggle('ativa', b === bolinha));
-        if (grupoGeo.layer) {
-          grupoGeo.layer.setStyle({
-            color: corAtual,
-            fillColor: corAtual,
-          });
-        }
-      });
-      cores.appendChild(bolinha);
-    });
-
-    const detalhe = document.createElement('button');
-    detalhe.type = 'button';
-    detalhe.className = 'extra-detalhe';
-    detalhe.textContent = '⋯';
-    detalhe.title = 'Opacidade';
-
-    const faixa = document.createElement('div');
-    faixa.className = 'extra-opacidade';
-    faixa.hidden = true;
-    const range = document.createElement('input');
-    range.type = 'range';
-    range.min = '0'; range.max = '100'; range.step = '5'; range.value = '100';
-    range.title = 'Opacidade';
-    const pct = document.createElement('span');
-    pct.className = 'extra-pct';
-    pct.textContent = '100%';
-    range.addEventListener('input', () => {
-      map.getPane(nomePane).style.opacity = String(Number(range.value) / 100);
-      pct.textContent = `${range.value}%`;
-    });
-    faixa.append(range, pct);
-    detalhe.addEventListener('click', () => { faixa.hidden = !faixa.hidden; });
-
-    label.append(cores, detalhe);
-    linha.append(label, faixa);
-    lista.appendChild(linha);
-
-    // Carrega o GeoJSON
-    fetch(`${REPO_RAW}${cfg.arquivo}?t=${Date.now()}`)
-      .then(r => r.json())
-      .then(geojson => {
-        grupoGeo.layer = L.geoJSON(geojson, {
-          pane: nomePane,
-          style: {
-            color:       corAtual,
-            fillColor:   corAtual,
-            weight:      2,
-            fillOpacity: cfg.tipo === 'polygon' ? 0.15 : 0,
-          },
-          onEachFeature: (feature, layer) => {
-            if (feature.properties) {
-              const nome = feature.properties.nome || feature.properties.name || '';
-              if (nome) layer.bindPopup(`<b>${escaparHtml(nome)}</b>`);
-            }
-          },
-        });
-        grupoGeo.layer.addTo(grupo);
-      })
-      .catch(err => console.warn(`Erro ao carregar ${cfg.arquivo}:`, err));
-  });
-
-  // As camadas extras nascem visíveis; se a permissão `camada_manobra` já
-  // estiver desligada quando elas terminarem de ser montadas, isto as
-  // esconde na hora (sem esta linha elas apareceriam até a próxima mudança
-  // de permissão).
-  camadasPermissao.reaplicar();
-}
+//   data/cop_tatico.geojson   — os elementos do exercício, relidos por um
+//                               `fetch()` a cada 2 minutos (GRUPOS F/I/N/D,
+//                               criarIcone(), criarPopup(), contadores()).
+//   data/man5bdacbld.geojson  — "Limites e Eixos" (EXTRA_LAYERS), com painel
+//                               próprio de cor e opacidade.
+//
+// Saíram inteiros a pedido de quem usa, depois do teste de campo de setembro:
+// *"quero eliminar essas heranças de junho"*. O motivo é que tudo o que eles
+// faziam passou a ser feito por outro caminho, melhor, e a coexistência das
+// duas gerações na mesma tela já era o defeito:
+//
+//   * Os elementos do exercício agora são `elementos_marcados` (Etapa 5, via
+//     marcacoes.js): qualquer aluno marca no toque, todo mundo vê na hora
+//     pelo Realtime, e a hostilidade é RELATIVA a quem olha (Etapa 4.5) — o
+//     COP antigo trazia hostilidade absoluta gravada no arquivo, que é
+//     justamente o que este projeto decidiu não fazer.
+//   * O calco de limites e eixos agora é publicado pelo instrutor (Etapa 7,
+//     via camadas.js), por upload, sem precisar de um commit no repositório e
+//     um build a cada exercício novo.
+//   * Os símbolos do arquivo de junho ficavam no mapa de TODA turma, para
+//     sempre, sem pertencer a turma nenhuma — não havia como apagá-los pela
+//     interface, porque não vinham do banco.
+//
+// As chaves de permissão NÃO ficaram órfãs: `camada_manobra` e
+// `camada_inimigo` continuam valendo, agora só no caminho de camadas.js (os
+// calcos publicados). O que deixou de existir é o segundo caminho, o das
+// camadas fixas escritas neste arquivo — ver a seção logo abaixo.
+//
+// `legacy-qgis/` (os dois scripts Python que GERAVAM aqueles arquivos) ficou
+// onde estava, preservado desde a Etapa 0 como importador opcional. Não é
+// código de aplicação: não é empacotado, não é baixado por ninguém em campo e
+// não desenha nada em tela.
 
 // ── Camadas x permissões (Etapa 6a) ──────────────────────────────────────
 // Até a Etapa 9a isto era window.WartoolCamadas: uma "ponte" publicada no
-// objeto global porque o <script> clássico que desenha `map`/`BASEMAPS`/
-// `GRUPOS`/`extraGrupos` e o <script type="module"> que lê as permissões
-// (frontend/permissoes.js) eram DOIS scripts, e um module não enxerga as
-// variáveis internas de um script clássico a não ser publicadas em algum
-// lugar comum. Agora que é tudo um módulo só, `camadasPermissao` é uma
-// const local igual a qualquer outra — mas a forma continua a mesma: em vez
-// de deixar o bloco de permissões (mais abaixo neste arquivo) mexer direto em
-// `map`/`GRUPOS`/`extraGrupos`, ele só diz "pode"/"não pode" e quem decide o
-// que fazer com isso continua sendo este objeto.
+// objeto global porque o <script> clássico que desenhava `map`/`BASEMAPS` e
+// o <script type="module"> que lê as permissões (frontend/permissoes.js) eram
+// DOIS scripts, e um module não enxerga as variáveis internas de um script
+// clássico a não ser publicadas em algum lugar comum. Agora que é tudo um
+// módulo só, `camadasPermissao` é uma const local igual a qualquer outra —
+// mas a forma continua a mesma: em vez de deixar o bloco de permissões (mais
+// abaixo neste arquivo) mexer direto no `map`, ele só diz "pode"/"não pode" e
+// quem decide o que fazer com isso continua sendo este objeto.
 //
 // O mapeamento chave -> o que existe hoje na tela:
-//   camada_manobra  -> EXTRA_LAYERS (o GeoJSON "Limites e Eixos")
-//   camada_inimigo  -> grupo I (hostis) do painel COP legado
 //   camada_bdgex    -> a opção BDGEx 1:50.000 do seletor de mapa base
 //   trocar_mapa_base-> o seletor de mapa base inteiro
 //   ver_mapa        -> a cobertura #mapa-bloqueado
-// camada_logistica e camada_obstaculos NÃO aparecem aqui, e desde a Etapa 7
-// isso não quer mais dizer "sem efeito": elas passaram a valer em
-// frontend/camadas.js, que é outro caminho. A diferença é o que a chave
-// governa em cada lugar:
 //
-//   * AQUI a chave liga/desliga uma camada FIXA, escrita neste arquivo —
-//     `camada_manobra` é o GeoJSON commitado em EXTRA_LAYERS, `camada_inimigo`
-//     é o grupo I do painel COP legado. São camadas que existem por estarem
-//     escritas no código.
-//   * EM camadas.js a chave liga/desliga os CALCOS que o instrutor publicou e
-//     que declarou serem daquela categoria (`calcos.categoria`, migration
-//     0006). Não há camada fixa de logística: existe o calco de logística que
-//     alguém publicou — por isso essas duas chaves nunca teriam efeito por
-//     aqui, e não é aqui que elas deveriam ser registradas.
+// AS QUATRO CHAVES DE CAMADA (manobra, inimigo, logística, obstáculos) NÃO
+// aparecem mais aqui, e desde a Etapa 11 essa lista é a mesma nas quatro:
+// todas valem em frontend/camadas.js, e só lá. Até a Etapa 11 havia DOIS
+// caminhos — `camada_manobra` também escondia o GeoJSON fixo de EXTRA_LAYERS
+// e `camada_inimigo` também escondia o grupo I do COP de junho, ambos escritos
+// neste arquivo. Aqueles dois desapareceram junto com o exercício de junho
+// (ver o comentário no topo deste bloco de script), e com eles a única razão
+// de uma chave de camada ter efeito em dois lugares diferentes.
 //
-// Uma chave pode valer nos dois caminhos ao mesmo tempo, e vale: desligar
-// `camada_manobra` esconde tanto o GeoJSON do repositório quanto os calcos de
-// manobra publicados. É o comportamento certo — para o aluno, é "a camada de
-// manobra", não dois mecanismos.
+// O que a chave governa hoje, e só isso: os CALCOS que o instrutor publicou e
+// declarou serem daquela categoria (`calcos.categoria`, migration 0006). Não
+// existe mais camada de categoria escrita no código — existe o calco que
+// alguém publicou.
 //
-// Regra geral de todas as funções abaixo: a permissão do instrutor e a
-// escolha do aluno são coisas diferentes e as duas são respeitadas — a camada
-// só aparece quando o instrutor PERMITE e o aluno MARCOU a caixa. Por isso
-// nenhuma delas desmarca a caixa do aluno: ao reabilitar, ele volta ao estado
-// que tinha escolhido, não a "tudo ligado".
+// Regra geral das funções abaixo: a permissão do instrutor e a escolha do
+// aluno são coisas diferentes e as duas são respeitadas — a camada só aparece
+// quando o instrutor PERMITE e o aluno MARCOU a caixa. Por isso nenhuma delas
+// desmarca a caixa do aluno: ao reabilitar, ele volta ao estado que tinha
+// escolhido, não a "tudo ligado".
 const camadasPermissao = (() => {
   const permitido = {
-    extras: true,
-    inimigo: true,
     bdgex: true,
     trocarBase: true,
     mapa: true,
   };
-
-  function aplicarExtras() {
-    const painel = document.getElementById('extra-layers-panel');
-    if (painel && Object.keys(extraGrupos).length > 0) {
-      painel.style.display = permitido.extras ? 'block' : 'none';
-    }
-    Object.entries(extraGrupos).forEach(([nome, grupo]) => {
-      const alunoQuerVer = extraChecks[nome] ? extraChecks[nome].checked : true;
-      if (permitido.extras && alunoQuerVer) map.addLayer(grupo);
-      else map.removeLayer(grupo);
-    });
-  }
-
-  function aplicarInimigo() {
-    const check = document.getElementById('chk-i');
-    const linha = check ? check.closest('.layer-row') : null;
-    if (linha) linha.classList.toggle('bloqueado-por-permissao', !permitido.inimigo);
-    const alunoQuerVer = check ? check.checked : true;
-    if (permitido.inimigo && alunoQuerVer) map.addLayer(GRUPOS.I);
-    else map.removeLayer(GRUPOS.I);
-  }
 
   function aplicarBdgex() {
     const radio = document.querySelector('input[name=basemap][value=bdgex]');
@@ -826,8 +512,6 @@ const camadasPermissao = (() => {
   }
 
   function reaplicar() {
-    aplicarExtras();
-    aplicarInimigo();
     aplicarBdgex();
     aplicarTrocaBase();
     aplicarMapa();
@@ -846,68 +530,12 @@ const camadasPermissao = (() => {
   };
 })();
 
-// ── Carrega dados COP ────────────────────────────────────────────────────
-let primeiraVez = true;
-const GEOJSON_URL =
-  `${REPO_RAW}data/cop_tatico.geojson`;
-
-function contadores(features) {
-  const c = {F:0,I:0,N:0,D:0};
-  features.forEach(f => c[grupoHost(f.properties.hostilidade)]++);
-  document.getElementById('cnt-f').textContent = `F: ${c.F}`;
-  document.getElementById('cnt-i').textContent = `I: ${c.I}`;
-  document.getElementById('cnt-n').textContent = `N: ${c.N}`;
-  document.getElementById('cnt-d').textContent = `D: ${c.D}`;
-}
-
-function carregarDados() {
-  fetch(`${GEOJSON_URL}?t=${Date.now()}`)
-    .then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); })
-    .then(geojson => {
-      Object.values(GRUPOS).forEach(g => g.clearLayers());
-
-      const features = geojson.features || [];
-      contadores(features);
-
-      features.forEach(feature => {
-        const props    = feature.properties;
-        const chave    = grupoHost(props.hostilidade);
-        const marcador = L.marker(
-          [feature.geometry.coordinates[1], feature.geometry.coordinates[0]],
-          { icon: criarIcone(feature) }
-        ).bindPopup(criarPopup(props), { maxWidth:300 });
-        GRUPOS[chave].addLayer(marcador);
-      });
-
-      if (primeiraVez && features.length > 0) {
-        const coords = features.map(f => [
-          f.geometry.coordinates[1], f.geometry.coordinates[0],
-        ]);
-        map.fitBounds(coords, { padding:[50,50] });
-        primeiraVez = false;
-      }
-
-      const agora = new Date().toLocaleTimeString('pt-BR');
-      document.getElementById('last-update').innerHTML =
-        `<span id="update-dot"></span>Atualizado: ${agora} · ${features.length} elementos`;
-    })
-    .catch(err => {
-      document.getElementById('last-update').innerHTML =
-        `<span id="update-dot" style="background:#e05252"></span>Erro: ${err.message}`;
-    });
-}
-
-// Etapa 9a: `<script type="module">` já é deferred por especificação (só
-// executa depois do parsing do HTML) — a espera por DOMContentLoaded foi
-// mantida mesmo assim porque não custa nada e não muda o comportamento
-// (o load inicial já rodaria depois do parsing de qualquer forma agora que
-// criarIcone() importa getSIDC() direto, em vez de depender de
-// window.WartoolSimbolos como antes da Etapa 9a).
-document.addEventListener('DOMContentLoaded', () => {
-  carregarDados();
-  carregarExtraLayers();
-  setInterval(carregarDados, 120_000);
-});
+// A primeira vista do mapa é a POSIÇÃO DO PRÓPRIO ALUNO (gps.js centraliza
+// nela no primeiro fix, `setView(..., 16)`). Até a Etapa 11 ela era o
+// enquadramento dos elementos do COP de junho — o mapa abria em União da
+// Vitória mesmo para uma turma do outro lado do país, e só saía de lá quando
+// o GPS pegava. O `center:[-22,-47]` de `L.map()` lá em cima é só o que fica
+// na tela nos segundos antes do primeiro fix.
 
 // ── Seletor de formato de coordenada (Etapa 9b) ──────────────────────────
 // Liga os três <input type=radio> do cartão "Coordenada" a
@@ -1060,8 +688,11 @@ if (resultado) {
     observarPermissao('ver_mapa',         (ok) => camadasPermissao.definir('mapa', ok));
     observarPermissao('trocar_mapa_base', (ok) => camadasPermissao.definir('trocarBase', ok));
     observarPermissao('camada_bdgex',     (ok) => camadasPermissao.definir('bdgex', ok));
-    observarPermissao('camada_manobra',   (ok) => camadasPermissao.definir('extras', ok));
-    observarPermissao('camada_inimigo',   (ok) => camadasPermissao.definir('inimigo', ok));
+    // `camada_manobra`/`camada_inimigo` NÃO são observadas aqui desde a
+    // Etapa 11: os dois alvos fixos que elas tinham neste arquivo (o GeoJSON
+    // do repositório e o grupo I do COP de junho) deixaram de existir. Quem
+    // observa as quatro chaves de categoria é frontend/camadas.js, nos calcos
+    // publicados — caminho único agora.
 
     // Etapa 3: GPS próprio no mapa. `map` é passado explicitamente para
     // gps.js (em vez de esse módulo depender de achar a variável global) —
@@ -1114,9 +745,9 @@ if (resultado) {
     //
     // Duas coisas que este módulo NÃO usa `camadasPermissao` para fazer, e
     // por quê: ele recebe `map` por parâmetro e observa as próprias
-    // permissões direto em permissoes.js. `camadasPermissao` continua
-    // existindo só para as camadas fixas deste arquivo (EXTRA_LAYERS, grupo
-    // I do painel COP legado, seletor de mapa base).
+    // permissões direto em permissoes.js. Desde a Etapa 11 `camadasPermissao`
+    // não cuida de camada nenhuma — só do mapa base e da cobertura de
+    // `ver_mapa`; as quatro chaves de categoria são inteiramente deste módulo.
     // `userId` não é para consultar o banco — é a chave sob a qual o arquivo
     // que o aluno abre fica guardado no IndexedDB do aparelho (Etapa 7, ver
     // frontend/armazem-camadas.js). Sem ela, um celular emprestado mostraria
@@ -1158,8 +789,6 @@ if (resultado) {
     // Os outros nascem abertos — são os que a pessoa liga e desliga o tempo
     // todo.
     tornarRecolhivel(document.getElementById('card-mapa-base'), { recolhido: true });
-    tornarRecolhivel(document.getElementById('card-forcas'));
-    tornarRecolhivel(document.getElementById('extra-layers-panel'));
     // O cartão "Camadas de arquivo" não entra aqui: camadas.js já o torna
     // recolhível ao montá-lo, porque ele também é usado na aba "Situação
     // atual" do instrutor, que não passa por este bloco.

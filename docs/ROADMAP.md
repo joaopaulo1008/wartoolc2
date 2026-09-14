@@ -406,6 +406,40 @@ Sugestão de modelo por etapa: tarefas mecânicas/config → **modelo mais leve*
 
   Complexidade: alta (geometria + decisão de onde checar). Modelo sugerido: mais forte. **Aproveita bem se vier depois da Etapa 14.**
 
+## Fora da numeração — correções do teste de campo de setembro de 2026
+
+Três entregas fora da fila de etapas, todas nascidas do app na mão em campo
+(ver `CLAUDE.md` para o raciocínio completo de cada uma):
+
+- [x] **Etiqueta de idade no lugar do esmaecimento** (2026-09-14). Avatar de
+  quem parou de reportar deixa de esmaecer: marca a **última posição
+  conhecida**, com a idade escrita ao lado. `vigia-ausencia.js` ganhou
+  `rotuloIdade()`; `REMOVER_MS` virou `SEM_SINAL_MS`.
+
+- [x] **Paleta de ícones rápidos** (2026-09-14, migration `0010`). Presets de
+  marcação definidos pelo instrutor, por turma, desenhados **dentro do
+  formulário de marcação** (não num cartão do painel, e sem estado "armado").
+  `paleta.js` (puro) + `icones-rapidos.js` (banco/Realtime) + `paleta-tela.js`
+  + `instrutor-paleta.js`. Junto veio a correção de um bug de `uuid` que
+  atingia também `instrutor-calcos.js` desde a Etapa 7 — **publicar calco pelo
+  painel nunca tinha funcionado**.
+
+- [x] **Aviso de símbolo sem desenho central** (2026-09-14). "Comando Nomeado"
+  (`10:000000`) desenha só a moldura porque o conteúdo dele é a **sigla**.
+  `ENTIDADES_SEM_DESENHO`/`exigeDesignacao()` em `simbolos.js` + aviso âmbar no
+  formulário. A lista é travada por uma varredura dos 434 itens do catálogo
+  contra a `milsymbol`, em `simbolos.teste.mjs`.
+
+- [x] **Fim da herança de junho de 2026** (2026-09-14). Saíram do app o COP
+  estático (`data/cop_tatico.geojson`, `GRUPOS` F/I/N/D, `contadores()`, o
+  cartão "Forças") e as camadas fixas do repositório (`EXTRA_LAYERS`,
+  `data/man5bdacbld.geojson`, o cartão "Camadas"). Tudo o que faziam já era
+  feito melhor por `elementos_marcados` (Etapa 5) e pelos calcos publicados
+  (Etapa 7); **a coexistência das duas gerações na mesma tela era o defeito**.
+  As quatro chaves de camada passaram a ter um caminho só (`camadas.js`);
+  `data/` deixou de ser copiada no build; `legacy-qgis/` ficou, como
+  importador opcional e proveniência documentada, sem nada a consumir.
+
 ## Como abrir cada etapa
 
 No início do chat, algo como:

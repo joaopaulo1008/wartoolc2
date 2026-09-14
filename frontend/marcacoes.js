@@ -26,7 +26,7 @@ import * as L from 'leaflet';
 import { supabase, traduzirErro, buscarPerfilBasico, buscarPartidosDaTurma } from './auth.js';
 import {
   getSIDC, decomporSidc, descreverSidc,
-  CATEGORIAS, categoriaPorId, nomeDoItem, designacaoDoMapa,
+  CATEGORIAS, categoriaPorId, nomeDoItem, designacaoDoMapa, exigeDesignacao,
 } from './simbolos.js';
 import { formatarCoordenada, observarFormatoCoordenada } from './preferencias.js';
 // Distância e azimute de quem observa até o elemento marcado — o vetor que o
@@ -715,6 +715,11 @@ function abrirFormulario(latlng, { marcacaoExistente, sidcInicial, partidoInicia
       <select id="mc-item">${construirOpcoesItem(categoriaInicial, preenchido.codigoEntidade)}</select>
     </label>
     <p class="mc-dica">Nomes oficiais do Portal de Simbologia Militar (MD33-M-02).</p>
+    <!-- Relatado em campo: marcação saindo como losango liso. Não é defeito —
+         há símbolos cujo conteúdo É a sigla (ver ENTIDADES_SEM_DESENHO em
+         simbolos.js). Sem designação eles saem sem nada dentro, e é melhor
+         dizer isso ANTES de salvar do que deixar descobrir no mapa. -->
+    <p class="mc-dica mc-aviso" id="mc-aviso-sigla" hidden></p>
     ${avisoLegado}
     <label>Escalão
       <select id="mc-escalao">${construirOpcoesEscalao(preenchido.escalao || 'NONE')}</select>
@@ -773,6 +778,29 @@ function abrirFormulario(latlng, { marcacaoExistente, sidcInicial, partidoInicia
 
   montarModificadores(categoriaInicial, preenchido.mod1, preenchido.mod2);
 
+  // ── Aviso "este símbolo é a sigla" ──────────────────────────────────────
+  // Só aparece na combinação que de fato produz um símbolo vazio: entidade
+  // sem desenho próprio E designação em branco. Preencher a designação faz o
+  // aviso sumir na hora — ele ensina a regra em vez de só reclamar.
+  const avisoSigla = document.getElementById('mc-aviso-sigla');
+  const campoDesignacao = document.getElementById('mc-designacao');
+  function avaliarAvisoSigla() {
+    if (!avisoSigla) return;
+    const cat = categoriaPorId(selCategoria.value);
+    const precisa = cat && exigeDesignacao(cat.symbolSet, selItem.value);
+    const vazia = !(campoDesignacao?.value || '').trim();
+    avisoSigla.hidden = !(precisa && vazia);
+    if (!avisoSigla.hidden) {
+      avisoSigla.textContent =
+        'Este símbolo não tem desenho próprio: ele é desenhado com a sigla da '
+        + 'unidade no centro. Sem preencher "Designação da unidade", ele sai '
+        + 'como um símbolo vazio no mapa.';
+    }
+  }
+  campoDesignacao?.addEventListener('input', avaliarAvisoSigla);
+  selItem.addEventListener('change', avaliarAvisoSigla);
+  avaliarAvisoSigla();
+
   // ── Paleta de marcação rápida, dentro deste formulário ──────────────────
   // Só na criação (ver o comentário do contêiner, no HTML acima).
   //
@@ -819,6 +847,7 @@ function abrirFormulario(latlng, { marcacaoExistente, sidcInicial, partidoInicia
     // A força do preset entra como sugestão; em preset sem força isto deixa o
     // seletor em "Não identificado", que é de onde a pessoa escolhe.
     if (selPartido) selPartido.value = preset.partido_padrao_id || '';
+    avaliarAvisoSigla();
   }
 
   selCategoria.addEventListener('change', () => {
@@ -828,6 +857,9 @@ function abrirFormulario(latlng, { marcacaoExistente, sidcInicial, partidoInicia
     // outra categoria.
     selItem.innerHTML = construirOpcoesItem(selCategoria.value, '');
     montarModificadores(selCategoria.value, '00', '00');
+    // O item mudou junto com a categoria — e a primeira entidade de "Unidades"
+    // é justamente o "Comando Nomeado", o caso que gera o símbolo vazio.
+    avaliarAvisoSigla();
   });
 
   // Trocar o formato de coordenada com o formulário aberto atualiza a linha
