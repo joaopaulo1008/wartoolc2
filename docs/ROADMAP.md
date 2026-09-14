@@ -262,12 +262,100 @@ Sugestão de modelo por etapa: tarefas mecânicas/config → **modelo mais leve*
 
   Migration `0009_auditoria_edicao_e_preferencias.sql` (duas colunas, um trigger, um `check`; **nenhuma policy de RLS tocada**). Detalhe técnico completo, com as seis decisões justificadas, na seção "Decisões da Etapa 9b" de `CLAUDE.md`. Verificação: nove suítes 100% verdes, **509 casos** (as oito anteriores mais `coordenadas.teste.mjs`, nova com 93; `marcacoes.teste.mjs` foi reescrito, de 40 para 75, e agora varre o catálogo inteiro); `valida_sql.py` na `0009`; `npm run build` OK, **+13 kB gzipado** no bundle. Os valores esperados de UTM vieram do **PROJ 9.5.1** (via `pyproj`, a mesma biblioteca do QGIS), não de estimativa — concordância de 0,83 mm no pior de 13 pontos. **Pendente de teste ao vivo**: os três itens acrescentados a `docs/roteiro-teste-campo.md` (conferir UTM contra referência externa, correção do instrutor chegando ao aluno sem F5, e a precedência do SIDC contra o cadastro real da 2c).
 
-- [x] **Etiqueta de idade + paleta de ícones rápidos (2026-09-14)** *(fora da numeração de etapas — dois pedidos de campo na véspera de um teste)*
+### Teste de campo de setembro de 2026 — oito entregas fora da numeração
 
-  1. **Os avatares deixaram de esmaecer.** Segunda correção no mesmo lugar (a primeira, de 2026-08-01, foi parar de REMOVER o avatar). No lugar do esmaecimento entrou uma **etiqueta de idade** ao lado do símbolo — "12m" em âmbar, vermelho passando de `SEM_SINAL_MS` —, porque tirar o esmaecimento sem pôr nada no lugar deixaria uma posição de 40 minutos idêntica a uma de 5 segundos. Vale no mapa do aluno, no do instrutor e no replay do debriefing (a simetria da Etapa 6b não podia quebrar).
-  2. **Paleta de marcação rápida** (migration `0010_icones_rapidos.sql`): o instrutor monta, por turma, até 12 presets; o aluno toca no botão e depois no mapa. Partido em modo híbrido (preset com força grava direto, sem força pergunta só a força); toque longo abre o formulário completo pré-preenchido. Toda turma nasce com uma paleta padrão de 8, criada por trigger.
+Todas nasceram do app na mão em campo, num intervalo de dois dias, e por isso
+não viraram etapas numeradas. **Migrations `0010` e `0011` já aplicadas no
+Supabase de produção**; tudo abaixo está publicado e conferido no ar (commit
+`a65fb5e`). Ver `CLAUDE.md` para o raciocínio completo de cada uma — em especial
+as três primeiras tentativas erradas de diagnosticar o "símbolo genérico", que
+valem como lição sobre explicar o sintoma em vez de seguir o dado.
 
-  **As migrations 0001–0010 foram executadas contra um Postgres de verdade** nesta sessão (o que nunca tinha acontecido da 0004 em diante), e `01_teste_partidos.sql` segue 43/43 com as dez aplicadas. Detalhes em `CLAUDE.md`.
+**Verificação sobre esse commit:** 719 casos de frontend em onze suítes; 80
+asserções de SQL contra Postgres 16 + PostGIS em bancos limpos (43 + 26 + 11);
+`valida_sql.py` nas 0001–0011; `npm run build`. **Isso prova deploy, não
+comportamento** — nada foi exercitado com celular, GPS e Realtime. O que ainda
+decide se as oito entregas prestaram são os itens **15ak–15ap** (gravação pela
+paleta) e **15aq–15aw** (vetor e dados de tiro) de `docs/roteiro-teste-campo.md`,
+que agora abre com a ordem de prioridade para um tempo curto em campo.
+
+- [x] **Etiqueta de idade no lugar do esmaecimento** (2026-09-14). Avatar de
+  quem parou de reportar deixa de esmaecer: marca a **última posição
+  conhecida**, com a idade escrita ao lado. `vigia-ausencia.js` ganhou
+  `rotuloIdade()`; `REMOVER_MS` virou `SEM_SINAL_MS`.
+
+- [x] **Paleta de ícones rápidos** (2026-09-14, migration `0010`). Presets de
+  marcação definidos pelo instrutor, por turma, desenhados **dentro do
+  formulário de marcação** (não num cartão do painel, e sem estado "armado").
+  `paleta.js` (puro) + `icones-rapidos.js` (banco/Realtime) + `paleta-tela.js`
+  + `instrutor-paleta.js`. Junto veio a correção de um bug de `uuid` que
+  atingia também `instrutor-calcos.js` desde a Etapa 7 — **publicar calco pelo
+  painel nunca tinha funcionado**.
+
+- [x] **Símbolo sem desenho central: avisa no formulário, RECUSA na paleta**
+  (2026-09-14). "Comando Nomeado" (`10:000000`) desenha só a moldura porque o
+  conteúdo dele é a **sigla da unidade** — e ele é o primeiro item da categoria
+  "Unidades", o que vem selecionado sozinho para quem não mexe no `<select>`.
+  **Onde há campo de sigla, avisa; onde não há, recusa**: o formulário de
+  marcação mostra um aviso âmbar e deixa gravar; a paleta recusa o preset, tira
+  a opção da lista do instrutor e oculta do aluno o preset antigo que já tenha
+  esse defeito (sinalizando-o na aba do instrutor, que é quem pode consertar).
+  `ENTIDADES_SEM_DESENHO`/`exigeDesignacao()`/`sidcExigeDesignacao()` em
+  `simbolos.js`. Travado por uma varredura dos 434 itens do catálogo contra a
+  `milsymbol` (`simbolos.teste.mjs`) e pela verificação dos 8 presets da paleta
+  padrão da 0010, um a um (`paleta.teste.mjs`).
+
+- [x] **Fim da herança de junho de 2026** (2026-09-14). Saíram do app o COP
+  estático (`data/cop_tatico.geojson`, `GRUPOS` F/I/N/D, `contadores()`, o
+  cartão "Forças") e as camadas fixas do repositório (`EXTRA_LAYERS`,
+  `data/man5bdacbld.geojson`, o cartão "Camadas"). Tudo o que faziam já era
+  feito melhor por `elementos_marcados` (Etapa 5) e pelos calcos publicados
+  (Etapa 7); **a coexistência das duas gerações na mesma tela era o defeito**.
+  As quatro chaves de camada passaram a ter um caminho só (`camadas.js`);
+  `data/` deixou de ser copiada no build; `legacy-qgis/` ficou, como
+  importador opcional e proveniência documentada, sem nada a consumir.
+
+- [x] **Cartões do painel nascem recolhidos, marcação antiga se explica, e
+  carimbo de build no rodapé** (2026-09-14). Pedido: *"em todo F5 os cards de
+  configuração abrem. Quero que eles abram somente se o usuário clicar."* O
+  estado inicial virou o **padrão** de `tornarRecolhivel()`, não uma opção
+  repetida em cada ponto de montagem. Junto: a marcação **já gravada** com um
+  símbolo sem desenho e sem sigla passou a dizer no popup por que sai vazia (as
+  correções anteriores só valiam daqui para a frente); e o rodapé das duas
+  telas passou a mostrar a data do build, porque "continua igual" já foi cache
+  do navegador duas vezes e não havia como conferir isso de fora.
+
+- [x] **Retomada honesta do GPS ao despertar** (2026-09-14). Pergunta de campo:
+  *"tem como o app ficar ativo em segundo plano?"* **Não — o sistema congela a
+  página e não existe API web de geolocalização em segundo plano** (proposta ao
+  Chromium em 2016, nunca implementada). Wake Lock foi avaliado e recusado por
+  quem usa: o preço é bateria e cobre só metade do problema. O que foi feito é
+  não esconder o buraco — ao voltar, `gps.js` grava na hora (furando o
+  throttling) e diz quanto tempo ficou sem enviar, com o mesmo rótulo e limiar
+  que o instrutor viu no avatar. Ver "App em segundo plano" no `CLAUDE.md`.
+
+- [x] **A causa de verdade do "símbolo genérico": a paleta gravava o default de
+  `getSIDC()`** (2026-09-14). `salvarMarcacao()` sempre remontava o SIDC a
+  partir de cinco campos do formulário; a paleta não tem esses campos, tem o
+  SIDC pronto. Os cinco chegavam `undefined` e `getSIDC({})` devolve
+  `10011000000000000000` — "Comando Nomeado", o losango vazio. **Toda marcação
+  feita pela paleta saiu assim desde o primeiro dia**, e os três diagnósticos
+  anteriores trataram sintomas. Corrigido com `sidcDaMarcacao()` (se já existe
+  um SIDC, ele É o SIDC) e um teste de round-trip preset → banco que falha com
+  o código antigo. As marcações já gravadas só se corrigem à mão, pelo Editar —
+  o SIDC pretendido nunca chegou a ser gravado.
+
+- [x] **Vetor de observação nas duas telas + altitude e dimensão do alvo**
+  (2026-09-14, migration `0011`). No app do aluno a linha "Do meu posto" parou
+  de sumir em silêncio — diz o motivo (GPS sem fixo / posição oculta). Na aba
+  "Situação atual" ela **passou a existir**, com origem no posto de quem marcou
+  o elemento (o hook virou `obterPostoObservacao(row)`), e o rótulo declara a
+  idade da posição do autor quando ela é velha. A pedido da artilharia,
+  `elementos_marcados` ganhou `altitude_m` + `altitude_fonte` (nunca uma sem a
+  outra) e `frente_m` + `profundidade_m`. **Pendente de decisão externa:** a
+  fonte de modelo de elevação — consultar serviço público enviaria a coordenada
+  do alvo a um terceiro, e falta confirmar, de dentro da rede do Exército, se o
+  BDGEx entrega elevação por ponto.
 
 ## A fazer, em ordem
 
@@ -320,12 +408,28 @@ Sugestão de modelo por etapa: tarefas mecânicas/config → **modelo mais leve*
 
   Um observador avançado precisa de três coisas que o app hoje não dá juntas: os alvos potenciais com dado de tiro, as medidas de coordenação de apoio de fogo desenhadas na carta, e os planos de fogo. Dividida em três, porque o custo de cada parte é MUITO diferente:
 
-  - [x] **(a) Vetor de observação — distância e azimute até cada alvo.** Feito em 2026-08-02, antes do primeiro teste de campo, porque era a única parte que não exigia tabela, papel nem migration: o dado já existia nas duas pontas. `frontend/visada.js` (novo, puro, inversa de Vincenty) + a linha "Do meu posto" no popup da marcação. Detalhe na seção "Vetor de observação" de `CLAUDE.md`. O azimute é o de **QUADRÍCULA** — o usuário definiu no mesmo dia ("lançamento é sempre em relação ao norte de quadrícula") e a primeira versão, que mostrava o verdadeiro, foi corrigida. Fica em aberto só o **magnético**, que exigiria um modelo IGRF/WMM que o projeto não tem: a decidir se faz falta na prática (item 14c do roteiro de campo).
+  - [x] **(a) Dado de tiro no popup do alvo — vetor, altitude e dimensão.** Cresceu em três passadas, todas a partir de uso real:
+
+    **2026-08-02 — o vetor.** `frontend/visada.js` (puro, inversa de Vincenty) + a linha "Do meu posto". Foi a única parte que não exigia tabela, papel nem migration: o dado já existia nas duas pontas. O azimute é o de **QUADRÍCULA**, corrigido no mesmo dia a pedido ("lançamento é sempre em relação ao norte de quadrícula").
+
+    **2026-09-14 — o vetor nas DUAS telas.** No app do aluno a linha parou de sumir em silêncio quando não há posição própria: agora diz o motivo. Na aba "Situação atual" ela **passou a existir**, com origem no posto de quem marcou o elemento — a decisão original de não mostrá-la ao instrutor estava certa sobre ele não ter posto e errada em concluir que a linha não cabia.
+
+    **2026-09-14 — altitude e dimensão (migration `0011`).** Pedido da artilharia. `altitude_m` **nunca existe sem `altitude_fonte`** (garantido por `check`): cota lida na carta e cota derivada de modelo de elevação não valem a mesma coisa. `frente_m` e `profundidade_m` independentes, zero recusado junto com o negativo.
+
+    **Continua em aberto, e as duas dependem de decisão externa:** o azimute **magnético**, que exigiria um modelo IGRF/WMM que o projeto não tem (a decidir se faz falta na prática — item 14c do roteiro); e a **fonte de modelo de elevação** para preencher a cota sozinho — consultar serviço público enviaria a coordenada do alvo a um terceiro, e falta confirmar, de dentro da rede do Exército, se o BDGEx entrega elevação por ponto. O banco já aceita `altitude_fonte = 'mde'` para isso entrar sem migration.
 
   - [ ] **(b) A tela de apoio de fogo em si.** **NÃO é um papel novo.** `perfis.papel` é um enum de dois valores (`instrutor`, `usuario`) e acrescentar um terceiro mexeria no enum, em `fn_meu_papel`/`fn_sou_instrutor`, na view de permissões e em toda policy que assume dois papéis — ou seja, no núcleo de segurança, para resolver o que não é um problema de AUTORIDADE e sim de TELA. O caminho certo é o que a Etapa 1 já previu: **chave de permissão é linha, não migration**. Uma chave nova no `catalogo_permissoes` (ex.: `ver_painel_apoio_fogo`) mais uma aba, sem tocar no enum nem na RLS. Complexidade: média. Modelo sugerido: intermediário.
 
   - [ ] **(c) Medidas de coordenação de apoio de fogo e planos de fogo.** A parte grande, e maior do que parece: LSA, LFAC, área de fogo livre e afins são **medidas de coordenação** — linhas e áreas, o *symbol set* 25 do APP-6D. Dois problemas concretos: elas **não estão** nos 12 arquivos capturados na Etapa 9b (aqueles são ícones PONTUAIS), e a **`milsymbol` não desenha geometria de controle** — ela faz símbolo de ponto. Exigiria um renderizador próprio (polilinhas/polígonos Leaflet estilizados) e uma fonte de dados nova.
     **Contorno que já funciona hoje, sem uma linha de código**: a Etapa 7 publica calco KML por partido (`calcos.partido_id`). Desenhar as medidas no Google Earth, exportar KML e publicar para o partido da artilharia já entrega o efeito visual, com controle de opacidade e visível só para eles. Vale testar assim antes de construir o editor — pode ser que resolva. Complexidade: alta. Modelo sugerido: mais forte.
+
+- [ ] **Embrulho nativo do app — a única forma de rastrear com a tela apagada** *(nova, 2026-09-14, só se o uso justificar)*
+
+  Levantado a partir da pergunta de campo *"tem como o app ficar ativo em segundo plano?"*. **A resposta na web é não, e está esgotada:** com a tela apagada o sistema congela a página (temporizadores param, `watchPosition` para de entregar), e geolocalização em segundo plano foi proposta ao Chromium em 2016 e nunca implementada. Wake Lock foi avaliado e **recusado por quem usa** — o preço é bateria e cobre só metade (é liberado quando o documento deixa de estar visível, então o celular no bolso continua fora).
+
+  Capacitor/Cordova com plugin de localização em segundo plano: serviço de primeiro plano no Android, `allowsBackgroundLocationUpdates` no iOS. Custo real: vira app instalável, com assinatura, distribuição e um segundo alvo para manter — e o frontend atual passa a rodar dentro dele, não a ser reescrito.
+
+  **Mitigação já entregue**, que reduz a urgência: ao despertar, `gps.js` grava na hora (furando o throttling) e **declara quanto tempo ficou sem enviar**, com o mesmo rótulo e limiar que o instrutor viu no avatar. O buraco continua existindo; o que acabou foi ele ser silencioso. Complexidade: alta. Modelo sugerido: mais forte.
 
 - [ ] **Etapa 10 — Teste de carga (60+ usuários) e ajuste de plano**
   Simular múltiplos usuários simultâneos, medir, decidir se precisa migrar do Supabase Free para o Pro. Complexidade: média (mais QA que desenvolvimento). Modelo sugerido: leve a intermediário.
@@ -405,95 +509,6 @@ Sugestão de modelo por etapa: tarefas mecânicas/config → **modelo mais leve*
   - O alerta em si pode reaproveitar a Etapa 14 (`eventos_exercicio`) em vez de inventar um canal de notificação novo.
 
   Complexidade: alta (geometria + decisão de onde checar). Modelo sugerido: mais forte. **Aproveita bem se vier depois da Etapa 14.**
-
-## Fora da numeração — correções do teste de campo de setembro de 2026
-
-Três entregas fora da fila de etapas, todas nascidas do app na mão em campo
-(ver `CLAUDE.md` para o raciocínio completo de cada uma):
-
-- [x] **Etiqueta de idade no lugar do esmaecimento** (2026-09-14). Avatar de
-  quem parou de reportar deixa de esmaecer: marca a **última posição
-  conhecida**, com a idade escrita ao lado. `vigia-ausencia.js` ganhou
-  `rotuloIdade()`; `REMOVER_MS` virou `SEM_SINAL_MS`.
-
-- [x] **Paleta de ícones rápidos** (2026-09-14, migration `0010`). Presets de
-  marcação definidos pelo instrutor, por turma, desenhados **dentro do
-  formulário de marcação** (não num cartão do painel, e sem estado "armado").
-  `paleta.js` (puro) + `icones-rapidos.js` (banco/Realtime) + `paleta-tela.js`
-  + `instrutor-paleta.js`. Junto veio a correção de um bug de `uuid` que
-  atingia também `instrutor-calcos.js` desde a Etapa 7 — **publicar calco pelo
-  painel nunca tinha funcionado**.
-
-- [x] **Símbolo sem desenho central: avisa no formulário, RECUSA na paleta**
-  (2026-09-14). "Comando Nomeado" (`10:000000`) desenha só a moldura porque o
-  conteúdo dele é a **sigla da unidade** — e ele é o primeiro item da categoria
-  "Unidades", o que vem selecionado sozinho para quem não mexe no `<select>`.
-  **Onde há campo de sigla, avisa; onde não há, recusa**: o formulário de
-  marcação mostra um aviso âmbar e deixa gravar; a paleta recusa o preset, tira
-  a opção da lista do instrutor e oculta do aluno o preset antigo que já tenha
-  esse defeito (sinalizando-o na aba do instrutor, que é quem pode consertar).
-  `ENTIDADES_SEM_DESENHO`/`exigeDesignacao()`/`sidcExigeDesignacao()` em
-  `simbolos.js`. Travado por uma varredura dos 434 itens do catálogo contra a
-  `milsymbol` (`simbolos.teste.mjs`) e pela verificação dos 8 presets da paleta
-  padrão da 0010, um a um (`paleta.teste.mjs`).
-
-- [x] **Fim da herança de junho de 2026** (2026-09-14). Saíram do app o COP
-  estático (`data/cop_tatico.geojson`, `GRUPOS` F/I/N/D, `contadores()`, o
-  cartão "Forças") e as camadas fixas do repositório (`EXTRA_LAYERS`,
-  `data/man5bdacbld.geojson`, o cartão "Camadas"). Tudo o que faziam já era
-  feito melhor por `elementos_marcados` (Etapa 5) e pelos calcos publicados
-  (Etapa 7); **a coexistência das duas gerações na mesma tela era o defeito**.
-  As quatro chaves de camada passaram a ter um caminho só (`camadas.js`);
-  `data/` deixou de ser copiada no build; `legacy-qgis/` ficou, como
-  importador opcional e proveniência documentada, sem nada a consumir.
-
-- [x] **Cartões do painel nascem recolhidos, marcação antiga se explica, e
-  carimbo de build no rodapé** (2026-09-14). Pedido: *"em todo F5 os cards de
-  configuração abrem. Quero que eles abram somente se o usuário clicar."* O
-  estado inicial virou o **padrão** de `tornarRecolhivel()`, não uma opção
-  repetida em cada ponto de montagem. Junto: a marcação **já gravada** com um
-  símbolo sem desenho e sem sigla passou a dizer no popup por que sai vazia (as
-  correções anteriores só valiam daqui para a frente); e o rodapé das duas
-  telas passou a mostrar a data do build, porque "continua igual" já foi cache
-  do navegador duas vezes e não havia como conferir isso de fora.
-
-- [x] **Retomada honesta do GPS ao despertar** (2026-09-14). Pergunta de campo:
-  *"tem como o app ficar ativo em segundo plano?"* **Não — o sistema congela a
-  página e não existe API web de geolocalização em segundo plano** (proposta ao
-  Chromium em 2016, nunca implementada). Wake Lock foi avaliado e recusado por
-  quem usa: o preço é bateria e cobre só metade do problema. O que foi feito é
-  não esconder o buraco — ao voltar, `gps.js` grava na hora (furando o
-  throttling) e diz quanto tempo ficou sem enviar, com o mesmo rótulo e limiar
-  que o instrutor viu no avatar. Ver "App em segundo plano" no `CLAUDE.md`.
-
-- [ ] **Etapa futura (só se o uso justificar) — embrulho nativo do app.**
-  Capacitor/Cordova com plugin de localização em segundo plano: serviço de
-  primeiro plano no Android, `allowsBackgroundLocationUpdates` no iOS. É a
-  ÚNICA forma de rastrear com a tela apagada. Custo: vira app instalável, com
-  assinatura, distribuição e um segundo alvo para manter. Complexidade: alta.
-
-- [x] **A causa de verdade do "símbolo genérico": a paleta gravava o default de
-  `getSIDC()`** (2026-09-14). `salvarMarcacao()` sempre remontava o SIDC a
-  partir de cinco campos do formulário; a paleta não tem esses campos, tem o
-  SIDC pronto. Os cinco chegavam `undefined` e `getSIDC({})` devolve
-  `10011000000000000000` — "Comando Nomeado", o losango vazio. **Toda marcação
-  feita pela paleta saiu assim desde o primeiro dia**, e os três diagnósticos
-  anteriores trataram sintomas. Corrigido com `sidcDaMarcacao()` (se já existe
-  um SIDC, ele É o SIDC) e um teste de round-trip preset → banco que falha com
-  o código antigo. As marcações já gravadas só se corrigem à mão, pelo Editar —
-  o SIDC pretendido nunca chegou a ser gravado.
-
-- [x] **Vetor de observação nas duas telas + altitude e dimensão do alvo**
-  (2026-09-14, migration `0011`). No app do aluno a linha "Do meu posto" parou
-  de sumir em silêncio — diz o motivo (GPS sem fixo / posição oculta). Na aba
-  "Situação atual" ela **passou a existir**, com origem no posto de quem marcou
-  o elemento (o hook virou `obterPostoObservacao(row)`), e o rótulo declara a
-  idade da posição do autor quando ela é velha. A pedido da artilharia,
-  `elementos_marcados` ganhou `altitude_m` + `altitude_fonte` (nunca uma sem a
-  outra) e `frente_m` + `profundidade_m`. **Pendente de decisão externa:** a
-  fonte de modelo de elevação — consultar serviço público enviaria a coordenada
-  do alvo a um terceiro, e falta confirmar, de dentro da rede do Exército, se o
-  BDGEx entrega elevação por ponto.
 
 ## Como abrir cada etapa
 

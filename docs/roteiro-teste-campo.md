@@ -4,14 +4,40 @@ Este roteiro é a entrega mais valiosa da Etapa 11: várias coisas nunca puderam
 
 **Formato de cada item:** o que fazer → o que esperar → como saber que falhou. Quando algo falhar, anote o item e continue para o próximo — não vale a pena parar o teste inteiro por um item quebrado.
 
+## Estado em 2026-09-14 — por onde começar
+
+As migrations **`0010` e `0011` estão aplicadas em produção** e o commit
+`a65fb5e` está publicado e conferido no ar (o bundle servido foi inspecionado
+string a string). Sobre esse mesmo commit rodaram 719 casos de frontend e 80
+asserções de SQL contra Postgres de verdade, todos verdes.
+
+**Nada disso é teste de campo.** Bateria verde prova que o código faz o que o
+teste diz; só celular, GPS, Realtime e duas contas provam que a instrução
+funciona. Este roteiro é a parte que a máquina não faz.
+
+Se o tempo em campo for curto, esta é a ordem:
+
+1. **15ad** — o carimbo de versão no rodapé. Sem ele, todo o resto mede a
+   versão errada do app.
+2. **15ak–15ap** — a gravação pela paleta. É o defeito que foi relatado **três
+   vezes** ("símbolo genérico") e o que mais importa confirmar.
+3. **15aq–15aw** — vetor de observação nas duas telas e dados de tiro. É a
+   entrega mais nova e a que a artilharia pediu; ninguém nunca a viu rodando.
+4. **15r–15t** — publicar calco pelo painel. Nunca funcionou desde a Etapa 7 e
+   ninguém tinha percebido; a correção nunca foi exercitada.
+5. **Item 6** — "Voltar ao padrão da turma", que continua sendo o item com
+   maior chance de expor problema real de Realtime.
+
 ## 0. Antes de ir a campo
 
 Sem isto pronto, nenhum item abaixo funciona:
 
 1. **GitHub Pages publicando via Actions.** ~~Deploy from branch → `main` / `/ (root)`~~ — **isto mudou na Etapa 9a**: com o Vite, o que precisa ser publicado é `dist/`, não a raiz do repo. Settings → Pages → Source = **"GitHub Actions"**. Confirmado funcionando em 2026-08-02 (o workflow roda em ~35 s por push). URL: `https://joaopaulo1008.github.io/wartoolc2/`.
 
-   **Confira que o site no ar é o build atual antes de sair**: abra a URL, F12 → aba Network, e veja se os arquivos em `/wartoolc2/assets/` têm o mesmo hash do último `npm run build` local. Um push que falhou no Actions deixa o site anterior no ar, sem erro visível.
-2. **Migrations aplicadas** no SQL Editor do Supabase: `0001`-`0003` (desde etapas anteriores), `0004_perfis_realtime.sql`, `0005_rastro_historico.sql`, `0006_calcos.sql`, `0007_codigo_turma_valido.sql`, `0008_imagem_geo.sql` e **`0009_auditoria_edicao_e_preferencias.sql`** (Etapa 9b).
+   **Confira que o site no ar é o build atual antes de sair**: desde 2026-09-14 isso ficou trivial — **o rodapé do app mostra a data/hora do build**. Se ela não mudar depois de uma correção, o navegador está servindo a versão antiga (recarregue segurando Shift, ou abra numa aba anônima). O jeito antigo (F12 → Network, comparar o hash dos arquivos em `/wartoolc2/assets/` com o do último `npm run build` local) continua valendo como segunda opinião. Um push que falhou no Actions deixa o site anterior no ar, sem erro visível.
+2. **Migrations aplicadas** no SQL Editor do Supabase: `0001`-`0003` (desde etapas anteriores), `0004_perfis_realtime.sql`, `0005_rastro_historico.sql`, `0006_calcos.sql`, `0007_codigo_turma_valido.sql`, `0008_imagem_geo.sql`, **`0009_auditoria_edicao_e_preferencias.sql`** (Etapa 9b), **`0010_icones_rapidos.sql`** e **`0011_alvo_altitude_dimensoes.sql`** (2026-09-14).
+
+   **A `0010` e a `0011` foram aplicadas em produção em 2026-09-14** — não é preciso rodar de novo. As duas são idempotentes de propósito (rodar duas vezes não quebra nem perde dado), então, na dúvida, rodar outra vez é seguro.
 
    A `0009` é a única cujo efeito não aparece sozinho na tela — se ela faltar (ou se só parte dela for colada), o app funciona normalmente e apenas a linha "Corrigido por …" nunca aparece no popup, o que é indistinguível de "o instrutor não corrigiu nada". Vale confirmar, é uma consulta só:
    ```sql
@@ -319,11 +345,16 @@ Depois do teste, reúna:
 - [ ] Item 14c: lançamento de quadrícula bate com o transferidor na carta? (diferença constante de 5-30 milésimos = pode estar mostrando o verdadeiro — confira o sufixo `qd`). Faz falta o magnético?
 - [ ] Item 14d: KML de medidas de coordenação publicado só para o partido da artilharia funcionou? O que faltou?
 
+**A seção 15, abaixo, tem a própria lista de caixas** (15a–15aw) e é onde estão
+as entregas de 2026-09-14 — inclusive as três mais urgentes, listadas em "Estado
+em 2026-09-14" no começo deste arquivo. Ao reportar, cole as duas listas.
+
 ## 15. Etiqueta de idade e paleta de marcação rápida (2026-09-14)
 
-**Antes de qualquer coisa: aplicar a `0010` no Supabase** (SQL Editor, ou
-`backend/scripts/aplicar_migrations.sh`). Sem ela a aba "Marcação rápida" do
-painel abre vazia e o cartão do aluno diz que o instrutor não montou a paleta.
+**A `0010` já está aplicada em produção (2026-09-14)** — nada a fazer antes. Se
+a aba "Marcação rápida" do painel abrir vazia e o cartão do aluno disser que o
+instrutor não montou a paleta, é sinal de que a migration não pegou: rode-a de
+novo (SQL Editor, ou `backend/scripts/aplicar_migrations.sh`), é idempotente.
 
 ### Etiqueta de idade (substituiu o esmaecimento)
 
@@ -346,12 +377,19 @@ painel abre vazia e o cartão do aluno diz que o instrutor não montou a paleta.
 
 ### Paleta de marcação rápida
 
-- [ ] 15u. **Cor dos botões** (regressão corrigida em 2026-09-14): os presets
+> **Dois itens desta seção foram renumerados em 2026-09-14.** O que era `15u` e
+> `15v` aqui virou **`15q2`** e **`15q3`**, porque a seção "Símbolo sem desenho
+> central", mais abaixo, usava esses mesmos dois rótulos — e um checklist onde
+> "15u falhou" pode significar duas coisas diferentes não serve para reportar
+> nada. Se você estiver com uma cópia impressa antiga, é só esta seção que
+> mudou de letra.
+
+- [ ] 15q2. **Cor dos botões** (regressão corrigida em 2026-09-14): os presets
   gravados como Vermelho têm que aparecer VERMELHOS na paleta do aluno do Azul
   e na lista do instrutor — não amarelos. O "Vtr" (Perguntar ao aluno) é o
   único que fica amarelo, e isso é correto. Entrando com uma conta do VERMELHO,
   os mesmos botões viram AZUIS.
-- [ ] 15v. **Não existe mais** cartão "Marcação rápida" no painel lateral — a
+- [ ] 15q3. **Não existe mais** cartão "Marcação rápida" no painel lateral — a
   paleta vive dentro do formulário do clique. Se o cartão ainda aparecer, o
   navegador está com a versão antiga em cache (Ctrl+F5).
 
@@ -500,7 +538,9 @@ defeito do "símbolo genérico", nas três vezes que ele foi relatado.
 
 ### Vetor de observação e dados de tiro (2026-09-14, migration 0011)
 
-**Aplicar a `0011` no Supabase antes destes itens.**
+**A `0011` já está aplicada em produção (2026-09-14).** Se o popup nunca mostrar
+altitude/dimensão por mais que se preencha, é ela que faltou — é idempotente,
+pode rodar de novo.
 
 - [ ] 15aq. App do aluno, ANTES de o GPS fixar: abra o popup de uma marcação —
   a linha "Do meu posto" tem que aparecer em cinza dizendo **"aguardando o GPS

@@ -803,7 +803,8 @@ vez de um segundo observador que pudesse discordar dela.
   aberto na mão do aluno, a fileira se redesenha sozinha.
 
 **PENDENTE DE TESTE AO VIVO** (acrescentado a `docs/roteiro-teste-campo.md`):
-aplicar a 0010 no Supabase real; **publicar um calco pelo painel, que é o bug
+~~aplicar a 0010 no Supabase real~~ — **aplicada em produção em 2026-09-14, junto
+com a 0011**; **publicar um calco pelo painel, que é o bug
 antigo corrigido aqui e nunca foi exercitado**; conferir a etiqueta de idade com um celular
 desligando o GPS; marcar pela paleta nos dois modos e conferir que o símbolo
 gravado é o do botão; e o toque longo num celular de verdade, que é o gesto
@@ -1224,6 +1225,40 @@ direções (aceitou o que não devia / recusou o que devia aceitar) — inclusiv
 caso que mais importa: altitude gravada sem fonte é recusada. Mais:
 `valida_sql.py` nas 0001–0011 sem falhas; as onze suítes de frontend verdes;
 `npm run build`.
+
+**Fechamento da sessão de 2026-09-14 — o que ficou PROVADO e o que só ficou
+PUBLICADO.** Depois de quem conduz a instrução aplicar a 0010 e a 0011 no
+Supabase de produção e empurrar o commit `a65fb5e`, a bateria inteira foi
+rodada de novo sobre exatamente esse commit:
+
+- **719 casos de frontend** em onze suítes, verdes;
+- **80 asserções de SQL** contra Postgres 16 + PostGIS **em bancos limpos**:
+  `01_teste_partidos` 43/43, `02_teste_icones_rapidos` 26/26,
+  `03_teste_alvo_campos` 11/11;
+- `valida_sql.py` nas 0001–0011 sem falhas e `npm run build` limpo;
+- **o site publicado foi conferido pelo navegador**, percorrendo o grafo de
+  assets de `index.html` e de `instrutor.html` e procurando as marcas desta
+  entrega no bundle servido: `"Do meu posto"`, `"Do posto de"`,
+  `"aguardando o GPS fixar"`, `"ainda sem posição reportada"`,
+  `"lida na carta"`, `"Dados de tiro"`, `altitude_fonte`, `"Comando Nomeado"`,
+  `versao-build`, `paleta-quebrado`, `"sigla da unidade no centro"`, `OCULTO`.
+  Todas presentes.
+
+**Essa última linha diz que o código CERTO está no ar — não diz que ele
+funciona em campo.** Nenhum item do roteiro foi exercitado com celular, GPS,
+Realtime e duas contas reais nesta sessão; conferir string em bundle é prova de
+deploy, não de comportamento. O que decide se a entrega prestou são os itens
+**15aq–15aw** de `docs/roteiro-teste-campo.md` (vetor nas duas telas e dados de
+tiro) e os **15ak–15ap** (a gravação pela paleta — o defeito relatado três
+vezes). **Distinguir as duas coisas é o ponto**: foi tratando o sintoma como
+causa que o "símbolo genérico" sobreviveu a três diagnósticos meus.
+
+Duas dependências continuam FORA do código, e nenhum teste daqui as resolve:
+a **declinação magnética** (o app mostra lançamento de quadrícula; se o
+observador usa bússola, a diferença é real — decide-se em campo, item 14c) e a
+**fonte de MDE** para altitude automática (ver a seção 1 da 0011: mandar
+coordenada de alvo para serviço público de terceiro é decisão de emprego, não
+detalhe de implementação — precisa de confirmação de dentro da rede do EB).
 
 ## Estrutura de pastas
 
