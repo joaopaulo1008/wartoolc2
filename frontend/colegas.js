@@ -51,6 +51,9 @@ import { formatarCoordenada, observarFormatoCoordenada } from './preferencias.js
 // PRÓPRIO laço (ele decide o que "esmaecer"/"remover" significam para um
 // avatar de colega), só não guarda mais os números nem a conta de idade.
 import { SEM_SINAL_MS, idadeMs, iniciarVigia, rotuloIdade } from './vigia-ausencia.js';
+// Recado de situação do colega (2026-09-15). O módulo já assina o Realtime e
+// guarda o estado; aqui só se pergunta o que escrever no popup.
+import { linhaSituacaoDe, observarSituacoes } from './situacao-tela.js';
 // Bug relatado em campo (teste da Etapa 11): colegas em posições quase
 // idênticas (ex.: formados lado a lado) desenhavam avatares empilhados,
 // impossíveis de distinguir/clicar. dispersarPosicoes() é puro/testável
@@ -88,6 +91,9 @@ let ativo = false;
 // reusado por frontend/marcacoes.js para dar "hostil" quando o elemento
 // marcado é de um partido beligerante diferente do seu — sem lógica nova.
 let meuPartido = null;
+
+// Cancelador do observador de situação (ver ativar()).
+let pararDeObservarSituacao = null;
 
 // ── UI: status ───────────────────────────────────────────────────────────
 function status(texto, cor) {
@@ -132,8 +138,21 @@ function popupColega(perfil, row) {
     `<b>${perfil.nome_guerra || 'Sem nome de guerra'}</b><br>` +
     `${formatarCoordenada(row.latitude, row.longitude)}<br>` +
     `Precisão: ${precisao}<br>` +
-    `Atualizado: ${atualizado}`
+    `Atualizado: ${atualizado}` +
+    linhaSituacaoHtml(perfil.id)
   );
+}
+
+// O recado que o colega declarou, quando há. Vazio quando ele não declarou
+// nada — ver linhaDeSituacao() em situacao-usuario.js: "sem novidade" sem
+// texto é silêncio de propósito, para o campo não virar ruído que se aprende
+// a ignorar.
+function linhaSituacaoHtml(usuarioId) {
+  const linha = linhaSituacaoDe(usuarioId);
+  if (!linha) return '';
+  const seguro = String(linha).replace(/[&<>"']/g, (c) => (
+    { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  return `<br><span style="color:#f5c842">${seguro}</span>`;
 }
 
 // Etapa 9b: remonta o popup de TODOS os colegas já desenhados. Chamado
@@ -461,6 +480,13 @@ async function ativar() {
 
   assinarCanal(turmaId, userId, { map });
   iniciarVigiaAusencia();
+
+  // O recado de situação de um colega muda sem que a posição dele mude, e o
+  // popup é montado no upsertAvatar() (a cada posição nova). Sem este
+  // observador, quem declarasse "sem munição" parado só apareceria assim
+  // quando se mexesse — que é o mesmo defeito que a Etapa 9b corrigiu no
+  // formato de coordenada, com a mesma solução.
+  if (!pararDeObservarSituacao) pararDeObservarSituacao = observarSituacoes(remontarPopups);
 }
 
 function desativar() {
@@ -471,6 +497,7 @@ function desativar() {
     supabase.removeChannel(canalAtual);
     canalAtual = null;
   }
+  if (pararDeObservarSituacao) { pararDeObservarSituacao(); pararDeObservarSituacao = null; }
   if (vigiaControlador) {
     vigiaControlador.parar();
     vigiaControlador = null;

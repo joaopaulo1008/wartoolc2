@@ -110,9 +110,21 @@ let ultimaPosicaoDesenhada = null;
 // devolver null e o vetor simplesmente some do popup — em vez de o app
 // continuar publicando a própria posição por uma porta lateral que a
 // permissão não cobre.
+// `medidoEm` (2026-09-15) é acréscimo ADITIVO: quem já usava só lat/lon
+// (marcacoes.js, para o vetor de observação) não muda. Ele existe para o
+// pedido de apoio poder dizer DE QUANDO é a coordenada que está mandando —
+// uma posição de oito minutos atrás apresentada como atual manda gente
+// procurar pessoa no lugar errado. Ver descreverPosicaoDoPedido() em
+// situacao-usuario.js.
 export function minhaPosicao() {
   if (!ultimaPosicaoDesenhada) return null;
-  return { lat: ultimaPosicaoDesenhada.lat, lon: ultimaPosicaoDesenhada.lon };
+  return {
+    lat: ultimaPosicaoDesenhada.lat,
+    lon: ultimaPosicaoDesenhada.lon,
+    medidoEm: ultimaPosicaoDesenhada.timestamp
+      ? new Date(ultimaPosicaoDesenhada.timestamp).toISOString()
+      : null,
+  };
 }
 
 function popupProprio(perfil, pos) {

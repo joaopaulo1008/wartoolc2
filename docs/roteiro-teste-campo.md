@@ -35,9 +35,9 @@ Sem isto pronto, nenhum item abaixo funciona:
 1. **GitHub Pages publicando via Actions.** ~~Deploy from branch → `main` / `/ (root)`~~ — **isto mudou na Etapa 9a**: com o Vite, o que precisa ser publicado é `dist/`, não a raiz do repo. Settings → Pages → Source = **"GitHub Actions"**. Confirmado funcionando em 2026-08-02 (o workflow roda em ~35 s por push). URL: `https://joaopaulo1008.github.io/wartoolc2/`.
 
    **Confira que o site no ar é o build atual antes de sair**: desde 2026-09-14 isso ficou trivial — **o rodapé do app mostra a data/hora do build**. Se ela não mudar depois de uma correção, o navegador está servindo a versão antiga (recarregue segurando Shift, ou abra numa aba anônima). O jeito antigo (F12 → Network, comparar o hash dos arquivos em `/wartoolc2/assets/` com o do último `npm run build` local) continua valendo como segunda opinião. Um push que falhou no Actions deixa o site anterior no ar, sem erro visível.
-2. **Migrations aplicadas** no SQL Editor do Supabase: `0001`-`0003` (desde etapas anteriores), `0004_perfis_realtime.sql`, `0005_rastro_historico.sql`, `0006_calcos.sql`, `0007_codigo_turma_valido.sql`, `0008_imagem_geo.sql`, **`0009_auditoria_edicao_e_preferencias.sql`** (Etapa 9b), **`0010_icones_rapidos.sql`**, **`0011_alvo_altitude_dimensoes.sql`**, **`0012_remover_da_turma.sql`** e **`0013_anotacoes.sql`** (2026-09-14).
+2. **Migrations aplicadas** no SQL Editor do Supabase: `0001`-`0003` (desde etapas anteriores), `0004_perfis_realtime.sql`, `0005_rastro_historico.sql`, `0006_calcos.sql`, `0007_codigo_turma_valido.sql`, `0008_imagem_geo.sql`, **`0009_auditoria_edicao_e_preferencias.sql`** (Etapa 9b), **`0010_icones_rapidos.sql`**, **`0011_alvo_altitude_dimensoes.sql`**, **`0012_remover_da_turma.sql`** e **`0013_anotacoes.sql`** (2026-09-14) e **`0014_situacao_e_apoio.sql`** (2026-09-15).
 
-   **A `0010` e a `0011` foram aplicadas em produção em 2026-09-14** — não é preciso rodar de novo. **A `0012` e a `0013` são as PENDENTES**, e as duas falham de forma visível, não calada: sem a `0012` o botão "Remover da turma" avisa na tela que a migration falta (o editor de símbolo funciona normalmente); sem a `0013` o cartão "Anotações no mapa" não consegue gravar nada. Todas são idempotentes de propósito (rodar duas vezes não quebra nem perde dado), então, na dúvida, rodar outra vez é seguro.
+   **A `0010` e a `0011` foram aplicadas em produção em 2026-09-14** — não é preciso rodar de novo. **A `0012`, a `0013` e a `0014` são as PENDENTES**, e as três falham de forma visível, não calada: sem a `0012` o botão "Remover da turma" avisa na tela que a migration falta (o editor de símbolo funciona normalmente); sem a `0013` o cartão "Anotações no mapa" não consegue gravar nada; sem a `0014` o cartão "Minha situação" e o botão de pedir apoio mostram o erro de gravação em vez de fingir que enviaram — **o pior modo de falha deste recurso seria justamente o silencioso**. Todas são idempotentes de propósito (rodar duas vezes não quebra nem perde dado), então, na dúvida, rodar outra vez é seguro.
 
    A `0009` é a única cujo efeito não aparece sozinho na tela — se ela faltar (ou se só parte dela for colada), o app funciona normalmente e apenas a linha "Corrigido por …" nunca aparece no popup, o que é indistinguível de "o instrutor não corrigiu nada". Vale confirmar, é uma consulta só:
    ```sql
@@ -653,5 +653,63 @@ anotação. Os itens de RÓTULO (15bm–15bp) não dependem dela — são só fr
   anotações no mapa, elas atrapalham a leitura da carta? Hoje **o aluno não tem
   como escondê-las** — isso é lacuna conhecida, não bug. Se atrapalhar, o
   próximo passo é um interruptor local no painel dele.
+
+### Situação e pedido de apoio (2026-09-15, migration 0014)
+
+**Aplicar a `0014`** antes destes itens.
+
+**Leia isto antes de testar:** o botão de apoio **só funciona com o app aberto
+e a tela ligada** — o navegador congela a página quando a tela apaga. Isso está
+escrito no próprio cartão. O item 15cn existe para conferir que a frase está lá.
+
+#### Recado de situação
+
+- [ ] 15cb. No painel do aluno há o cartão **"Minha situação"**. Escolha
+  "Sem munição" e escreva "2 pentes". Aparece "Enviado à sua força".
+- [ ] 15cc. No celular de um COLEGA DA MESMA FORÇA, abra o popup do avatar
+  dele: a linha **"Sem munição — 2 pentes"** aparece em âmbar, **sem F5 e sem
+  ele se mexer** (é o caso que o observador existe para cobrir).
+- [ ] 15cd. Na aba "Situação atual" do instrutor, o mesmo popup mostra a linha.
+- [ ] 15ce. **O item de segurança.** Com um celular do VERMELHO: o popup do
+  Azul **não mostra recado nenhum**. Se mostrar, pare e reporte.
+- [ ] 15cf. Volte o estado para **"Sem novidade"** e apague o texto: a linha
+  **some** do popup dos outros. Um campo que aparece sempre ensina a ser
+  ignorado — por isso "sem novidade" é silêncio.
+- [ ] 15cg. Dê F5 no app do aluno: o cartão volta **preenchido com o que ele
+  declarou**, não em branco.
+
+#### Pedido de apoio
+
+- [ ] 15ch. Toque rápido no botão vermelho: **não acontece nada** (é preciso
+  segurar). Segure e solte antes de 2 s: a barra volta e nada é enviado.
+- [ ] 15ci. Segure os 2 s completos: aparece "Pedido de apoio enviado" no
+  cartão dele.
+- [ ] 15cj. **Na tela do instrutor**, sem ele clicar em nada: aparece a
+  **faixa vermelha no topo do mapa** com o nome, há quanto tempo, e a idade da
+  posição. **Cronometre quanto demorou** — é o número que diz se o recurso
+  presta.
+- [ ] 15ck. No mapa (do instrutor e dos colegas da força) aparece um **halo
+  pulsando** em volta do avatar dele. O halo **não impede** tocar no avatar
+  para abrir o popup.
+- [ ] 15cl. **O caso que a coluna nulável existe para permitir:** desligue o
+  GPS do celular (ou o modo avião) e acione. **O pedido tem que sair mesmo
+  assim**, e a faixa do instrutor tem que dizer **"sem posição conhecida"** —
+  não pode sumir nem mentir uma coordenada.
+- [ ] 15cm. Deixe o celular parado uns 5 minutos com o GPS ruim e acione: a
+  faixa tem que dizer **"posição de Xm antes do acionamento"**, destacado. Uma
+  coordenada velha apresentada como atual manda gente ao lugar errado.
+- [ ] 15cn. Confira que embaixo do botão está escrito que ele **só funciona com
+  o app aberto e a tela ligada e não substitui o rádio**. Se essa frase sumir
+  numa versão futura, é regressão — ela é parte da entrega.
+- [ ] 15co. Instrutor clica em **Reconhecer**: a faixa muda para "reconhecido",
+  **o pedido NÃO some** do mapa, e o aluno vê "foi RECONHECIDO" no cartão dele.
+- [ ] 15cp. Instrutor clica em **Encerrar**: aí sim some da faixa e do mapa,
+  para todos.
+- [ ] 15cq. O próprio aluno aciona e depois usa **"Cancelar meu pedido"**:
+  funciona, sem depender do instrutor.
+- [ ] 15cr. Um COLEGA da mesma força vê o halo e a posição, mas **não tem
+  botão de encerrar** o pedido do outro.
+- [ ] 15cs. Com um celular do VERMELHO: **nenhuma faixa, nenhum halo**. O
+  pedido do Azul não existe para ele.
 
 Qualquer item marcado como falha vira a prioridade do próximo chat — cole este checklist preenchido para retomar com contexto completo.

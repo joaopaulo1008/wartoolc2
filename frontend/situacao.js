@@ -82,6 +82,9 @@ import {
 // telas. Nada de segundo caminho de desenho.
 import { iniciarCamadas, definirTurmaCamadas } from './camadas.js';
 import { iniciarAnotacoes, definirTurmaAnotacoes } from './anotacoes-tela.js';
+import {
+  iniciarSituacaoUsuario, definirTurmaSituacaoUsuario, linhaSituacaoDe, observarSituacoes,
+} from './situacao-tela.js';
 import { criarBasemaps, preencherSeletorBasemap, BASEMAP_PADRAO, trocarBasemap } from './basemaps.js';
 // Etapa 8a (correção pós-entrega): o instrutor também precisa de um mapa que
 // continue funcionando se a rede dele oscilar — a decisão original desta
@@ -133,6 +136,7 @@ let iniciado = false;        // a aba já foi aberta ao menos uma vez?
 // definirTurmaCamadas() com o módulo ainda não montado não faria nada útil.
 let camadasIniciadas = false;
 let anotacoesIniciadas = false;
+let situacaoUsuarioIniciada = false;
 
 // ── Helpers de tela ──────────────────────────────────────────────────────
 function el(id) { return document.getElementById(id); }
@@ -263,7 +267,10 @@ function popupPosicao(usuario, row) {
     `Força: ${esc(usuario?.partido?.nome || 'sem força')}<br>` +
     `${esc(formatarCoordenada(row.latitude, row.longitude))}<br>` +
     `Precisão: ${precisao}<br>` +
-    `Atualizado: ${atualizado}`
+    `Atualizado: ${atualizado}` +
+    (linhaSituacaoDe(row.usuario_id)
+      ? `<br><span style="color:#c8a24a">${esc(linhaSituacaoDe(row.usuario_id))}</span>`
+      : '')
   );
 }
 
@@ -755,6 +762,32 @@ export function aoAbrirSituacao() {
     });
     anotacoesIniciadas = true;
 
+    // Situação e pedidos de apoio (2026-09-15, 0014). `podeGerir: true` acende
+    // a faixa de alerta e os botões de reconhecer/encerrar. Sem cartão: o
+    // instrutor não declara situação nem pede apoio por esta tela — ele
+    // recebe. `nomeDe` deixa a faixa dizer o nome de guerra em vez do uuid.
+    iniciarSituacaoUsuario({
+      map,
+      userId: contexto?.userId,
+      turmaId: turmaAtual?.id,
+      mostrarCartao: false,
+      podeGerir: true,
+      container: '#situacao-lateral',
+      nomeDe: (id) => usuarioPorId(id)?.nome_guerra || '',
+    });
+    situacaoUsuarioIniciada = true;
+    // O recado de situação muda sem a posição mudar, e o popup é montado no
+    // desenharOuAtualizarMarcador(). Sem isto, quem declarasse "sem munição"
+    // parado só apareceria assim ao se mexer — mesmo defeito (e mesma
+    // solução) do formato de coordenada na Etapa 9b.
+    observarSituacoes(() => {
+      for (const [usuarioId, estado] of posicoes) {
+        if (estado.marker && estado.row) {
+          estado.marker.bindPopup(popupPosicao(usuarioPorId(usuarioId), estado.row));
+        }
+      }
+    });
+
     // Etapa 8a: mapa offline, mesma decisão e mesmo módulo do app do aluno.
     // `basemaps.bdgex` é a MESMA instância WMS que desenha a carta nesta
     // aba (criada em garantirMapa(), acima) — não uma cópia; é o que garante
@@ -795,6 +828,7 @@ export function definirTurmaSituacao(turma) {
   // `definirTurmaAnotacoes` recebe a LINHA da turma, não o uuid — ver o
   // comentário dela em anotacoes-tela.js.
   if (anotacoesIniciadas) definirTurmaAnotacoes(turmaAtual || null);
+  if (situacaoUsuarioIniciada) definirTurmaSituacaoUsuario(turmaAtual || null);
 
   if (turmaAtual && iniciado) carregarTudo();
 }

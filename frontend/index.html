@@ -362,6 +362,7 @@ import { iniciarColegas } from './colegas.js';
 import { iniciarMarcacoes } from './marcacoes.js';
 import { iniciarCamadas } from './camadas.js';
 import { iniciarAnotacoes } from './anotacoes-tela.js';
+import { iniciarSituacaoUsuario } from './situacao-tela.js';
 import { iniciarOfflineMapa } from './offline-tela.js';
 import { iniciarPaleta } from './paleta-tela.js';
 import { iniciarPainelRecolhivel, tornarRecolhivel, LARGURA_PAINEL_ABERTO } from './painel-lateral.js';
@@ -795,6 +796,20 @@ if (resultado) {
       userId: session.user.id,
       turmaId: perfil.turma_id,
       podeEditar: false,
+    });
+
+    // Situação e pedido de apoio (2026-09-15, migration 0014).
+    // `obterPosicao` é `minhaPosicao()` do gps.js: o pedido leva a melhor
+    // coordenada que existir NO MOMENTO do acionamento, com o carimbo de
+    // quando ela foi medida. Se não houver nenhuma, o pedido sai assim mesmo
+    // — quem está sem sinal é justamente quem mais pode precisar pedir.
+    await iniciarSituacaoUsuario({
+      map,
+      userId: session.user.id,
+      turmaId: perfil.turma_id,
+      mostrarCartao: true,
+      podeGerir: false,
+      obterPosicao: minhaPosicao,
     });
 
     // Paleta de marcação rápida (2026-09-14). NÃO desenha nada aqui: só carrega

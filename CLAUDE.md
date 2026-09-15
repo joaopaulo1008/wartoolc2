@@ -1447,13 +1447,99 @@ rodada duas vezes. A asserção que justifica a migration inteira: **o aluno do
 Vermelho vê só a anotação geral — a do Azul não vaza**. Mais: o aluno lê e não
 escreve (com a distinção `erro` × `zero linhas`, porque a cláusula `USING`
 filtra em silêncio); as outras quatro suítes SQL verdes (43+26+11+28);
-`valida_sql.py` nas 0001–0013; **789 casos de frontend** em treze suítes
+`valida_sql.py` nas 0001–0013; **789 casos de frontend** em doze suítes
 (`anotacoes.teste.mjs` novo com 44, `kml.teste.mjs` 116 → 129); `npm run build`.
 
 **PENDENTE DE TESTE AO VIVO** (em `docs/roteiro-teste-campo.md`): aplicar a
 `0013`; escrever uma anotação para uma força e confirmar, com dois celulares,
 que o outro lado NÃO a vê; arrastar; e ligar os rótulos num calco de verdade —
 inclusive um grande, para ver se o teto de 60 está no lugar certo.
+
+### Situação do usuário e pedido de apoio (2026-09-15) — migration 0014
+
+Pedido: *"o usuário podia ter algum tipo de botão de emergência, e poder
+escrever uma mensagem de situação que aparecesse no card popup dele"*.
+
+**A decisão que organiza tudo: são DUAS coisas, e elas não se tocam.** Um
+recado de situação é do JOGO ("sem munição", "viatura em pane"); um pedido de
+apoio é sobre gente de verdade num terreno de verdade. Se fossem o mesmo botão,
+no dia do acidente alguém aperta e quem olha pensa que é simulação. Por isso:
+duas tabelas, duas cores, duas palavras, dois caminhos — e **não existe um
+estado `'emergencia'` na lista do jogo**, travado por teste.
+
+**O que o app diz de si mesmo, escrito embaixo do botão:** *"Só funciona com o
+app aberto e a tela ligada — não substitui o rádio."* O navegador congela a
+página com a tela apagada (estabelecido em 2026-09-14), e quem está numa
+emergência real não vai desbloquear o celular para abrir um app. Uma ferramenta
+que cria confiança que não sustenta é pior do que não existir.
+
+**Onde o dado mora — e a primeira ideia que não servia.** O instinto foi uma
+coluna em `perfis`: o aluno já pode editar a própria linha. **A policy de
+leitura impede** — `perfis_ler` entrega a turma INTEIRA, os dois partidos, então
+um "sem munição" ali seria legível pelo outro lado por uma chamada de API. A
+forma certa é a de `posicoes_ler`:
+`usuario_id in (select fn_usuarios_visiveis()) or fn_sou_instrutor_da_turma(turma_id)`
+— exatamente "a minha força e o instrutor", que foi a escolha de quem conduz a
+instrução. As duas tabelas copiam essa forma, e copiam a FUNÇÃO (não a regra):
+quando a Etapa 6.5 trocar o corpo de `fn_usuarios_visiveis()` pela árvore ORBAT,
+elas acompanham sem ninguém lembrar de mexer aqui.
+
+**E por que não pendurar em `posicoes_atuais`, que já tem essa RLS e já é
+assinada pelas duas telas.** Seria de graça. Mas **quem não tem linha lá é
+justamente quem mais precisa falar**: um aluno cujo GPS nunca fixou não teria
+como dizer "estou parado, sem sinal" nem como pedir apoio. Acoplar "quero
+avisar" a "meu GPS funciona" é a dependência que só aparece no pior momento.
+
+Decisões do pedido de apoio, cada uma contra um modo de falha concreto:
+
+- **Segurar 2 s para acionar**, com a barra enchendo. O celular fica no bolso;
+  um `click` sairia sozinho. O gesto deliberado é o que separa "pedi apoio" de
+  "encostei na tela".
+- **A posição é NULÁVEL, e isso é o contrário de descuido.** Sem GPS o pedido
+  **sai mesmo assim**. Exigir coordenada significaria que a pessoa sem sinal é
+  a única que não consegue pedir ajuda. Quem recebe lê "sem posição conhecida".
+- **`posicao_em` carrega quando a coordenada foi MEDIDA**, e a faixa mostra a
+  idade em destaque quando é velha. Uma posição de oito minutos apresentada
+  como atual manda gente procurar pessoa no lugar errado — é o pior desfecho
+  possível deste recurso, e `descreverPosicaoDoPedido()` existe só para
+  impedi-lo (nunca devolve silêncio: ou diz que é do momento, ou diz a idade,
+  ou diz que não há posição).
+- **Reconhecer NÃO encerra.** "Estou vendo" ≠ "está resolvido"; juntar as duas
+  faria o pedido sumir do mapa no instante em que alguém clicasse para dizer
+  que viu.
+- **O próprio autor pode encerrar.** Um acionamento sem querer que só o
+  instrutor pudesse fechar viraria alarme tocando até alguém no notebook notar.
+  Um colega da força VÊ (e vai socorrer) mas não encerra: dar por encerrado o
+  pedido de outro, sem saber se foi atendido, é pior do que deixar aberto.
+- **NÃO há chave de permissão para o botão, e isso não é esquecimento.** Toda
+  outra função pode ser desligada pelo instrutor; esta não. Um botão de pedir
+  apoio desligado sem querer produz o pior caso imaginável: a pessoa aciona, vê
+  a confirmação na tela, e ninguém recebe.
+
+**Etapa 13 (KIA/WIA) ficou de fora de propósito.** Baixa é **arbitrada pelo
+instrutor**; situação é **autodeclarada pelo aluno**. São vizinhas e não são a
+mesma coluna — juntá-las faria o aluno declarar a própria baixa ou o instrutor
+falar pela boca dele. A policy de escrita de `situacoes` é só do dono, nem o
+instrutor escreve, e há teste travando isso.
+
+**Silêncio é regra:** "sem novidade" sem texto **não escreve nada** no popup. Um
+campo que aparece sempre ensina a ser ignorado — e aí o dia em que disser algo
+importante ninguém lê.
+
+**Verificação.** `backend/testes/06_teste_situacao_apoio.sql` (novo, 22 casos,
+22/22) contra Postgres 16 + PostGIS em banco limpo, `0001`–`0014`, com a `0014`
+rodada duas vezes. As asserções que justificam a migration: **o Vermelho não lê
+a situação nem vê o pedido do Azul**; **o pedido sai sem posição**; reconhecer
+não encerra; nem o instrutor escreve a situação do aluno. Mais: as outras cinco
+suítes SQL verdes (43+26+11+28+23), `valida_sql.py` nas 0001–0014, **847 casos
+de frontend** em treze suítes (`situacao-usuario.teste.mjs` novo com 58) e
+`npm run build`.
+
+**PENDENTE DE TESTE AO VIVO** (em `docs/roteiro-teste-campo.md`): aplicar a
+`0014`; acionar com dois celulares e confirmar que o Vermelho não vê nada;
+acionar **com o GPS desligado**, que é o caso que a coluna nulável existe para
+permitir; e cronometrar quanto tempo o alerta leva para aparecer na tela do
+instrutor.
 
 ## Estrutura de pastas
 

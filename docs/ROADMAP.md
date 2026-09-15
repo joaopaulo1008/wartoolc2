@@ -387,6 +387,22 @@ que agora abre com a ordem de prioridade para um tempo curto em campo.
   porque o clique no mapa daquela aba já tem dono (`marcacoes.js`) e o Leaflet
   entrega o mesmo clique aos dois ouvintes.
 
+- [x] **Situação do usuário e pedido de apoio** (2026-09-15, migration `0014`).
+  O aluno declara um recado curto que aparece no popup dele para a própria
+  força e para o instrutor, e tem um botão de pedir apoio (segurar 2 s) que
+  acende faixa e halo no mapa, com ciclo acionado/reconhecido/encerrado.
+  **São duas coisas separadas de propósito** — recado é do jogo, pedido de
+  apoio é sobre gente de verdade; se fossem o mesmo botão, no dia do acidente
+  alguém aperta e quem olha pensa que é simulação. Não existe estado
+  'emergencia' na lista do jogo, e o botão **não tem chave de permissão**
+  (desligá-lo sem querer produziria o pior caso: a pessoa aciona, vê a
+  confirmação, e ninguém recebe). **A posição do pedido é nulável**: sem GPS
+  ele sai mesmo assim, e a tela declara a idade da coordenada em vez de
+  apresentá-la como atual. **Não foi feito em `perfis`** porque `perfis_ler`
+  entrega a turma inteira — um "sem munição" vazaria para o outro partido.
+  **Limitação escrita na própria tela:** só funciona com o app aberto e a tela
+  ligada; não substitui o rádio.
+
 ## A fazer, em ordem
 
 - [ ] **Etapa 2 — Autenticação e papéis** *(em andamento — dividida em 2a e 2b)*
@@ -477,6 +493,9 @@ que agora abre com a ordem de prioridade para um tempo curto em campo.
   Complexidade: baixa-média. Modelo sugerido: leve.
 
 - [ ] **Etapa 13 — Marcar baixa/status de combate (KIA/WIA)**
+  *Vizinha da `situacoes` (0014, 2026-09-15) e deliberadamente separada dela:
+  baixa é ARBITRADA pelo instrutor, situação é AUTODECLARADA pelo aluno. Não
+  juntar as duas colunas — ver a seção da 0014 no CLAUDE.md.*
   *Nova, proposta e aprovada em 2026-07-31.*
 
   Complementa a Etapa 6c: hoje o instrutor só pode apagar a posição de um aluno (fantasma) — não existe meio-termo para "ele continua no exercício, mas está fora de combate". Uma coluna nova em `perfis` (`status_combate`, provavelmente enum `ativo`/`ferido`/`baixa`, padrão `ativo`), editável pelo instrutor pela mesma policy que já cobre `partido_id` (`perfis_editar_instrutor`, 0002, com `fn_proteger_campos_do_perfil` estendida).
