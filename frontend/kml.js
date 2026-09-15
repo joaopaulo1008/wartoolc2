@@ -596,6 +596,53 @@ export function propriedadesVisiveis(props, { maxCampos = 12, maxTexto = 400 } =
   return saida;
 }
 
+// ── Rótulos permanentes no mapa (2026-09-14) ──────────────────────────────
+// Até aqui o `name` de um placemark só aparecia no POPUP, ao clicar. Quem
+// monta o calco no Google Earth escreve ali justamente o que quer ver escrito
+// no mapa ("LSA AZUL", "PC 1º Esqd", "Eixo VERDE"), e no app isso ficava
+// invisível até alguém tocar na feição — que em campo, num celular, é o mesmo
+// que não existir.
+//
+// POR QUE HÁ UM TETO, E POR QUE ELE NÃO É UMA OPINIÃO SOBRE ESTÉTICA
+// -------------------------------------------------------------------
+// Cada rótulo permanente é um nó de DOM posicionado a cada movimento do mapa.
+// Um calco de medidas de coordenação tem dezenas de feições e fica ótimo; um
+// shapefile de hidrografia convertido para KML tem DEZENAS DE MILHARES, e
+// ligar rótulo em todas trava o celular — o mesmo aparelho que precisa estar
+// respondendo enquanto a pessoa se desloca. O teto decide só o PADRÃO: acima
+// dele a camada nasce sem rótulo, e a interface diz por quê em vez de deixar
+// a pessoa achar que a função não funciona. Ligar continua sendo escolha dela.
+//
+// 60 não é um número medido: é uma ordem de grandeza escolhida para caber
+// folgadamente um calco de manobra ou de apoio de fogo desenhado à mão, que é
+// o caso de uso real, e para barrar qualquer coisa que tenha vindo de uma base
+// cartográfica. Se em campo aparecer um calco legítimo acima disso, o número
+// sobe — é uma constante, não uma regra de negócio.
+export const LIMITE_ROTULOS_AUTOMATICOS = 60;
+
+// Quantas feições do GeoJSON têm título — ou seja, quantos rótulos apareceriam
+// se a camada fosse ligada. Feição sem `name` não conta: ela não desenharia
+// rótulo nenhum, e contá-la faria uma camada de 500 polígonos anônimos (que
+// não custa rótulo nenhum) nascer desligada à toa.
+export function contarFeicoesComTitulo(geojson) {
+  const feicoes = (geojson && Array.isArray(geojson.features)) ? geojson.features : [];
+  let n = 0;
+  for (const f of feicoes) {
+    if (tituloDaFeicao(f && f.properties)) n++;
+  }
+  return n;
+}
+
+// O estado INICIAL dos rótulos de uma camada. Devolve `false` quando não há o
+// que rotular — nascer "ligado" numa camada sem nenhum título faria a caixa
+// aparecer marcada sem nada acontecer na tela, que é pior do que nascer
+// desligada.
+export function rotulosNascemLigados(quantidadeComTitulo) {
+  const n = Number(quantidadeComTitulo);
+  if (!Number.isFinite(n) || n <= 0) return false;
+  return n <= LIMITE_ROTULOS_AUTOMATICOS;
+}
+
 // Título da feição: o que o KML chama de `name`, com os apelidos que outros
 // exportadores usam. Sempre texto puro.
 export function tituloDaFeicao(props) {

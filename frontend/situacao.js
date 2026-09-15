@@ -81,6 +81,7 @@ import {
 // mapa e o contêiner do painel por parâmetro justamente para servir às duas
 // telas. Nada de segundo caminho de desenho.
 import { iniciarCamadas, definirTurmaCamadas } from './camadas.js';
+import { iniciarAnotacoes, definirTurmaAnotacoes } from './anotacoes-tela.js';
 import { criarBasemaps, preencherSeletorBasemap, BASEMAP_PADRAO, trocarBasemap } from './basemaps.js';
 // Etapa 8a (correção pós-entrega): o instrutor também precisa de um mapa que
 // continue funcionando se a rede dele oscilar — a decisão original desta
@@ -131,6 +132,7 @@ let iniciado = false;        // a aba já foi aberta ao menos uma vez?
 // definirTurmaSituacao() pode rodar antes disso — e chamar
 // definirTurmaCamadas() com o módulo ainda não montado não faria nada útil.
 let camadasIniciadas = false;
+let anotacoesIniciadas = false;
 
 // ── Helpers de tela ──────────────────────────────────────────────────────
 function el(id) { return document.getElementById(id); }
@@ -739,6 +741,20 @@ export function aoAbrirSituacao() {
     });
     camadasIniciadas = true;
 
+    // Anotações de texto (2026-09-14, migration 0013). `podeEditar: true` é o
+    // que acende o cartão "Anotações no mapa", o arrastar e o clique para
+    // editar — no app do aluno o MESMO módulo entra com `false` e só desenha.
+    // A barreira de verdade continua sendo `anotacoes_escrever` (0013): isto
+    // aqui só decide se os controles aparecem.
+    iniciarAnotacoes({
+      map,
+      userId: contexto?.userId,
+      turmaId: turmaAtual?.id,
+      podeEditar: true,
+      container: '#situacao-lateral',
+    });
+    anotacoesIniciadas = true;
+
     // Etapa 8a: mapa offline, mesma decisão e mesmo módulo do app do aluno.
     // `basemaps.bdgex` é a MESMA instância WMS que desenha a carta nesta
     // aba (criada em garantirMapa(), acima) — não uma cópia; é o que garante
@@ -776,6 +792,9 @@ export function definirTurmaSituacao(turma) {
   // camadas já tiverem sido montadas — antes da primeira abertura da aba, a
   // turma nova já vai no `iniciarCamadas()` de aoAbrirSituacao().
   if (camadasIniciadas) definirTurmaCamadas(turmaAtual?.id || null);
+  // `definirTurmaAnotacoes` recebe a LINHA da turma, não o uuid — ver o
+  // comentário dela em anotacoes-tela.js.
+  if (anotacoesIniciadas) definirTurmaAnotacoes(turmaAtual || null);
 
   if (turmaAtual && iniciado) carregarTudo();
 }

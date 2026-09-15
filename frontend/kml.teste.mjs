@@ -46,6 +46,9 @@ import {
   escaparHtml,
   propriedadesVisiveis,
   tituloDaFeicao,
+  contarFeicoesComTitulo,
+  rotulosNascemLigados,
+  LIMITE_ROTULOS_AUTOMATICOS,
 } from './kml.js';
 
 let passou = 0, falhou = 0;
@@ -412,6 +415,34 @@ ok('título sai de name',           tituloDaFeicao({ name: 'Eixo Azul' }), 'Eixo
 ok('título aceita o apelido nome', tituloDaFeicao({ nome: 'Eixo Azul' }), 'Eixo Azul');
 ok('título sem name é vazio',      tituloDaFeicao({ description: 'x' }), '');
 ok('título vem sem HTML',          tituloDaFeicao({ name: '<i>PC</i>' }), 'PC');
+
+// ── Rótulos permanentes (2026-09-14) ──────────────────────────────────────
+// O teto existe por desempenho, não por gosto: um rótulo permanente é um nó de
+// DOM reposicionado a cada pan/zoom, e uma base cartográfica convertida para
+// KML traz dezenas de milhares de feições. O que estes casos travam é a REGRA
+// de quando a camada nasce com rótulo — mudar o número é livre, mudar a regra
+// (sem título não conta; zero nunca liga) quebra aqui.
+const feicao = (name) => ({ type: 'Feature', properties: name ? { name } : {}, geometry: null });
+const colecao = (...nomes) => ({ type: 'FeatureCollection', features: nomes.map(feicao) });
+
+ok('conta só as feições COM título',
+  contarFeicoesComTitulo(colecao('PC', null, 'LSA', null)), 2);
+ok('coleção vazia conta zero',      contarFeicoesComTitulo(colecao()), 0);
+ok('geojson nulo conta zero',       contarFeicoesComTitulo(null), 0);
+ok('objeto sem features conta zero', contarFeicoesComTitulo({ type: 'Feature' }), 0);
+ok('título em branco não conta',
+  contarFeicoesComTitulo({ type: 'FeatureCollection', features: [{ properties: { name: '  ' } }] }), 0);
+
+ok('um calco de manobra nasce COM rótulo',  rotulosNascemLigados(12), true);
+ok('exatamente no teto ainda liga',         rotulosNascemLigados(LIMITE_ROTULOS_AUTOMATICOS), true);
+ok('um a mais que o teto nasce desligado',  rotulosNascemLigados(LIMITE_ROTULOS_AUTOMATICOS + 1), false);
+ok('base cartográfica nasce desligada',     rotulosNascemLigados(28000), false);
+// Zero NUNCA liga: uma caixa marcada numa camada sem nenhum título ficaria
+// marcada sem nada aparecer na tela, que é pior do que nascer desmarcada.
+ok('camada sem nenhum título nasce desligada', rotulosNascemLigados(0), false);
+ok('valor negativo nasce desligado',        rotulosNascemLigados(-3), false);
+ok('valor não numérico nasce desligado',    rotulosNascemLigados('muitos'), false);
+ok('undefined nasce desligado',             rotulosNascemLigados(undefined), false);
 
 // ─────────────────────────────────────────────────────────────────────────
 console.log(`\n${'─'.repeat(58)}`);

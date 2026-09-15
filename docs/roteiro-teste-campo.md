@@ -35,9 +35,9 @@ Sem isto pronto, nenhum item abaixo funciona:
 1. **GitHub Pages publicando via Actions.** ~~Deploy from branch → `main` / `/ (root)`~~ — **isto mudou na Etapa 9a**: com o Vite, o que precisa ser publicado é `dist/`, não a raiz do repo. Settings → Pages → Source = **"GitHub Actions"**. Confirmado funcionando em 2026-08-02 (o workflow roda em ~35 s por push). URL: `https://joaopaulo1008.github.io/wartoolc2/`.
 
    **Confira que o site no ar é o build atual antes de sair**: desde 2026-09-14 isso ficou trivial — **o rodapé do app mostra a data/hora do build**. Se ela não mudar depois de uma correção, o navegador está servindo a versão antiga (recarregue segurando Shift, ou abra numa aba anônima). O jeito antigo (F12 → Network, comparar o hash dos arquivos em `/wartoolc2/assets/` com o do último `npm run build` local) continua valendo como segunda opinião. Um push que falhou no Actions deixa o site anterior no ar, sem erro visível.
-2. **Migrations aplicadas** no SQL Editor do Supabase: `0001`-`0003` (desde etapas anteriores), `0004_perfis_realtime.sql`, `0005_rastro_historico.sql`, `0006_calcos.sql`, `0007_codigo_turma_valido.sql`, `0008_imagem_geo.sql`, **`0009_auditoria_edicao_e_preferencias.sql`** (Etapa 9b), **`0010_icones_rapidos.sql`**, **`0011_alvo_altitude_dimensoes.sql`** e **`0012_remover_da_turma.sql`** (2026-09-14).
+2. **Migrations aplicadas** no SQL Editor do Supabase: `0001`-`0003` (desde etapas anteriores), `0004_perfis_realtime.sql`, `0005_rastro_historico.sql`, `0006_calcos.sql`, `0007_codigo_turma_valido.sql`, `0008_imagem_geo.sql`, **`0009_auditoria_edicao_e_preferencias.sql`** (Etapa 9b), **`0010_icones_rapidos.sql`**, **`0011_alvo_altitude_dimensoes.sql`**, **`0012_remover_da_turma.sql`** e **`0013_anotacoes.sql`** (2026-09-14).
 
-   **A `0010` e a `0011` foram aplicadas em produção em 2026-09-14** — não é preciso rodar de novo. **A `0012` é a única PENDENTE**: sem ela o botão "Remover da turma" avisa na tela que falta a migration (não falha calado), e o editor de símbolo funciona normalmente. Todas são idempotentes de propósito (rodar duas vezes não quebra nem perde dado), então, na dúvida, rodar outra vez é seguro.
+   **A `0010` e a `0011` foram aplicadas em produção em 2026-09-14** — não é preciso rodar de novo. **A `0012` e a `0013` são as PENDENTES**, e as duas falham de forma visível, não calada: sem a `0012` o botão "Remover da turma" avisa na tela que a migration falta (o editor de símbolo funciona normalmente); sem a `0013` o cartão "Anotações no mapa" não consegue gravar nada. Todas são idempotentes de propósito (rodar duas vezes não quebra nem perde dado), então, na dúvida, rodar outra vez é seguro.
 
    A `0009` é a única cujo efeito não aparece sozinho na tela — se ela faltar (ou se só parte dela for colada), o app funciona normalmente e apenas a linha "Corrigido por …" nunca aparece no popup, o que é indistinguível de "o instrutor não corrigiu nada". Vale confirmar, é uma consulta só:
    ```sql
@@ -604,5 +604,54 @@ forças", logo abaixo do seletor de Força.
   sem força (o banco zera o partido ao sair). O instrutor redistribui.
 - [ ] 15bl. Clique em remover duas vezes seguidas num aluno já removido: não
   pode dar erro na tela (a função é idempotente de propósito).
+
+### Texto no mapa: rótulos de calco e anotações (2026-09-14, migration 0013)
+
+**Aplicar a `0013`** (`backend/supabase/0013_anotacoes.sql`) antes dos itens de
+anotação. Os itens de RÓTULO (15bm–15bp) não dependem dela — são só frontend.
+
+#### Rótulos nos calcos (sem migration)
+
+- [ ] 15bm. Publique um calco KML cujos placemarks tenham **nome** no Google
+  Earth ("PC 1º Esqd", "LSA AZUL"). No app do aluno, o texto tem que aparecer
+  **escrito no mapa, sem precisar clicar**.
+- [ ] 15bn. Na linha daquela camada, no painel, há uma caixa **"Rótulos (N)"**
+  com o número de feições nomeadas. Desmarque: os textos somem. Marque: voltam.
+- [ ] 15bo. Dê F5: a escolha do item anterior **sobrevive** (é preferência
+  guardada no aparelho).
+- [ ] 15bp. **O teste do teto.** Publique um calco GRANDE (acima de 60 feições
+  com nome — uma exportação de base cartográfica serve). Ele tem que nascer
+  **sem rótulos**, com a observação âmbar "muitos — ligue se quiser" ao lado.
+  Ligue de propósito e **veja quanto o mapa engasga**: é esse número que diz se
+  o teto de 60 está no lugar certo. Anote o aparelho e a sensação.
+
+#### Anotações do instrutor
+
+- [ ] 15bq. Aba "Situação atual": há um cartão **"Anotações no mapa"** com o
+  botão "Nova anotação". Clique, escreva "Reabastecimento até as 14h", deixe
+  "— todos da turma —" e salve.
+- [ ] 15br. A caixa aparece **no centro da vista**, não no canto. Arraste-a para
+  o ponto certo: ela fica lá, e dando F5 continua no lugar novo.
+- [ ] 15bs. **Com o celular do aluno na mão, sem tocar em nada**: a caixa
+  aparece na tela dele em segundos, sem F5.
+- [ ] 15bt. **O item de segurança desta entrega.** Crie uma anotação escolhendo
+  **"só Azul"**. Com dois celulares, um Azul e um Vermelho: o Azul vê; **o
+  Vermelho NÃO vê**. Se o Vermelho vir, pare e reporte — é vazamento de RLS.
+- [ ] 15bu. Um aluno **sem força** vê as anotações "de todos" e nenhuma de
+  força. (É o oposto de `fn_usuarios_visiveis`, onde partido nulo é restritivo:
+  aqui o nulo é da ANOTAÇÃO e significa "todos". Não confundir.)
+- [ ] 15bv. Toque na caixa no mapa do instrutor: abre o formulário de edição
+  já preenchido. Mude o texto e salve — muda na tela do aluno sem F5.
+- [ ] 15bw. Remova a anotação pelo × da lista: some do mapa de todos na hora.
+- [ ] 15bx. O aluno **não** tem cartão de anotações e **não** consegue criar
+  nenhuma por lugar nenhum da interface.
+- [ ] 15by. Tente escrever um texto muito longo: o campo trava em 200 e o
+  contador fica vermelho antes disso.
+- [ ] 15bz. Anotação com **duas linhas** (Enter no meio): as duas linhas
+  aparecem no mapa.
+- [ ] 15ca. **A pergunta que decide a próxima etapa:** com meia dúzia de
+  anotações no mapa, elas atrapalham a leitura da carta? Hoje **o aluno não tem
+  como escondê-las** — isso é lacuna conhecida, não bug. Se atrapalhar, o
+  próximo passo é um interruptor local no painel dele.
 
 Qualquer item marcado como falha vira a prioridade do próximo chat — cole este checklist preenchido para retomar com contexto completo.

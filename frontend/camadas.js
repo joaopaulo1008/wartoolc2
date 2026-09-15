@@ -76,6 +76,7 @@ import {
   FAIXAS_PANE, CAMADAS_POR_FAIXA, CORES_CAMADA, COR_CAMADA_PADRAO,
   validarArquivo, nomeDeCamada, formatarBytes, planejarGuardar,
   propriedadesVisiveis, tituloDaFeicao,
+  contarFeicoesComTitulo, rotulosNascemLigados, LIMITE_ROTULOS_AUTOMATICOS,
 } from './kml.js';
 import { tornarRecolhivel } from './painel-lateral.js';
 import { lerArquivoKml } from './kml-navegador.js';
@@ -178,6 +179,24 @@ function injetarEstilos() {
     /* Bolinhas de cor. Empurradas para o fim da linha pelo nome (que é
        flex:1), para a coluna de nomes continuar alinhada entre as camadas. */
     #card-camadas .cam-cores { display:flex; gap:3px; flex-shrink:0; }
+    /* Linha de rótulos (2026-09-14) */
+    #card-camadas .cam-rotulo-linha {
+      display:flex; align-items:center; gap:5px; margin:4px 0 0 20px; font-size:11px;
+    }
+    #card-camadas .cam-rotulo-linha label { color:#7a9ab8; cursor:pointer; }
+    #card-camadas .cam-rotulo-aviso { color:#c8a24a; font-style:italic; }
+    /* O rótulo desenhado NO MAPA. Fora de #card-camadas de propósito: o
+       tooltip do Leaflet vive no tooltipPane, não dentro do cartão.
+       pointer-events:none para o texto nunca roubar o toque do que está
+       embaixo — num celular, um rótulo sobre um símbolo impediria abrir o
+       popup dele. */
+    .leaflet-tooltip.cam-rotulo {
+      background:rgba(13,27,42,.82); border:none; box-shadow:none;
+      color:#e8eaf0; font-size:11px; font-weight:600; padding:1px 5px;
+      white-space:nowrap; pointer-events:none;
+      text-shadow:0 1px 2px rgba(0,0,0,.9);
+    }
+    .leaflet-tooltip.cam-rotulo::before { display:none; }
     #card-camadas .cam-cor {
       width:13px; height:13px; border-radius:50%; padding:0; cursor:pointer;
       border:1px solid #4a6a8a;
@@ -321,6 +340,7 @@ function guardarPreferencias(registro) {
       querVer: registro.querVer,
       cor: registro.cor,
       corForcada: registro.corForcada,
+      rotulos: registro.rotulos,
     });
   }, 400));
 }
@@ -420,6 +440,13 @@ function garantirPane(registro) {
 
 function construirCamada(registro, geojson) {
   garantirPane(registro);
+  // Quantas feições TÊM título decide o estado inicial dos rótulos. Guardado
+  // no registro porque a linha do painel precisa do número para explicar, em
+  // vez de só mostrar uma caixa desmarcada sem motivo aparente.
+  registro.feicoesComTitulo = contarFeicoesComTitulo(geojson);
+  if (registro.rotulos === undefined) {
+    registro.rotulos = rotulosNascemLigados(registro.feicoesComTitulo);
+  }
   registro.layer = L.geoJSON(geojson, {
     pane: registro.pane,
     style: estiloDaFeicao(registro),
@@ -443,6 +470,44 @@ function construirCamada(registro, geojson) {
       // olhar. Mesmo raciocínio de aoAbrirPopup() em marcacoes.js.
       layer.bindPopup(() => construirPopup(feature && feature.properties, registro), { maxWidth: 280 });
     },
+  });
+  aplicarRotulos(registro);
+}
+
+// ── Rótulos permanentes (2026-09-14) ──────────────────────────────────────
+// O `name` do placemark escrito no mapa, sem precisar clicar. Ver o comentário
+// de LIMITE_ROTULOS_AUTOMATICOS em kml.js para o teto e o porquê dele.
+//
+// `bindTooltip(..., { permanent: true })` em vez de um marcador de texto
+// próprio: o tooltip do Leaflet já se reposiciona sozinho a cada pan/zoom,
+// já some junto com a camada quando ela é desligada (é filho do layer) e já
+// tem pane próprio acima de tudo. Reimplementar isso com divIcon daria o mesmo
+// resultado e mais três lugares para errar.
+//
+// O texto entra por `bindTooltip(string)`, e o Leaflet insere string como
+// HTML. `tituloDaFeicao()` já devolve texto puro (passa por textoSimples(),
+// que tira as tags) — mas isso é legibilidade, não barreira, exatamente como
+// diz o comentário de construirPopup(). Aqui a barreira é escapar na entrada:
+// o conteúdo vem de arquivo de fora e vai para a tela de 60 pessoas.
+function escaparRotulo(texto) {
+  return String(texto ?? '')
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
+function aplicarRotulos(registro) {
+  if (!registro.layer || !registro.layer.eachLayer) return;
+  registro.layer.eachLayer((camada) => {
+    if (camada.getTooltip && camada.getTooltip()) camada.unbindTooltip();
+    if (!registro.rotulos) return;
+    const texto = tituloDaFeicao(camada.feature && camada.feature.properties);
+    if (!texto) return;
+    camada.bindTooltip(escaparRotulo(texto), {
+      permanent: true,
+      direction: 'right',
+      className: 'cam-rotulo',
+      opacity: 1,
+    });
   });
 }
 
@@ -643,6 +708,42 @@ function linhaDaCamada(registro, indice, total) {
   // verdade, não um ajuste raro).
   linha.appendChild(topo);
 
+  // Rótulos: só para calco VETOR (uma imagem georreferenciada não tem feições
+  // nem `name`), e só quando há algum título a mostrar — uma caixa que não faz
+  // nada é pior do que caixa nenhuma. Quando a camada passou do teto, a linha
+  // DIZ o número em vez de deixar a pessoa achar que a função está quebrada.
+  if (!ehImagem(registro) && registro.feicoesComTitulo > 0) {
+    const rotuloLinha = document.createElement('div');
+    rotuloLinha.className = 'cam-rotulo-linha';
+
+    const caixa = document.createElement('input');
+    caixa.type = 'checkbox';
+    caixa.checked = !!registro.rotulos;
+    caixa.id = `cam-rot-${registro.id}`;
+    caixa.addEventListener('change', () => {
+      registro.rotulos = caixa.checked;
+      aplicarRotulos(registro);
+      guardarPreferencias(registro);
+    });
+
+    const etiqueta = document.createElement('label');
+    etiqueta.htmlFor = caixa.id;
+    etiqueta.textContent = `Rótulos (${registro.feicoesComTitulo})`;
+
+    rotuloLinha.append(caixa, etiqueta);
+
+    if (registro.feicoesComTitulo > LIMITE_ROTULOS_AUTOMATICOS && !registro.rotulos) {
+      const aviso = document.createElement('span');
+      aviso.className = 'cam-rotulo-aviso';
+      aviso.textContent = 'muitos — ligue se quiser';
+      aviso.title = `Acima de ${LIMITE_ROTULOS_AUTOMATICOS} rótulos a camada nasce sem eles, `
+        + 'porque desenhar todos pode travar o celular. Ligar continua sendo sua escolha.';
+      rotuloLinha.appendChild(aviso);
+    }
+
+    linha.appendChild(rotuloLinha);
+  }
+
   if (ehImagem(registro)) {
     const opacidadeLinha = document.createElement('div');
     opacidadeLinha.className = 'cam-opacidade-linha';
@@ -793,7 +894,7 @@ function aplicarPermissaoLocal() {
 // entre "o aluno acabou de escolher o arquivo" e "restaurando o que estava
 // guardado no aparelho" — os dois chegam aqui com o mesmo formato, e por isso
 // uma camada restaurada é indistinguível de uma recém-aberta.
-function montarCamadaLocal({ id, nome, resultado, opacidade, ordem, querVer, cor, corForcada }) {
+function montarCamadaLocal({ id, nome, resultado, opacidade, ordem, querVer, cor, corForcada, rotulos }) {
   const registro = novoRegistro({
     id,
     nome,
@@ -806,6 +907,9 @@ function montarCamadaLocal({ id, nome, resultado, opacidade, ordem, querVer, cor
     cor,
   });
   registro.corForcada = !!corForcada;
+  // `undefined` deixa construirCamada() decidir pelo teto de rótulos; um
+  // booleano guardado vence, porque foi escolha explícita do usuário.
+  if (rotulos !== undefined && rotulos !== null) registro.rotulos = !!rotulos;
   camadas.set(registro.id, registro);
   construirCamada(registro, resultado.geojson);
   aplicarOrdem();
@@ -852,6 +956,7 @@ async function restaurarGuardados() {
       querVer: item.querVer,
       cor: item.cor,
       corForcada: item.corForcada,
+      rotulos: item.rotulos,
     });
     registro.guardado = true;
   }

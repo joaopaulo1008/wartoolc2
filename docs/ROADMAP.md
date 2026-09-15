@@ -372,6 +372,21 @@ que agora abre com a ordem de prioridade para um tempo curto em campo.
   **Registrado sem conserto:** pela API, um aluno consegue trocar o próprio
   `sidc` — a decisão da 9b vale para a interface, não para o banco.
 
+- [x] **Texto no mapa: rótulo de calco e anotações do instrutor** (2026-09-14,
+  migration `0013`). Duas metades. A barata, **sem migration**: o `name` do
+  placemark KML, que só aparecia no popup ao clicar, virou rótulo permanente no
+  mapa — com teto de 60 (acima disso a camada nasce sem rótulo e o painel diz
+  por quê, porque uma base cartográfica em KML travaria o celular). A completa:
+  tabela `anotacoes`, o instrutor escreve uma caixa de texto, escolhe se ela é
+  para a turma ou para uma força, arrasta para o lugar e remove.
+  **Não foi feito em `elementos_marcados` por um motivo que só apareceria em
+  campo:** a visibilidade daquela tabela é amarrada ao partido do AUTOR, e o
+  instrutor não tem partido — a caixa nasceria invisível para todos os alunos.
+  Modelada em `calcos`, que já resolve "o instrutor publica, a força enxerga".
+  **Sem estado "armado"**: a anotação nasce no centro da vista e é arrastada,
+  porque o clique no mapa daquela aba já tem dono (`marcacoes.js`) e o Leaflet
+  entrega o mesmo clique aos dois ouvintes.
+
 ## A fazer, em ordem
 
 - [ ] **Etapa 2 — Autenticação e papéis** *(em andamento — dividida em 2a e 2b)*

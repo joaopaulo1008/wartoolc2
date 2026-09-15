@@ -361,6 +361,7 @@ import { iniciarRastreamentoProprio, minhaPosicao, atualizarMeuSimbolo } from '.
 import { iniciarColegas } from './colegas.js';
 import { iniciarMarcacoes } from './marcacoes.js';
 import { iniciarCamadas } from './camadas.js';
+import { iniciarAnotacoes } from './anotacoes-tela.js';
 import { iniciarOfflineMapa } from './offline-tela.js';
 import { iniciarPaleta } from './paleta-tela.js';
 import { iniciarPainelRecolhivel, tornarRecolhivel, LARGURA_PAINEL_ABERTO } from './painel-lateral.js';
@@ -781,6 +782,19 @@ if (resultado) {
       map,
       userId: session.user.id,
       turmaId: perfil.turma_id,
+    });
+
+    // Anotações de texto do instrutor (2026-09-14, migration 0013).
+    // `podeEditar` fica FALSO aqui: o aluno lê os recados escritos no mapa e
+    // não escreve nenhum. Isso não é a barreira — quem recusa a escrita é a
+    // policy `anotacoes_escrever` (0013); aqui é só não desenhar um botão que
+    // o banco recusaria. Quem enxerga cada anotação (turma inteira ou uma
+    // força) também é decidido lá, por `anotacoes_ler`.
+    await iniciarAnotacoes({
+      map,
+      userId: session.user.id,
+      turmaId: perfil.turma_id,
+      podeEditar: false,
     });
 
     // Paleta de marcação rápida (2026-09-14). NÃO desenha nada aqui: só carrega

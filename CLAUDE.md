@@ -1377,6 +1377,84 @@ dele também vê a troca; e remover um aluno confirmando que ele some dos dois
 mapas (o dos colegas e o do instrutor) e que o rastro dele continua no
 debriefing.
 
+### Texto no mapa: rótulo de calco e anotações (2026-09-14) — migration 0013
+
+Pedido: *"quero que o instrutor possa inserir caixas de texto no mapa"*.
+Entregue em duas metades que não competem — uma barata que reusa o que existe,
+outra completa — porque a barata pode revelar que a completa não era
+necessária.
+
+**O achado que decidiu o desenho.** A tentação era gravar a anotação em
+`elementos_marcados`, que já tem `titulo` e `descricao`. **Não funciona, e o
+sintoma só apareceria em campo:** `elementos_ler` (0003) é
+`autor_id in (select fn_usuarios_visiveis())`, e um ALUNO só enxerga colegas do
+MESMO partido. O instrutor não tem partido — uma caixa de texto criada por ele
+ali nasceria invisível para todos os alunos, o oposto exato do que ela serve.
+Quem já resolve "o instrutor publica e a força enxerga" é `calcos` (0006), e é
+dela que a tabela nova é modelada. Uma anotação é um calco minúsculo cujo
+conteúdo é uma frase em vez de um arquivo.
+
+**Metade 1 — rótulo permanente nos calcos (sem migration).** O `name` do
+placemark KML só aparecia no popup, ao clicar; num celular em campo isso é o
+mesmo que não existir. Agora é desenhado no mapa com `bindTooltip permanent`.
+- **Há um teto, e ele não é sobre estética:** cada rótulo é um nó de DOM
+  reposicionado a cada pan/zoom. Um calco de manobra tem dezenas de feições e
+  fica ótimo; uma base cartográfica convertida para KML tem dezenas de milhares
+  e trava o celular. `LIMITE_ROTULOS_AUTOMATICOS = 60` (kml.js) decide só o
+  PADRÃO — acima dele a camada nasce sem rótulo e **a linha do painel diz o
+  número e o porquê**, em vez de deixar a pessoa achar que a função quebrou.
+  Ligar continua sendo escolha dela, e a escolha sobrevive ao F5.
+- Feição sem título não conta para o teto: uma camada de 500 polígonos anônimos
+  não custa rótulo nenhum e não deve nascer desligada à toa.
+
+**Metade 2 — tabela `anotacoes` (migration `0013`).** Trio no padrão do
+projeto: `anotacoes.js` (puro), `anotacoes-banco.js` (Supabase + Realtime),
+`anotacoes-tela.js` (Leaflet + interface). O mesmo módulo de tela serve as duas
+telas com `podeEditar` por parâmetro — que **não é a barreira**: quem recusa a
+escrita é `anotacoes_escrever` (0013); o parâmetro só evita desenhar um botão
+que o banco recusaria.
+- **`divIcon`, não tooltip.** No calco o texto é acessório de uma feição que já
+  existe; aqui a caixa É o objeto — precisa ser arrastável e clicável, e um
+  tooltip do Leaflet é filho de outra camada e não recebe eventos.
+- **Pane 620:** acima dos calcos, abaixo dos símbolos. Texto não tapa símbolo —
+  mesma regra que `FAIXAS_PANE` já aplica, pelo mesmo motivo.
+- **NÃO existe estado "armado", e a segunda razão é técnica.** O desenho óbvio
+  ("clique em Nova anotação, depois toque no mapa") morreu por duas coisas: (a)
+  estado armado invisível já foi recusado neste projeto uma vez, quando a
+  paleta (0010) foi redesenhada depois do primeiro uso; (b) **o clique no mapa
+  daquela aba já tem dono** — `marcacoes.js` escuta o mesmo evento, e o Leaflet
+  entrega o clique a todos os ouvintes de forma síncrona: `DomEvent.stop()` num
+  deles não impede os outros. O instrutor levaria dois formulários abertos com
+  um toque. A anotação nasce no **centro da vista** e é arrastada para o ponto
+  exato, reusando o arrastar que já precisava existir.
+- **`partido_id` nulo significa TODOS aqui, e "não identificado" em
+  `elementos_marcados`** — a mesma coluna com sentidos opostos em duas tabelas.
+  `descreverAlcance()` diz "todos da turma" de propósito, e há teste travando
+  isso; um partido desconhecido na lista vira "só uma força (removida)", nunca
+  "todos" (o erro seguro é o que restringe).
+- **A remoção é lógica, então chega pelo Realtime como UPDATE**, não DELETE.
+  Uma tela que só tratasse DELETE deixaria a anotação removida no mapa de todo
+  mundo até o F5 — está comentado nos dois módulos.
+- **LACUNA DECLARADA:** o aluno não tem como esconder as anotações. Uma chave
+  `camada_anotacoes` foi considerada e recusada pela mesma razão que a 0011
+  recusou uma chave para os dados de tiro — o controle que importa já existe por
+  anotação. Se em campo o texto atrapalhar a leitura da carta, o passo seguinte
+  é um interruptor local (preferência, não permissão).
+
+**Verificação.** `backend/testes/05_teste_anotacoes.sql` (novo, 23 casos,
+23/23) contra Postgres 16 + PostGIS em banco limpo, `0001`–`0013`, com a `0013`
+rodada duas vezes. A asserção que justifica a migration inteira: **o aluno do
+Vermelho vê só a anotação geral — a do Azul não vaza**. Mais: o aluno lê e não
+escreve (com a distinção `erro` × `zero linhas`, porque a cláusula `USING`
+filtra em silêncio); as outras quatro suítes SQL verdes (43+26+11+28);
+`valida_sql.py` nas 0001–0013; **789 casos de frontend** em treze suítes
+(`anotacoes.teste.mjs` novo com 44, `kml.teste.mjs` 116 → 129); `npm run build`.
+
+**PENDENTE DE TESTE AO VIVO** (em `docs/roteiro-teste-campo.md`): aplicar a
+`0013`; escrever uma anotação para uma força e confirmar, com dois celulares,
+que o outro lado NÃO a vê; arrastar; e ligar os rótulos num calco de verdade —
+inclusive um grande, para ver se o teto de 60 está no lugar certo.
+
 ## Estrutura de pastas
 
 ```
