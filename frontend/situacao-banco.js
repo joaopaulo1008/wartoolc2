@@ -20,7 +20,8 @@ import { supabase } from './auth.js';
 
 const COLUNAS_SITUACAO = 'usuario_id, turma_id, estado, texto, atualizada_em';
 const COLUNAS_PEDIDO = 'id, usuario_id, turma_id, latitude, longitude, posicao_em, '
-  + 'motivo, acionado_em, reconhecido_em, reconhecido_por, encerrado_em, encerrado_por';
+  + 'motivo, acionado_em, reconhecido_em, reconhecido_por, encerrado_em, encerrado_por, '
+  + 'resposta, respondido_em, respondido_por, resposta_vista_em';
 
 // ── Situação ─────────────────────────────────────────────────────────────
 export async function buscarSituacoesDaTurma(turmaId) {
@@ -93,6 +94,41 @@ export async function reconhecerPedido(id, porQuem) {
 export async function encerrarPedido(id, porQuem) {
   const { error } = await supabase.from('pedidos_apoio')
     .update({ encerrado_em: new Date().toISOString(), encerrado_por: porQuem })
+    .eq('id', id);
+  return { error };
+}
+
+// RESPONDER (2026-09-15, migration 0015). Grava o texto e RECONHECE de uma
+// vez: responder já implica ter visto, e obrigar a dois cliques criaria o
+// estado absurdo "respondido mas não reconhecido". O `check`
+// `pedidos_apoio_resposta_coerente` da 0015 exige o trio junto.
+export async function responderPedido(id, texto, porQuem) {
+  const agora = new Date().toISOString();
+  const { error } = await supabase.from('pedidos_apoio')
+    .update({
+      resposta: texto,
+      respondido_em: agora,
+      respondido_por: porQuem,
+      // Uma resposta NOVA zera a confirmação de leitura: o "lido" anterior era
+      // da mensagem anterior, e deixá-lo faria o instrutor achar que a
+      // correção que acabou de mandar já foi lida.
+      resposta_vista_em: null,
+      // Responder sem ter reconhecido antes carimba o reconhecimento junto.
+      // `coalesce` no cliente não existe — então isto é feito com dois campos
+      // e o banco aceita reescrever o mesmo valor; o que não pode é ficar
+      // respondido e não reconhecido.
+      reconhecido_em: agora,
+      reconhecido_por: porQuem,
+    })
+    .eq('id', id);
+  return { error };
+}
+
+// O AUTOR carimba que leu. É o que separa "mandei" de "ele leu" — e com a tela
+// do celular apagada, essa diferença é o caso provável, não o raro.
+export async function marcarRespostaVista(id) {
+  const { error } = await supabase.from('pedidos_apoio')
+    .update({ resposta_vista_em: new Date().toISOString() })
     .eq('id', id);
   return { error };
 }

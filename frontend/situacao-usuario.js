@@ -158,6 +158,64 @@ export function pedidoEstaVigente(pedido) {
   return f === 'aberto' || f === 'reconhecido';
 }
 
+// ── A resposta do instrutor (2026-09-15, migration 0015) ─────────────────
+// "Reconhecido" é quase nada para quem está em campo: não diz quem viu, se
+// alguém saiu, por onde nem em quanto tempo. A resposta é o que transforma um
+// carimbo numa informação utilizável.
+//
+// POR QUE EXISTEM RESPOSTAS PRONTAS
+// ----------------------------------
+// Digitar leva tempo justamente no momento em que há menos. Três toques
+// cobrem o que se responde na maioria das vezes, e o campo livre continua ali
+// para quem puder detalhar. A lista é curta de propósito: uma lista longa
+// obriga a LER antes de escolher, que é o custo que ela existia para evitar.
+//
+// Não são doutrina: são o rascunho que quem conduz a instrução vai corrigir
+// depois do primeiro uso em campo. Mudá-las é editar este array.
+export const RESPOSTAS_PRONTAS = [
+  'Ciente, apoio a caminho',
+  'Ciente, aguarde no local',
+  'Ciente, desloque para o PC',
+];
+
+export const LIMITE_RESPOSTA = 200;
+
+export function validarResposta(texto) {
+  const t = limpar(texto);
+  if (t === '') return { ok: false, erro: 'Escreva ou escolha uma resposta.' };
+  if (t.length > LIMITE_RESPOSTA) {
+    return { ok: false, erro: `A resposta tem ${t.length} caracteres; o limite é ${LIMITE_RESPOSTA}.` };
+  }
+  return { ok: true, valor: t };
+}
+
+// Em que pé está a resposta, para as duas telas dizerem a mesma coisa:
+//   'nenhuma'    — ainda não respondeu.
+//   'enviada'    — respondeu, e o autor NÃO confirmou que leu. Com a tela do
+//                  celular apagada este é o caso provável, não o raro — por
+//                  isso ele é um estado próprio e não se parece com 'lida'.
+//   'lida'       — o autor carimbou que viu.
+export function faseDaResposta(pedido) {
+  if (!pedido || !pedido.resposta) return 'nenhuma';
+  return pedido.resposta_vista_em ? 'lida' : 'enviada';
+}
+
+// O rótulo que a FAIXA do instrutor mostra. Nunca devolve algo que sugira
+// entrega quando não houve: "respondido" e "lido" são palavras diferentes de
+// propósito, e um pedido respondido sem confirmação diz há quanto tempo está
+// assim — é o que decide se ele insiste pelo rádio.
+export function rotuloDaResposta(pedido, { agora = Date.now() } = {}) {
+  const fase = faseDaResposta(pedido);
+  if (fase === 'nenhuma') return '';
+  if (fase === 'lida') {
+    const t = new Date(pedido.resposta_vista_em);
+    return `respondido · lido às ${t.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`;
+  }
+  const enviadaEm = pedido.respondido_em ? new Date(pedido.respondido_em).getTime() : null;
+  const ha = enviadaEm ? ` há ${duracaoCurta(agora - enviadaEm)}` : '';
+  return `respondido${ha} · SEM confirmação de leitura`;
+}
+
 export function validarMotivo(texto) {
   const t = limpar(texto);
   if (t.length > LIMITE_MOTIVO_APOIO) {

@@ -209,6 +209,125 @@ select public.t6_ok('D', 'com o carimbo de quem encerrou', '2',
   (select count(*)::text from public.pedidos_apoio where encerrado_por is not null));
 
 -- =============================================================================
+-- GRUPO E — a resposta do instrutor (migration 0015)
+-- =============================================================================
+-- "Reconhecido" não diz se alguém saiu, por onde nem em quanto tempo. O que
+-- este grupo trava é a COERÊNCIA do trio (texto+quem+quando) e a
+-- impossibilidade de existir leitura de uma mensagem que não foi mandada.
+set role authenticated;
+set request.jwt.claim.sub = '00000000-0000-0000-0000-0000000060a1';  -- azul1, o autor
+
+-- Um pedido novo e aberto para este grupo trabalhar.
+select public.t6_tentar('E', 'autor aciona de novo', 'passou',
+  $$insert into public.pedidos_apoio (usuario_id, turma_id, latitude, longitude, posicao_em)
+    values ('00000000-0000-0000-0000-0000000060a1',
+            '00000000-0000-0000-0000-000000006fa0', -25.10, -50.17, now())$$);
+
+set request.jwt.claim.sub = '00000000-0000-0000-0000-0000000060a0';  -- instrutor
+select public.t6_tentar('E', 'instrutor responde', 'passou',
+  $$update public.pedidos_apoio
+       set resposta = 'Ciente, apoio a caminho',
+           respondido_em = now(),
+           respondido_por = '00000000-0000-0000-0000-0000000060a0',
+           reconhecido_em = now(),
+           reconhecido_por = '00000000-0000-0000-0000-0000000060a0'
+     where encerrado_em is null$$);
+
+-- O trio anda junto: texto sem autoria não diz a quem obedecer. O alvo é uma
+-- linha AINDA SEM resposta — numa que já tem, `respondido_por` continua
+-- preenchido e o check passaria sem exercitar nada (foi o que a primeira
+-- versão deste teste fez, e a correção virou o trigger de carimbo da 0015).
+select public.t6_tentar('E', 'resposta SEM quem respondeu e recusada', 'erro',
+  $$insert into public.pedidos_apoio (usuario_id, turma_id, resposta)
+    values ('00000000-0000-0000-0000-0000000060a0',
+            '00000000-0000-0000-0000-000000006fa0', 'solto')$$);
+
+-- O TRIGGER da 0015: trocar só o texto reescreve a hora sozinho. Sem ele a
+-- linha ficaria coerente para o check e mentirosa para quem lê.
+select public.t6_tentar('E', 'trocar so o texto e aceito (o trigger carimba)', 'passou',
+  $$update public.pedidos_apoio set resposta = 'Ciente, aguarde no local'
+     where resposta is not null and encerrado_em is null$$);
+
+select public.t6_tentar('E', 'resposta em branco e recusada', 'erro',
+  $$update public.pedidos_apoio
+       set resposta = '   ', respondido_em = now(),
+           respondido_por = '00000000-0000-0000-0000-0000000060a0'
+     where encerrado_em is null$$);
+
+select public.t6_tentar('E', 'resposta acima de 200 caracteres e recusada', 'erro',
+  $$update public.pedidos_apoio
+       set resposta = repeat('x', 201), respondido_em = now(),
+           respondido_por = '00000000-0000-0000-0000-0000000060a0'
+     where encerrado_em is null$$);
+
+-- **Não existe leitura de mensagem que não chegou.** Sem este check, um
+-- cliente com defeito carimbaria "lido" numa linha sem resposta e a faixa do
+-- instrutor mostraria leitura de algo que ele nunca mandou.
+-- Um pedido novo, SEM resposta, só para este caso — sem ele o update não
+-- casaria com linha nenhuma e o teste passaria por engano ("zero linhas").
+set request.jwt.claim.sub = '00000000-0000-0000-0000-0000000060a2';  -- azul2
+select public.t6_tentar('E', 'azul2 aciona (pedido sem resposta)', 'passou',
+  $$insert into public.pedidos_apoio (usuario_id, turma_id)
+    values ('00000000-0000-0000-0000-0000000060a2',
+            '00000000-0000-0000-0000-000000006fa0')$$);
+
+select public.t6_tentar('E', 'carimbo de leitura SEM resposta e recusado', 'erro',
+  $$update public.pedidos_apoio set resposta_vista_em = now()
+     where usuario_id = '00000000-0000-0000-0000-0000000060a2' and resposta is null$$);
+
+set request.jwt.claim.sub = '00000000-0000-0000-0000-0000000060a0';  -- instrutor
+
+-- O AUTOR confirma a leitura — é o que separa "mandei" de "ele leu".
+set request.jwt.claim.sub = '00000000-0000-0000-0000-0000000060a1';  -- azul1
+select public.t6_tentar('E', 'o AUTOR carimba que leu', 'passou',
+  $$update public.pedidos_apoio set resposta_vista_em = now()
+     where usuario_id = '00000000-0000-0000-0000-0000000060a1'
+       and resposta is not null and encerrado_em is null$$);
+
+-- Um colega da força VÊ a resposta (vai socorrer e precisa saber o que foi
+-- combinado) mas não responde em nome de quem conduz.
+set request.jwt.claim.sub = '00000000-0000-0000-0000-0000000060a2';  -- azul2
+select public.t6_ok('E', 'o colega LE a resposta (a ultima gravada)', 'Ciente, aguarde no local',
+  (select resposta from public.pedidos_apoio
+    where usuario_id = '00000000-0000-0000-0000-0000000060a1' and resposta is not null limit 1));
+
+-- O colega tem pedido PRÓPRIO desde alguns casos atrás, então o alvo precisa
+-- ser explicitamente a linha de OUTRA pessoa — sem isso o update acertaria a
+-- linha dele, que a policy permite, e o teste aprovaria por engano.
+select public.t6_tentar('E', 'mas o colega NAO responde pelo instrutor', 'zero linhas',
+  $$update public.pedidos_apoio
+       set resposta = 'eu que mandei', respondido_em = now(),
+           respondido_por = '00000000-0000-0000-0000-0000000060a2'
+     where usuario_id = '00000000-0000-0000-0000-0000000060a1'$$);
+
+-- ── O TRIGGER, exercitado na ordem certa ─────────────────────────────────
+-- Neste ponto a resposta do azul1 JÁ está confirmada como lida (caso acima).
+-- Uma resposta NOVA tem que zerar essa confirmação: o "lido" era da mensagem
+-- anterior, e mantê-lo faria o instrutor achar que a correção que acabou de
+-- mandar já foi vista.
+set request.jwt.claim.sub = '00000000-0000-0000-0000-0000000060a0';  -- instrutor
+select public.t6_ok('E', 'antes: a resposta do azul1 estava confirmada', '1',
+  (select count(*)::text from public.pedidos_apoio
+    where usuario_id = '00000000-0000-0000-0000-0000000060a1' and resposta_vista_em is not null));
+
+select public.t6_tentar('E', 'instrutor CORRIGE a resposta', 'passou',
+  $$update public.pedidos_apoio set resposta = 'Ciente, desloque para o PC'
+     where usuario_id = '00000000-0000-0000-0000-0000000060a1' and resposta is not null$$);
+
+select public.t6_ok('E', 'e o trigger zerou a confirmacao de leitura', '0',
+  (select count(*)::text from public.pedidos_apoio
+    where usuario_id = '00000000-0000-0000-0000-0000000060a1' and resposta_vista_em is not null));
+set request.jwt.claim.sub = '00000000-0000-0000-0000-0000000060b1';  -- VERMELHO
+select public.t6_ok('E', 'e o Vermelho nao ve resposta nenhuma', '0',
+  (select count(*)::text from public.pedidos_apoio where resposta is not null));
+
+-- O relatório abaixo lê t6_resultados, que não tem grant para `authenticated`
+-- — sem voltar para postgres aqui, o arquivo termina com "permission denied"
+-- e nenhum resultado é mostrado.
+set role postgres;
+reset request.jwt.claim.sub;
+
+-- =============================================================================
 -- RELATÓRIO
 -- =============================================================================
 \pset format aligned

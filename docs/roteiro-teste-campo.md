@@ -35,9 +35,9 @@ Sem isto pronto, nenhum item abaixo funciona:
 1. **GitHub Pages publicando via Actions.** ~~Deploy from branch → `main` / `/ (root)`~~ — **isto mudou na Etapa 9a**: com o Vite, o que precisa ser publicado é `dist/`, não a raiz do repo. Settings → Pages → Source = **"GitHub Actions"**. Confirmado funcionando em 2026-08-02 (o workflow roda em ~35 s por push). URL: `https://joaopaulo1008.github.io/wartoolc2/`.
 
    **Confira que o site no ar é o build atual antes de sair**: desde 2026-09-14 isso ficou trivial — **o rodapé do app mostra a data/hora do build**. Se ela não mudar depois de uma correção, o navegador está servindo a versão antiga (recarregue segurando Shift, ou abra numa aba anônima). O jeito antigo (F12 → Network, comparar o hash dos arquivos em `/wartoolc2/assets/` com o do último `npm run build` local) continua valendo como segunda opinião. Um push que falhou no Actions deixa o site anterior no ar, sem erro visível.
-2. **Migrations aplicadas** no SQL Editor do Supabase: `0001`-`0003` (desde etapas anteriores), `0004_perfis_realtime.sql`, `0005_rastro_historico.sql`, `0006_calcos.sql`, `0007_codigo_turma_valido.sql`, `0008_imagem_geo.sql`, **`0009_auditoria_edicao_e_preferencias.sql`** (Etapa 9b), **`0010_icones_rapidos.sql`**, **`0011_alvo_altitude_dimensoes.sql`**, **`0012_remover_da_turma.sql`** e **`0013_anotacoes.sql`** (2026-09-14) e **`0014_situacao_e_apoio.sql`** (2026-09-15).
+2. **Migrations aplicadas** no SQL Editor do Supabase: `0001`-`0003` (desde etapas anteriores), `0004_perfis_realtime.sql`, `0005_rastro_historico.sql`, `0006_calcos.sql`, `0007_codigo_turma_valido.sql`, `0008_imagem_geo.sql`, **`0009_auditoria_edicao_e_preferencias.sql`** (Etapa 9b), **`0010_icones_rapidos.sql`**, **`0011_alvo_altitude_dimensoes.sql`**, **`0012_remover_da_turma.sql`** e **`0013_anotacoes.sql`** (2026-09-14) **`0014_situacao_e_apoio.sql`** e **`0015_resposta_ao_apoio.sql`** (2026-09-15).
 
-   **A `0010` e a `0011` foram aplicadas em produção em 2026-09-14** — não é preciso rodar de novo. **A `0012`, a `0013` e a `0014` são as PENDENTES**, e as três falham de forma visível, não calada: sem a `0012` o botão "Remover da turma" avisa na tela que a migration falta (o editor de símbolo funciona normalmente); sem a `0013` o cartão "Anotações no mapa" não consegue gravar nada; sem a `0014` o cartão "Minha situação" e o botão de pedir apoio mostram o erro de gravação em vez de fingir que enviaram — **o pior modo de falha deste recurso seria justamente o silencioso**. Todas são idempotentes de propósito (rodar duas vezes não quebra nem perde dado), então, na dúvida, rodar outra vez é seguro.
+   **A `0010` e a `0011` foram aplicadas em produção em 2026-09-14** — não é preciso rodar de novo. **A `0012`, a `0013`, a `0014` e a `0015` são as PENDENTES**, e as três falham de forma visível, não calada: sem a `0012` o botão "Remover da turma" avisa na tela que a migration falta (o editor de símbolo funciona normalmente); sem a `0013` o cartão "Anotações no mapa" não consegue gravar nada; sem a `0014` o cartão "Minha situação" e o botão de pedir apoio mostram o erro de gravação em vez de fingir que enviaram — **o pior modo de falha deste recurso seria justamente o silencioso**. Todas são idempotentes de propósito (rodar duas vezes não quebra nem perde dado), então, na dúvida, rodar outra vez é seguro.
 
    A `0009` é a única cujo efeito não aparece sozinho na tela — se ela faltar (ou se só parte dela for colada), o app funciona normalmente e apenas a linha "Corrigido por …" nunca aparece no popup, o que é indistinguível de "o instrutor não corrigiu nada". Vale confirmar, é uma consulta só:
    ```sql
@@ -711,5 +711,29 @@ escrito no próprio cartão. O item 15cn existe para conferir que a frase está 
   botão de encerrar** o pedido do outro.
 - [ ] 15cs. Com um celular do VERMELHO: **nenhuma faixa, nenhum halo**. O
   pedido do Azul não existe para ele.
+
+#### A resposta do instrutor (migration 0015)
+
+- [ ] 15ct. Com um pedido aberto, a faixa do instrutor mostra **três botões de
+  resposta pronta** e um campo livre. Toque em "Ciente, apoio a caminho".
+- [ ] 15cu. **No celular do aluno, sem ele tocar em nada**: aparece um bloco
+  verde com a resposta, o **nome de quem respondeu** e a hora. Cronometre.
+- [ ] 15cv. A faixa do instrutor passa a dizer **"respondido há Xs · SEM
+  confirmação de leitura"**, em âmbar. Enquanto o aluno não confirmar, tem que
+  continuar dizendo isso — nunca "lido".
+- [ ] 15cw. O aluno toca em **"Vi"**: o bloco passa a dizer "Você confirmou a
+  leitura" e a faixa do instrutor vira **"respondido · lido às HH:MM"**, em
+  verde.
+- [ ] 15cx. **O caso do trigger.** Depois de lido, o instrutor manda uma
+  resposta DIFERENTE. O aluno tem que ver o texto novo **com o botão "Vi" de
+  volta**, e a faixa tem que voltar para "SEM confirmação" — a confirmação
+  anterior era da mensagem anterior.
+- [ ] 15cy. Responda pelo **campo livre** com um texto seu: chega igual.
+- [ ] 15cz. Responder sem antes ter clicado em "Reconhecer" funciona e já
+  marca como reconhecido (não existe "respondido mas não reconhecido").
+- [ ] 15da. Um COLEGA da mesma força vê a resposta no pedido do outro (ele vai
+  socorrer e precisa saber o que foi combinado), mas **não tem** campo para
+  responder.
+- [ ] 15db. Com um celular do VERMELHO: nada disso existe.
 
 Qualquer item marcado como falha vira a prioridade do próximo chat — cole este checklist preenchido para retomar com contexto completo.

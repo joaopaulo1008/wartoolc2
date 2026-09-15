@@ -27,13 +27,16 @@ import * as L from 'leaflet';
 import {
   buscarSituacoesDaTurma, gravarMinhaSituacao, buscarPedidosVigentes,
   acionarPedidoApoio, reconhecerPedido, encerrarPedido,
+  responderPedido, marcarRespostaVista,
   assinarSituacaoEApoio, desassinarSituacaoEApoio,
 } from './situacao-banco.js';
 import {
   ESTADOS, ESTADO_PADRAO, LIMITE_TEXTO_SITUACAO,
   validarSituacao, linhaDeSituacao, corDoEstado,
   descreverPosicaoDoPedido, pedidoEstaVigente, faseDoPedido, duracaoCurta,
+  RESPOSTAS_PRONTAS, LIMITE_RESPOSTA, validarResposta, faseDaResposta, rotuloDaResposta,
 } from './situacao-usuario.js';
+import { buscarPerfilBasico } from './auth.js';
 
 // Segurar por 2s para acionar. Dois motivos, nesta ordem: o celular fica no
 // bolso e num toque acidental o pedido sairia sem ninguém saber; e um gesto
@@ -54,6 +57,25 @@ let mostrarCartaoRef = false;    // aluno: cartão com situação e botão
 let seletorContainer = '#side-panel';
 let obterPosicaoRef = null;      // () => { lat, lon, medidoEm } | null
 let nomePorId = () => '';
+
+// Quem respondeu, pelo nome de guerra. O app do ALUNO não recebe a lista da
+// turma (não precisa dela para nada mais), então o nome é buscado sob demanda
+// — e só quando existe resposta, que é o caso raro. Cache para não repetir a
+// consulta a cada redesenho.
+//
+// Sem isto o cartão diria só "Instrutor", que é verdadeiro mas insuficiente:
+// numa turma com mais de um, saber QUEM respondeu é parte de saber a quem
+// obedecer.
+const nomesResolvidos = new Map();
+async function resolverNome(usuarioId) {
+  if (!usuarioId || nomesResolvidos.has(usuarioId)) return;
+  nomesResolvidos.set(usuarioId, null);              // marca em andamento
+  const perfil = await buscarPerfilBasico(usuarioId);
+  if (perfil?.nome_guerra) {
+    nomesResolvidos.set(usuarioId, perfil.nome_guerra);
+    redesenharMeuPedido();
+  }
+}
 let estilosInjetados = false;
 let seguranoDesde = 0;
 let temporizador = null;
@@ -161,6 +183,38 @@ function injetarEstilos() {
     }
     #faixa-apoio button:hover { background:rgba(255,255,255,.14); }
     #faixa-apoio .sit-reconhecido { opacity:.85; }
+    /* Respostas prontas: um toque cada. Digitar leva tempo justamente quando
+       há menos — ver RESPOSTAS_PRONTAS em situacao-usuario.js. */
+    #faixa-apoio .sit-prontas { display:flex; gap:5px; flex-wrap:wrap; width:100%; margin-top:5px; }
+    #faixa-apoio .sit-pronta {
+      padding:3px 8px; font-size:11px; border-radius:3px; cursor:pointer;
+      border:1px solid #ffc0c0; background:rgba(255,255,255,.1); color:#fff0f0;
+      font-family:inherit;
+    }
+    #faixa-apoio .sit-pronta:hover { background:rgba(255,255,255,.24); }
+    #faixa-apoio .sit-livre { display:flex; gap:5px; width:100%; margin-top:5px; }
+    #faixa-apoio .sit-livre input {
+      flex:1; padding:3px 7px; font-size:11px; border-radius:3px;
+      border:1px solid #ffc0c0; background:rgba(0,0,0,.25); color:#fff0f0;
+      font-family:inherit;
+    }
+    #faixa-apoio .sit-livre input::placeholder { color:#e0b0b0; }
+    /* "respondido" e "SEM confirmação" nunca se parecem: a diferença entre
+       mandar e ser lido é o que decide se o instrutor insiste pelo rádio. */
+    #faixa-apoio .sit-sem-leitura { color:#ffd9a0; font-weight:600; }
+    #faixa-apoio .sit-lido { color:#c8f5d4; }
+    .sit-resposta {
+      margin-top:8px; padding:8px 10px; border-radius:4px;
+      background:#14261a; border-left:3px solid #4a9a5f; color:#d8f0e0;
+      font-size:12px; line-height:1.5;
+    }
+    .sit-resposta .sit-quem { font-size:10px; color:#8ac89a; display:block; margin-bottom:3px; }
+    .sit-resposta button {
+      margin-top:7px; padding:5px 14px; border-radius:3px; cursor:pointer;
+      border:1px solid #4a9a5f; background:transparent; color:#8ce8a0;
+      font-size:12px; font-family:inherit;
+    }
+    .sit-resposta .sit-confirmado { font-size:10px; color:#8ac89a; margin-top:6px; }
     /* Halo no mapa. pointer-events:none para nunca roubar o toque do símbolo
        que está embaixo — quem precisa clicar no avatar continua conseguindo. */
     .sit-halo { background:none; border:none; pointer-events:none; }
@@ -257,7 +311,15 @@ function redesenharFaixa() {
       `<b>${esc(nomePorId(row.usuario_id) || 'Alguém')}</b> pediu apoio · há ${esc(idade)}<br>` +
       `<span class="${pos.velha ? 'sit-velha' : ''}">${esc(pos.rotulo)}</span>` +
       (row.motivo ? ` · ${esc(row.motivo)}` : '') +
-      (fase === 'reconhecido' ? ' · <i>reconhecido</i>' : '');
+      (fase === 'reconhecido' && faseDaResposta(row) === 'nenhuma' ? ' · <i>reconhecido</i>' : '') +
+      // "respondido" e "SEM confirmação de leitura" são frases diferentes de
+      // propósito: com a tela do celular apagada, mandar não é ser lido — e é
+      // essa diferença que decide se o instrutor insiste pelo rádio.
+      (faseDaResposta(row) !== 'nenhuma'
+        ? `<br><span class="${faseDaResposta(row) === 'lida' ? 'sit-lido' : 'sit-sem-leitura'}">`
+          + `${esc(rotuloDaResposta(row, { agora }))}</span>`
+          + `<br>“${esc(row.resposta)}”`
+        : '');
     linha.appendChild(texto);
 
     if (pos.temPosicao) {
@@ -277,6 +339,36 @@ function redesenharFaixa() {
       });
       linha.appendChild(rec);
     }
+    // RESPONDER. Fica DEPOIS de "Ir até" e antes de "Encerrar" porque é a
+    // ordem do que se faz: vejo onde é, digo o que vai acontecer, e só encerro
+    // quando acabou.
+    const prontas = document.createElement('div');
+    prontas.className = 'sit-prontas';
+    for (const frase of RESPOSTAS_PRONTAS) {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'sit-pronta';
+      b.textContent = frase;
+      b.addEventListener('click', () => responder(row.id, frase));
+      prontas.appendChild(b);
+    }
+    linha.appendChild(prontas);
+
+    const livre = document.createElement('div');
+    livre.className = 'sit-livre';
+    const campo = document.createElement('input');
+    campo.type = 'text';
+    campo.maxLength = LIMITE_RESPOSTA;
+    campo.placeholder = `Responder a ${nomePorId(row.usuario_id) || 'quem pediu'}…`;
+    const enviar = document.createElement('button');
+    enviar.type = 'button';
+    enviar.textContent = 'Enviar';
+    const mandar = () => { responder(row.id, campo.value); campo.value = ''; };
+    enviar.addEventListener('click', mandar);
+    campo.addEventListener('keydown', (ev) => { if (ev.key === 'Enter') mandar(); });
+    livre.append(campo, enviar);
+    linha.appendChild(livre);
+
     const enc = document.createElement('button');
     enc.type = 'button';
     enc.textContent = 'Encerrar';
@@ -292,6 +384,17 @@ function redesenharFaixa() {
   }
 
   mapaRef.getContainer().appendChild(faixa);
+}
+
+async function responder(id, texto) {
+  const v = validarResposta(texto);
+  if (!v.ok) { alert(v.erro); return; }
+  const { error } = await responderPedido(id, v.valor, meuUserId);
+  if (error) {
+    // Falhar em silêncio aqui seria o pior caso: o instrutor acharia que
+    // avisou e a pessoa em campo continuaria sem saber de nada.
+    alert(`A resposta NÃO foi enviada: ${error.message}`);
+  }
 }
 
 // ── Cartão do aluno ──────────────────────────────────────────────────────
@@ -423,6 +526,49 @@ function redesenharMeuPedido() {
   div.textContent = fase === 'reconhecido'
     ? 'Seu pedido de apoio foi RECONHECIDO. Mantenha o app aberto.'
     : 'Pedido de apoio enviado. Aguardando alguém reconhecer.';
+
+  // A RESPOSTA, quando existe, é o que a pessoa em campo precisa ler — então
+  // vem em bloco próprio, verde (não vermelho: é a notícia boa), com o nome de
+  // quem respondeu e a hora. "Reconhecido" sozinho não diz se alguém saiu, por
+  // onde, nem em quanto tempo; a resposta diz.
+  if (meu.resposta) {
+    const bloco = document.createElement('div');
+    bloco.className = 'sit-resposta';
+
+    const quem = document.createElement('span');
+    quem.className = 'sit-quem';
+    const hora = meu.respondido_em
+      ? new Date(meu.respondido_em).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
+      : '';
+    const nome = nomePorId(meu.respondido_por) || nomesResolvidos.get(meu.respondido_por);
+    if (!nome) resolverNome(meu.respondido_por);
+    quem.textContent = `${nome || 'Instrutor'}${hora ? ` · ${hora}` : ''}`;
+
+    const corpo = document.createElement('div');
+    corpo.textContent = meu.resposta;     // dado de fora: textContent
+
+    bloco.append(quem, corpo);
+
+    if (meu.resposta_vista_em) {
+      const feito = document.createElement('div');
+      feito.className = 'sit-confirmado';
+      feito.textContent = 'Você confirmou a leitura.';
+      bloco.appendChild(feito);
+    } else {
+      // O "Vi" é o que fecha o laço do outro lado: sem ele o instrutor não
+      // sabe se a mensagem chegou a alguém, e com a tela do celular apagada
+      // esse é o caso provável, não o raro.
+      const vi = document.createElement('button');
+      vi.type = 'button';
+      vi.textContent = 'Vi';
+      vi.addEventListener('click', async () => {
+        const { error } = await marcarRespostaVista(meu.id);
+        if (error) console.error('Confirmar leitura falhou:', error);
+      });
+      bloco.appendChild(vi);
+    }
+    div.appendChild(bloco);
+  }
 
   const botao = document.createElement('button');
   botao.type = 'button';

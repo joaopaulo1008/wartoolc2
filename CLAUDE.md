@@ -1541,6 +1541,67 @@ acionar **com o GPS desligado**, que é o caso que a coluna nulável existe para
 permitir; e cronometrar quanto tempo o alerta leva para aparecer na tela do
 instrutor.
 
+### A resposta do instrutor ao pedido de apoio (2026-09-15) — migration 0015
+
+Pergunta de quem conduz a instrução, no dia seguinte à 0014: *"o instrutor pode
+informar o usuário que está ciente e mandando ajuda?"* **Não podia** — a 0014
+entregou só `reconhecido_em`, e o cartão do aluno dizia "Seu pedido de apoio foi
+RECONHECIDO". Para quem está em campo isso é quase nada: não diz quem viu, se
+alguém saiu, por onde nem em quanto tempo.
+
+Três colunas e um trigger. **Nenhuma policy nova, e isso não é sorte:**
+`pedidos_apoio_atualizar` (0014) já libera "o próprio autor OU o instrutor da
+turma", que é exatamente quem escreve aqui — o instrutor responde, o autor
+carimba que leu.
+
+- **Respostas prontas + campo livre.** Digitar leva tempo justamente quando há
+  menos. Três frases de um toque ("Ciente, apoio a caminho", "…aguarde no
+  local", "…desloque para o PC") cobrem o comum, e o campo livre fica para quem
+  puder detalhar. A lista é curta de propósito: uma lista longa obriga a LER
+  antes de escolher, que é o custo que ela existia para evitar. **Não são
+  doutrina** — são rascunho a corrigir depois do primeiro uso em campo.
+- **`resposta_vista_em` fecha o laço do outro lado.** O aluno toca em "Vi" e o
+  instrutor passa a ver "lido às 14:32". Sem isso ele manda "apoio a caminho" e
+  nunca sabe se chegou a alguém — e a limitação que a 0014 já declara (o
+  navegador congela com a tela apagada) torna isso provável, não teórico.
+  **"respondido" e "SEM confirmação de leitura" são frases diferentes de
+  propósito**, com teste garantindo que a palavra "lido" não aparece numa
+  resposta não confirmada: é essa diferença que decide se ele insiste pelo rádio.
+- **Responder já reconhece.** Obrigar a dois cliques criaria o estado absurdo
+  "respondido mas não reconhecido".
+
+**O trigger nasceu de uma falha do teste, e vale registrar como se chegou nele.**
+O `check` garante que o trio texto+autoria+hora existe junto, mas o primeiro
+caso do grupo E passou quando devia falhar: numa linha que JÁ tinha resposta,
+trocar só o texto mantém a linha coerente para o `check` — e deixa
+`respondido_em` com a hora antiga. Pior, herdaria o `resposta_vista_em` da
+mensagem anterior, e o instrutor veria "lido" para uma correção que a pessoa
+nunca viu. `fn_carimbar_resposta_apoio()` reescreve a hora e zera a confirmação
+sempre que o texto muda. O cliente já fazia as duas coisas certas; o trigger
+existe porque *"o cliente faz certo"* vale para o app de hoje, não para o SQL
+Editor nem para o app de amanhã.
+
+**O que NÃO virou:** conversa. Uma coluna guarda UMA resposta, a vigente.
+Um chat exigiria tabela de mensagens, ordenação, não-lidas e tela própria — e
+transformaria o recurso em algo para se ficar olhando, quando o que se quer é o
+contrário: resolver e voltar para o terreno.
+
+**Verificação.** `06_teste_situacao_apoio.sql` passou de 22 para **37 casos,
+37/37**, contra Postgres 16 + PostGIS em banco limpo, `0001`–`0015`, com a
+`0015` rodada duas vezes. **Duas das três falhas iniciais eram do próprio
+teste** e as duas dizem a mesma coisa — um alvo mal escolhido aprova por
+engano: um `update` mirou uma linha que já tinha resposta (e por isso passava no
+`check` sem exercitar nada), e outro mirou "qualquer pedido aberto" quando o
+colega já tinha um PRÓPRIO, que a policy legitimamente deixa ele editar. A
+terceira falha era real e virou o trigger. Mais: as outras cinco suítes SQL
+(43+26+11+28+23), `valida_sql.py` nas 0001–0015, **866 casos de frontend** em
+treze suítes (`situacao-usuario.teste.mjs` 58 → 77) e `npm run build`.
+
+**PENDENTE DE TESTE AO VIVO**: aplicar a `0015`; responder e conferir que a
+mensagem aparece no celular do aluno **sem F5**; tocar em "Vi" e ver a faixa do
+instrutor mudar para "lido às"; e corrigir a resposta depois de ela ter sido
+lida, confirmando que a confirmação **volta a zero**.
+
 ## Estrutura de pastas
 
 ```

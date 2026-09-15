@@ -403,6 +403,17 @@ que agora abre com a ordem de prioridade para um tempo curto em campo.
   **Limitação escrita na própria tela:** só funciona com o app aberto e a tela
   ligada; não substitui o rádio.
 
+- [x] **A resposta do instrutor ao pedido de apoio** (2026-09-15, migration
+  `0015`). "Reconhecido" não dizia quem viu, se alguém saiu, por onde nem em
+  quanto tempo. Agora o instrutor responde — três frases prontas de um toque
+  (digitar leva tempo justamente quando há menos) ou texto livre — e a mensagem
+  aparece no cartão do aluno com o nome de quem respondeu e a hora. O aluno
+  toca em **"Vi"** e o instrutor passa a ver "lido às 14:32": é o que separa
+  "mandei" de "ele leu", e com a tela do celular apagada essa diferença é o
+  caso provável. Um trigger reescreve a hora e **zera a confirmação** quando o
+  texto muda, para uma correção nunca nascer parecendo já lida — ele nasceu de
+  uma falha real que o teste pegou. Não virou chat de propósito.
+
 ## A fazer, em ordem
 
 - [ ] **Etapa 2 — Autenticação e papéis** *(em andamento — dividida em 2a e 2b)*

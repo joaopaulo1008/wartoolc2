@@ -22,6 +22,7 @@ import {
   estadoValido, rotuloDoEstado, corDoEstado, validarSituacao, linhaDeSituacao,
   descreverPosicaoDoPedido, duracaoCurta, faseDoPedido, pedidoEstaVigente,
   validarMotivo,
+  RESPOSTAS_PRONTAS, LIMITE_RESPOSTA, validarResposta, faseDaResposta, rotuloDaResposta,
 } from './situacao-usuario.js';
 
 let passou = 0, falhou = 0;
@@ -161,6 +162,50 @@ ok('só espaço vira null', validarMotivo('   ').valor, null);
 ok('texto é aparado', validarMotivo('  viatura capotou  ').valor, 'viatura capotou');
 ok('no limite passa', validarMotivo('x'.repeat(LIMITE_MOTIVO_APOIO)).ok, true);
 ok('acima do limite é recusado', validarMotivo('x'.repeat(LIMITE_MOTIVO_APOIO + 1)).ok, false);
+
+console.log('\nA resposta do instrutor (0015)');
+ok('há respostas prontas', RESPOSTAS_PRONTAS.length >= 3, true);
+ok('todas começam por "Ciente"',
+  RESPOSTAS_PRONTAS.every((r) => r.startsWith('Ciente')), true);
+ok('e todas cabem no limite',
+  RESPOSTAS_PRONTAS.every((r) => r.length <= LIMITE_RESPOSTA), true);
+
+ok('resposta vazia é recusada', validarResposta('').ok, false);
+ok('só espaço é recusado', validarResposta('   ').ok, false);
+ok('texto é aparado', validarResposta('  apoio a caminho  ').valor, 'apoio a caminho');
+ok('no limite passa', validarResposta('x'.repeat(LIMITE_RESPOSTA)).ok, true);
+ok('acima do limite é recusado', validarResposta('x'.repeat(LIMITE_RESPOSTA + 1)).ok, false);
+
+// As três fases existem porque MANDAR e SER LIDO são fatos diferentes — e com
+// a tela do celular apagada, "enviada e não lida" é o caso provável.
+ok('sem resposta: nenhuma', faseDaResposta({}), 'nenhuma');
+ok('nulo não quebra', faseDaResposta(null), 'nenhuma');
+ok('respondido sem confirmação: enviada',
+  faseDaResposta({ resposta: 'x', respondido_em: 'a' }), 'enviada');
+ok('respondido e confirmado: lida',
+  faseDaResposta({ resposta: 'x', respondido_em: 'a', resposta_vista_em: 'b' }), 'lida');
+// Um carimbo de leitura sem resposta é estado impossível (o check
+// `pedidos_apoio_visto_exige_resposta` da 0015 o barra no banco); aqui a
+// função não pode inventar uma leitura de mensagem que não existe.
+ok('leitura sem resposta continua sendo "nenhuma"',
+  faseDaResposta({ resposta_vista_em: 'b' }), 'nenhuma');
+
+{
+  const AG = 1_800_000_000_000;
+  ok('sem resposta o rótulo é vazio', rotuloDaResposta({}, { agora: AG }), '');
+  const enviada = rotuloDaResposta(
+    { resposta: 'x', respondido_em: new Date(AG - 120_000).toISOString() }, { agora: AG });
+  // A palavra "lido" NÃO pode aparecer numa resposta não confirmada: é
+  // exatamente a confusão que faria o instrutor parar de insistir pelo rádio.
+  ok('não confirmada avisa que NÃO há leitura', /SEM confirmação/.test(enviada), true);
+  ok('e não usa a palavra "lido"', /lido/.test(enviada), false);
+  ok('e diz há quanto tempo foi enviada', /há 2m/.test(enviada), true);
+  const lida = rotuloDaResposta(
+    { resposta: 'x', respondido_em: 'a', resposta_vista_em: new Date(AG).toISOString() },
+    { agora: AG });
+  ok('confirmada diz "lido"', /lido/.test(lida), true);
+  ok('e não contradiz dizendo que falta confirmação', /SEM confirmação/.test(lida), false);
+}
 
 console.log(`\n${passou} passou, ${falhou} falhou, ${passou + falhou} total\n`);
 process.exit(falhou === 0 ? 0 : 1);
