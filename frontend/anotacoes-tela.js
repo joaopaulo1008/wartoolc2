@@ -32,6 +32,7 @@ import {
 } from './anotacoes-banco.js';
 import { validarAnotacao, resumirTexto, descreverAlcance, LIMITE_TEXTO, COR_PADRAO } from './anotacoes.js';
 import { buscarPartidosDaTurma } from './auth.js';
+import { tornarRecolhivel } from './painel-lateral.js';
 
 // ── Estado do módulo ─────────────────────────────────────────────────────
 const marcadores = new Map();   // id -> { row, marker }
@@ -203,6 +204,10 @@ function montarCartao() {
     <div id="anot-form"></div>
   `;
   container.appendChild(card);
+  // Recolhido como os outros cartões do painel. Aqui não há a ressalva do
+  // cartão de apoio (nada urgente chega por dentro dele): a lista de anotações
+  // é consulta, não aviso.
+  tornarRecolhivel(card);
 
   document.getElementById('anot-novo').addEventListener('click', () => {
     abrirFormulario(null, centroDaVista());

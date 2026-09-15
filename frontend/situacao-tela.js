@@ -37,6 +37,9 @@ import {
   RESPOSTAS_PRONTAS, LIMITE_RESPOSTA, validarResposta, faseDaResposta, rotuloDaResposta,
 } from './situacao-usuario.js';
 import { buscarPerfilBasico } from './auth.js';
+// O cartão recolhe como todos os outros do painel (Etapa 7.1) — ver
+// montarCartao() para por que isso exigiu dois cuidados a mais aqui.
+import { tornarRecolhivel } from './painel-lateral.js';
 
 // Segurar por 2s para acionar. Dois motivos, nesta ordem: o celular fica no
 // bolso e num toque acidental o pedido sairia sem ninguém saber; e um gesto
@@ -135,6 +138,19 @@ function injetarEstilos() {
       font-size:12px; font-family:inherit;
     }
     .sit-salvo { font-size:10px; color:#7af57a; min-height:12px; }
+    /* Ponto no título: o cartão fechado continua dizendo que há um pedido em
+       andamento. Vermelho enquanto ninguém respondeu, verde quando há resposta
+       ainda não confirmada — as mesmas duas cores do bloco lá dentro. */
+    #card-situacao h3 .sit-ponto {
+      display:inline-block; width:8px; height:8px; margin-left:6px;
+      border-radius:50%; background:#e05252; vertical-align:middle;
+      animation:sit-ponto-pulsa 1.6s ease-in-out infinite;
+    }
+    #card-situacao h3 .sit-ponto.sit-ponto-resposta { background:#4a9a5f; }
+    @keyframes sit-ponto-pulsa { 50% { opacity:.35; } }
+    @media (prefers-reduced-motion: reduce) {
+      #card-situacao h3 .sit-ponto { animation:none; }
+    }
     /* O botão de apoio é VERMELHO e não parece nenhum outro controle do app.
        A diferença visual é parte da separação: nada que se pareça com ele faz
        outra coisa, e ele não se parece com nada. */
@@ -426,6 +442,19 @@ function montarCartao() {
   `;
   container.appendChild(card);
 
+  // Recolhido, como todos os outros cartões do painel (`tornarRecolhivel` já
+  // nasce fechado desde 2026-09-14). Num celular este cartão é o mais alto do
+  // painel — select, campo, botão grande e o aviso — e aberto por padrão ele
+  // tapava boa parte do mapa.
+  //
+  // MAS colapsar um cartão de pedido de apoio tem um preço que precisa ser
+  // pago, não ignorado: **a resposta do instrutor chega DENTRO dele**. Um
+  // cartão fechado esconderia "apoio a caminho" de quem está esperando
+  // exatamente isso. Daí os dois cuidados abaixo, em marcarPendencia() e
+  // abrirCartao(): o título ganha um ponto vermelho quando há pedido vigente,
+  // e o cartão se abre sozinho quando chega resposta nova.
+  tornarRecolhivel(card);
+
   const selEstado = document.getElementById('sit-estado');
   const campoTexto = document.getElementById('sit-texto');
   const salvo = document.getElementById('sit-salvo');
@@ -509,6 +538,41 @@ async function acionar() {
   redesenharFaixa();
 }
 
+// Abre o cartão à força. Usado só quando chega RESPOSTA nova: é o único
+// momento em que a informação vale mais do que a escolha de quem fechou o
+// cartão. Acionar não abre (quem acabou de segurar o botão sabe que acionou);
+// o ponto vermelho no título basta para o resto.
+function abrirCartao() {
+  const card = document.getElementById('card-situacao');
+  if (!card) return;
+  card.classList.remove('pl-recolhido');
+  card.querySelector('h3')?.setAttribute('aria-expanded', 'true');
+}
+
+// O ponto vermelho no título, para o cartão FECHADO não esconder que existe
+// um pedido em andamento. Sem ele, colapsar por padrão transformaria "não
+// ocupa a tela" em "não dá para saber o que está acontecendo".
+function marcarPendencia(temPedido, temRespostaNova) {
+  const titulo = document.getElementById('card-situacao')?.querySelector('h3');
+  if (!titulo) return;
+  let ponto = titulo.querySelector('.sit-ponto');
+  if (!temPedido) { ponto?.remove(); return; }
+  if (!ponto) {
+    ponto = document.createElement('span');
+    ponto.className = 'sit-ponto';
+    titulo.appendChild(ponto);
+  }
+  ponto.classList.toggle('sit-ponto-resposta', !!temRespostaNova);
+  ponto.title = temRespostaNova
+    ? 'O instrutor respondeu ao seu pedido de apoio'
+    : 'Você tem um pedido de apoio em andamento';
+}
+
+// `respostaJaMostrada` guarda QUAL resposta já fez o cartão abrir. Sem isso o
+// cartão se reabriria a cada evento de Realtime, e quem o fechasse de
+// propósito não conseguiria mantê-lo fechado.
+let respostaJaMostrada = null;
+
 // O que o próprio autor vê depois de acionar. Existe por duas razões: ele
 // precisa saber que o pedido saiu (e se alguém já reconheceu), e precisa
 // poder encerrar sozinho — um acionamento sem querer que só o instrutor
@@ -518,7 +582,19 @@ function redesenharMeuPedido() {
   if (!caixa) return;
   const meu = pedidoVigenteDe(meuUserId);
   caixa.innerHTML = '';
-  if (!meu) return;
+
+  // Sinaliza no título mesmo com o cartão fechado.
+  marcarPendencia(!!meu, !!(meu && meu.resposta && !meu.resposta_vista_em));
+
+  if (!meu) { respostaJaMostrada = null; return; }
+
+  // Resposta NOVA (ou corrigida) abre o cartão uma vez. A comparação é pelo
+  // TEXTO, não por "tem resposta": o instrutor pode corrigir o recado, e a
+  // correção merece a mesma atenção que a primeira mensagem.
+  if (meu.resposta && respostaJaMostrada !== meu.resposta) {
+    respostaJaMostrada = meu.resposta;
+    abrirCartao();
+  }
 
   const div = document.createElement('div');
   div.className = 'sit-meu-pedido';

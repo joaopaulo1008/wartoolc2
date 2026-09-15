@@ -757,4 +757,26 @@ escrito no próprio cartão. O item 15cn existe para conferir que a frase está 
   ser arrancado** de onde você deixou. O enquadramento automático é uma vez só.
 - [ ] 15dj. Troque de turma no seletor do topo: o mapa enquadra a turma NOVA.
 
+### O cartão de situação recolhe (2026-09-15)
+
+- [ ] 15dk. No celular, o cartão **"Minha situação"** nasce **fechado**, como
+  os outros. Tocar no título abre; tocar de novo fecha.
+- [ ] 15dl. Dê F5: volta fechado (é por sessão, como os demais).
+- [ ] 15dm. **Com o cartão FECHADO**, acione um pedido de apoio (abra, segure
+  2 s, feche o cartão): o título tem que ficar com um **ponto vermelho**
+  pulsando. Sem ele, o cartão fechado esconderia que há pedido em andamento.
+- [ ] 15dn. **O cuidado principal:** com o cartão FECHADO e um pedido em
+  andamento, o instrutor responde. O cartão tem que **abrir sozinho** com a
+  resposta à vista.
+- [ ] 15do. Feche o cartão de novo e espere: ele **não pode** ficar reabrindo a
+  cada evento. Só reabre se o instrutor mandar uma resposta DIFERENTE.
+- [ ] 15dp. Depois de tocar em "Vi", o ponto do título passa de verde a
+  vermelho (ainda há pedido, mas nada novo para ler). Encerrando o pedido, o
+  ponto some.
+- [ ] 15dq. O cartão **"Anotações no mapa"** (painel do instrutor) também nasce
+  fechado.
+- [ ] 15dr. A **faixa vermelha** de alerta do instrutor continua aparecendo
+  sozinha, sem depender de cartão nenhum — ela não é cartão, é sobreposição no
+  mapa.
+
 Qualquer item marcado como falha vira a prioridade do próximo chat — cole este checklist preenchido para retomar com contexto completo.

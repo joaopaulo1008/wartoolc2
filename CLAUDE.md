@@ -1535,6 +1535,30 @@ suítes SQL verdes (43+26+11+28+23), `valida_sql.py` nas 0001–0014, **847 caso
 de frontend** em treze suítes (`situacao-usuario.teste.mjs` novo com 58) e
 `npm run build`.
 
+**O cartão recolhe, e isso custou dois cuidados** (2026-09-15). Relatado em
+campo: *"o card de pedido de ajuda não colapsa; no celular isso ocupa muito da
+tela"*. Ele é o mais alto do painel (select, campo, botão grande e o aviso), e
+aberto por padrão tapava boa parte do mapa. Agora usa `tornarRecolhivel()` como
+todos os outros e **nasce fechado**.
+
+Mas colapsar um cartão de pedido de apoio tem um preço que precisa ser pago, e
+não ignorado: **a resposta do instrutor chega DENTRO dele**. Um cartão fechado
+esconderia "apoio a caminho" de quem está esperando exatamente isso. Então:
+
+- **Ponto no título** enquanto há pedido vigente — vermelho enquanto ninguém
+  respondeu, verde quando há resposta ainda não confirmada. Sem ele, "não ocupa
+  a tela" viraria "não dá para saber o que está acontecendo".
+- **O cartão se abre sozinho quando chega resposta nova**, e só nisso. Acionar
+  não abre (quem acabou de segurar o botão sabe que acionou). A comparação é
+  pelo TEXTO da resposta, não por "tem resposta": o instrutor pode corrigir o
+  recado, e a correção merece a mesma atenção que a primeira mensagem. O
+  `respostaJaMostrada` existe para o cartão não se reabrir a cada evento de
+  Realtime — quem o fechou de propósito consegue mantê-lo fechado.
+
+O cartão "Anotações no mapa" também passou a recolher, sem essas ressalvas:
+nada urgente chega por dentro dele. A faixa de alerta do instrutor **não** é
+cartão — é sobreposição no mapa, e continua aparecendo sem ninguém clicar.
+
 **PENDENTE DE TESTE AO VIVO** (em `docs/roteiro-teste-campo.md`): aplicar a
 `0014`; acionar com dois celulares e confirmar que o Vermelho não vê nada;
 acionar **com o GPS desligado**, que é o caso que a coluna nulável existe para
