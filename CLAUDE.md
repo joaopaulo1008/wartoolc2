@@ -382,7 +382,7 @@ Etapa 9 (originalmente "SPA com bundler + stanag-app6") foi dividida em duas: **
 - **`frontend/instrutor.html` já estava 100% modular antes da 9a** (só precisou trocar os `<link>`/`<script src=CDN>` de Leaflet/milsymbol pelos imports `npm` equivalentes) — não tinha `<script>` clássico nem ponte nenhuma para remover.
 - **`basemaps.teste.mjs` deixou de comparar index.html contra duas cópias que não existem mais.** Continua comparando o que ainda É duplicação de verdade (os `<input name=basemap>` do HTML — marcação estática, não código importável — contra `OPCOES_BASEMAP`), e ganhou uma checagem nova: que `index.html` de fato IMPORTA de `basemaps.js`/`kml.js` em vez de ter voltado a declarar `BASEMAPS`/`CORES_CAMADA` locais. Foram de 24 para 20 asserções (as 4 que comparavam a cópia agora removida saíram); total das oito suítes foi de 385 para **381**.
 - **Deploy: GitHub Pages passou de "Deploy from a branch" (raiz crua) para "GitHub Actions".** Necessário porque agora existe um passo de build (`dist/`, não mais a raiz do repo, é o que precisa ser publicado). **`.github/workflows/deploy.yml` (novo)**: `npm ci && npm run build` e publica `dist/` via `actions/upload-pages-artifact`+`actions/deploy-pages` (o padrão oficial de duas jobs, `build`+`deploy`, exigido por essas actions). **Passo manual, fora deste repositório**: trocar a origem em Settings -> Pages -> Source, de "Deploy from a branch" para "GitHub Actions" — mesma natureza do passo manual "habilitar o Pages" já registrado na Etapa 11.
-- **Verificação feita**: as oito suítes (381 casos) rodando 100% verdes; `node --check` + `acorn` em todos os `.js`/`.mjs` de `frontend/` e no próprio `vite.config.js`/`scripts/copiar-estaticos-build.mjs`; `npm run build` rodado com sucesso, `dist/` inspecionado (as 4 páginas HTML com `/wartoolc2/assets/...` corretos, `data/`, `sw-bdgex.js` e `.nojekyll` presentes). **PENDENTE DE TESTE AO VIVO**: abrir o site publicado de verdade depois do deploy via Actions (login, mapa, marcação, painel do instrutor, offline) — só dá para confirmar depois que a origem do Pages for trocada manualmente e um push chegar em `main`.
+- **Verificação feita**: as oito suítes (381 casos) rodando 100% verdes; `node --check` + `acorn` em todos os `.js`/`.mjs` de `frontend/` e no próprio `vite.config.js`/`scripts/copiar-estaticos-build.mjs`; `npm run build` rodado com sucesso, `dist/` inspecionado (as 4 páginas HTML com `/wartoolc2/assets/...` corretos, `data/`, `sw-bdgex.js` e `.nojekyll` presentes). ~~**PENDENTE DE TESTE AO VIVO**: abrir o site publicado de verdade depois do deploy via Actions~~ — **fechado em 2026-08-02**: a origem do Pages foi trocada para "GitHub Actions", o workflow roda em ~35 s por push, e o site publicado foi aberto e usado em campo. Desde 2026-09-14 o rodapé carimba a data do build, que é como se confere qual versão está no navegador.
 
 ### Decisões da Etapa 9b (catálogo oficial do MD/EB, autoridade do instrutor e coordenadas, concluída)
 
@@ -802,13 +802,14 @@ vez de um segundo observador que pudesse discordar dela.
   a fileira onde mandarem. Se o instrutor mexer na paleta com o formulário
   aberto na mão do aluno, a fileira se redesenha sozinha.
 
-**PENDENTE DE TESTE AO VIVO** (acrescentado a `docs/roteiro-teste-campo.md`):
-~~aplicar a 0010 no Supabase real~~ — **aplicada em produção em 2026-09-14, junto
-com a 0011**; **publicar um calco pelo painel, que é o bug
-antigo corrigido aqui e nunca foi exercitado**; conferir a etiqueta de idade com um celular
-desligando o GPS; marcar pela paleta nos dois modos e conferir que o símbolo
-gravado é o do botão; e o toque longo num celular de verdade, que é o gesto
-mais frágil desta entrega.
+**ESTADO EM 2026-09-15:** a `0010` está aplicada em produção desde 2026-09-14 e
+a paleta está em uso — a marcação pelos dois modos grava o símbolo do botão, que
+era o defeito relatado três vezes. **Continua em aberto o item que nunca foi
+exercitado:** `15r`–`15t`, publicar um calco pelo painel. Era um bug de `uuid`
+desde a Etapa 7 — **publicar calco nunca funcionou**, e ninguém tinha percebido
+porque o item 9 deste roteiro jamais foi rodado. A correção saiu junto com a
+0010 e segue sem confirmação. Também em aberto: o **toque longo** num celular
+específico (`15j`), que é o gesto mais frágil desta entrega.
 
 ### "Um objeto marcado está saindo como genérico" (2026-09-14)
 
@@ -1370,12 +1371,12 @@ verdes em bancos limpos (43+26+11), `valida_sql.py` nas 0001–0012,
 **732 casos de frontend** em onze suítes (`simbolos.teste.mjs` 35 → 48) e
 `npm run build`.
 
-**PENDENTE DE TESTE AO VIVO** (acrescentado a `docs/roteiro-teste-campo.md`):
-aplicar a `0012`; corrigir o símbolo de um aluno com o aparelho dele na mão e
-confirmar que o avatar muda **sem F5 e sem recarregar**; conferir que o colega
-dele também vê a troca; e remover um aluno confirmando que ele some dos dois
-mapas (o dos colegas e o do instrutor) e que o rastro dele continua no
-debriefing.
+**ESTADO EM 2026-09-15:** a `0012` está aplicada em produção e quem conduz a
+instrução confirmou os dois controles funcionando no uso normal.
+**Continua em aberto** o que exige mais de um aparelho: conferir que o colega
+também vê a troca de símbolo sem F5, e que o aluno removido some **dos dois
+mapas** (o dos colegas e o do instrutor) enquanto o rastro dele permanece no
+debriefing — itens `15ba`–`15bl` do roteiro.
 
 ### Texto no mapa: rótulo de calco e anotações (2026-09-14) — migration 0013
 
@@ -1450,10 +1451,13 @@ filtra em silêncio); as outras quatro suítes SQL verdes (43+26+11+28);
 `valida_sql.py` nas 0001–0013; **789 casos de frontend** em doze suítes
 (`anotacoes.teste.mjs` novo com 44, `kml.teste.mjs` 116 → 129); `npm run build`.
 
-**PENDENTE DE TESTE AO VIVO** (em `docs/roteiro-teste-campo.md`): aplicar a
-`0013`; escrever uma anotação para uma força e confirmar, com dois celulares,
-que o outro lado NÃO a vê; arrastar; e ligar os rótulos num calco de verdade —
-inclusive um grande, para ver se o teto de 60 está no lugar certo.
+**ESTADO EM 2026-09-15:** a `0013` está aplicada em produção e as anotações e
+os rótulos estão funcionando no uso normal. **Continuam em aberto os dois itens
+que só o campo responde:** `15bt` — escrever uma anotação para UMA força e
+confirmar, com um celular do outro lado, que ela não vaza (um vazamento aqui
+não parece defeito, parece informação); e `15bp` — ligar os rótulos num calco
+grande de verdade, que é o único jeito de saber se o teto de 60 está no lugar
+certo.
 
 ### Situação do usuário e pedido de apoio (2026-09-15) — migration 0014
 
@@ -1559,11 +1563,14 @@ O cartão "Anotações no mapa" também passou a recolher, sem essas ressalvas:
 nada urgente chega por dentro dele. A faixa de alerta do instrutor **não** é
 cartão — é sobreposição no mapa, e continua aparecendo sem ninguém clicar.
 
-**PENDENTE DE TESTE AO VIVO** (em `docs/roteiro-teste-campo.md`): aplicar a
-`0014`; acionar com dois celulares e confirmar que o Vermelho não vê nada;
-acionar **com o GPS desligado**, que é o caso que a coluna nulável existe para
-permitir; e cronometrar quanto tempo o alerta leva para aparecer na tela do
-instrutor.
+**ESTADO EM 2026-09-15:** a `0014` está aplicada em produção e o recado de
+situação e o pedido de apoio estão funcionando no uso normal. **Os dois itens
+que mais importam continuam em aberto**, e nenhum deles se testa sozinho numa
+mesa: `15ce`/`15cs` — com um celular do Vermelho na mão, confirmar que ele não
+vê recado nem pedido do Azul; e `15cl` — acionar **com o GPS desligado** (modo
+avião), que é exatamente o caso que a coluna nulável existe para permitir.
+Junto, `15cj`: cronometrar quanto tempo o alerta leva para aparecer na tela do
+instrutor — é o número que diz se o recurso presta.
 
 ### A resposta do instrutor ao pedido de apoio (2026-09-15) — migration 0015
 
@@ -1621,10 +1628,12 @@ terceira falha era real e virou o trigger. Mais: as outras cinco suítes SQL
 (43+26+11+28+23), `valida_sql.py` nas 0001–0015, **866 casos de frontend** em
 treze suítes (`situacao-usuario.teste.mjs` 58 → 77) e `npm run build`.
 
-**PENDENTE DE TESTE AO VIVO**: aplicar a `0015`; responder e conferir que a
-mensagem aparece no celular do aluno **sem F5**; tocar em "Vi" e ver a faixa do
-instrutor mudar para "lido às"; e corrigir a resposta depois de ela ter sido
-lida, confirmando que a confirmação **volta a zero**.
+**ESTADO EM 2026-09-15:** a `0015` está aplicada em produção e a resposta com
+o "Vi" está funcionando no uso normal. **Continua em aberto** o caso do trigger
+(`15cx`): corrigir a resposta DEPOIS de ela ter sido lida e confirmar que a
+confirmação **volta a zero** — e, com o cartão recolhido (mesma data), `15dn`:
+o cartão fechado tem que **abrir sozinho** quando a resposta chega, senão ela
+fica escondida de quem está esperando por ela.
 
 ### O mapa abre onde as pessoas estão (2026-09-15) — sem migration
 
@@ -1681,6 +1690,48 @@ degenerado travado nos dois sentidos (metade da tolerância ainda é ponto; o
 dobro já é área) e com ponto inválido no meio da lista provando que não
 contamina a caixa. **895 casos de frontend** em catorze suítes; `npm run build`.
 Sem migration e sem mudança de banco.
+
+### Fechamento do ciclo de setembro de 2026
+
+**Estado em 2026-09-15:** `0001`–`0015` aplicadas no Supabase de produção, todo
+o código publicado, e quem conduz a instrução confirmou as catorze entregas
+funcionando no uso normal.
+
+**Bateria sobre o estado publicado:** 895 casos de frontend em catorze suítes;
+**168 asserções de SQL** contra Postgres 16 + PostGIS em bancos limpos
+(43 + 26 + 11 + 28 + 23 + 37); `valida_sql.py` nas 0001–0015; `npm run build`.
+Cada migration rodada duas vezes, para idempotência.
+
+**A distinção que este arquivo insiste em manter:** bateria verde prova que o
+código faz o que o teste diz, e "funcionando no uso normal" prova que a tela
+responde. Nenhuma das duas prova o comportamento com **duas forças, dois
+celulares e sinal ruim** — que é onde moram os modos de falha que interessam.
+Continuam em aberto, por ordem de consequência:
+
+1. **Vazamento entre forças** — `15bt` (anotação), `15ce` (recado de situação),
+   `15cs` (pedido de apoio). Um vazamento aqui não parece defeito: parece
+   informação, e é assim que passa despercebido.
+2. **`15cl`** — acionar o pedido de apoio **sem GPS**. É o caso que a coluna
+   nulável da 0014 existe para permitir.
+3. **`15dn`** — cartão fechado e o instrutor responde: tem que abrir sozinho.
+4. **`15r`–`15t`** — publicar calco pelo painel, corrigido em 2026-09-14 depois
+   de nunca ter funcionado desde a Etapa 7.
+5. **Item 6** — "Voltar ao padrão da turma", o mais provável de expor problema
+   real de Realtime.
+6. **`15bp`** — o teto de 60 rótulos num calco grande de verdade.
+
+**Três dependências continuam FORA do código**, e nenhum teste daqui as
+resolve: a **declinação magnética** (o app mostra lançamento de quadrícula; se
+o observador usa bússola, a diferença é real — item 14c), a **fonte de MDE**
+para altitude automática (ver a seção 1 da 0011: mandar coordenada de alvo para
+serviço público de terceiro é decisão de emprego, não detalhe de
+implementação), e a decisão de escopo sobre **proteger `perfis.sidc` contra o
+próprio dono** — medido na suíte 04: pela API, um aluno consegue trocar o
+próprio símbolo, e a decisão da 9b vale para a interface, não para o banco.
+
+**Uma pendência operacional que não é código:** `turmas.codigo_acesso` da turma
+de teste ainda é `TESTE`. Trocar antes de divulgar a URL para um exercício real
+— o cadastro é aberto, e esse código é a única barreira de entrada.
 
 ## Estrutura de pastas
 

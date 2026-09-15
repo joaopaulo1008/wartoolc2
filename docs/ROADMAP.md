@@ -262,22 +262,33 @@ Sugestão de modelo por etapa: tarefas mecânicas/config → **modelo mais leve*
 
   Migration `0009_auditoria_edicao_e_preferencias.sql` (duas colunas, um trigger, um `check`; **nenhuma policy de RLS tocada**). Detalhe técnico completo, com as seis decisões justificadas, na seção "Decisões da Etapa 9b" de `CLAUDE.md`. Verificação: nove suítes 100% verdes, **509 casos** (as oito anteriores mais `coordenadas.teste.mjs`, nova com 93; `marcacoes.teste.mjs` foi reescrito, de 40 para 75, e agora varre o catálogo inteiro); `valida_sql.py` na `0009`; `npm run build` OK, **+13 kB gzipado** no bundle. Os valores esperados de UTM vieram do **PROJ 9.5.1** (via `pyproj`, a mesma biblioteca do QGIS), não de estimativa — concordância de 0,83 mm no pior de 13 pontos. **Pendente de teste ao vivo**: os três itens acrescentados a `docs/roteiro-teste-campo.md` (conferir UTM contra referência externa, correção do instrutor chegando ao aluno sem F5, e a precedência do SIDC contra o cadastro real da 2c).
 
-### Teste de campo de setembro de 2026 — oito entregas fora da numeração
+### Setembro de 2026 — catorze entregas fora da numeração
 
 Todas nasceram do app na mão em campo, num intervalo de dois dias, e por isso
-não viraram etapas numeradas. **Migrations `0010` e `0011` já aplicadas no
-Supabase de produção**; tudo abaixo está publicado e conferido no ar (commit
-`a65fb5e`). Ver `CLAUDE.md` para o raciocínio completo de cada uma — em especial
-as três primeiras tentativas erradas de diagnosticar o "símbolo genérico", que
-valem como lição sobre explicar o sintoma em vez de seguir o dado.
+não viraram etapas numeradas: cada uma respondeu a uma frase de quem estava
+conduzindo a instrução, não a um item de plano.
 
-**Verificação sobre esse commit:** 719 casos de frontend em onze suítes; 80
-asserções de SQL contra Postgres 16 + PostGIS em bancos limpos (43 + 26 + 11);
-`valida_sql.py` nas 0001–0011; `npm run build`. **Isso prova deploy, não
-comportamento** — nada foi exercitado com celular, GPS e Realtime. O que ainda
-decide se as oito entregas prestaram são os itens **15ak–15ap** (gravação pela
-paleta) e **15aq–15aw** (vetor e dados de tiro) de `docs/roteiro-teste-campo.md`,
-que agora abre com a ordem de prioridade para um tempo curto em campo.
+**Estado: `0001`–`0015` aplicadas no Supabase de produção, tudo publicado, e
+quem conduz a instrução confirmou que está funcionando no uso normal.**
+
+**Verificação automática sobre o estado publicado:** 895 casos de frontend em
+catorze suítes; **168 asserções de SQL** contra Postgres 16 + PostGIS em bancos
+limpos (43 + 26 + 11 + 28 + 23 + 37); `valida_sql.py` nas 0001–0015; `npm run
+build`. Cada migration foi rodada duas vezes para provar idempotência.
+
+**O que a bateria NÃO cobre, e continua em aberto:** os itens que exigem **duas
+forças e dois celulares** — `15bt`, `15ce` e `15cs`, os três de vazamento entre
+partidos —, o acionamento do pedido de apoio **sem GPS** (`15cl`), e a
+publicação de calco pelo painel (`15r`–`15t`), corrigida aqui depois de nunca
+ter funcionado desde a Etapa 7. Ver o bloco de abertura de
+`docs/roteiro-teste-campo.md`, que lista isso por ordem de consequência.
+
+Ver `CLAUDE.md` para o raciocínio completo de cada entrega — em especial as três
+tentativas erradas de diagnosticar o "símbolo genérico", que valem como lição
+sobre explicar o sintoma em vez de seguir o dado, e o caso da 0012, em que a
+barreira era a policy de **leitura** e não a de escrita.
+
+#### 14 de setembro
 
 - [x] **Etiqueta de idade no lugar do esmaecimento** (2026-09-14). Avatar de
   quem parou de reportar deixa de esmaecer: marca a **última posição
@@ -387,6 +398,8 @@ que agora abre com a ordem de prioridade para um tempo curto em campo.
   porque o clique no mapa daquela aba já tem dono (`marcacoes.js`) e o Leaflet
   entrega o mesmo clique aos dois ouvintes.
 
+#### 15 de setembro
+
 - [x] **Situação do usuário e pedido de apoio** (2026-09-15, migration `0014`).
   O aluno declara um recado curto que aparece no popup dele para a própria
   força e para o instrutor, e tem um botão de pedir apoio (segurar 2 s) que
@@ -425,6 +438,16 @@ que agora abre com a ordem de prioridade para um tempo curto em campo.
   procurar os colegas arrastando o mapa — agora `colegas.js` enquadra a força).
   Trata o caso degenerado: a turma toda no mesmo pátio faria `fitBounds` dar
   zoom máximo, e a tela viraria um quadrado de 20 m.
+
+- [x] **O cartão de situação recolhe e nasce fechado** (2026-09-15, sem
+  migration). Relatado em campo: no celular ele ocupava boa parte da tela.
+  Passou a usar `tornarRecolhivel()` como todos os outros. **Colapsar ESTE
+  cartão custou dois cuidados**, porque a resposta do instrutor chega dentro
+  dele: um ponto no título enquanto há pedido em andamento (vermelho sem
+  resposta, verde com resposta não confirmada) e abertura automática quando
+  chega resposta nova — comparando o TEXTO, para uma correção do instrutor
+  também abrir, e uma vez só, para quem fechou de propósito conseguir manter
+  fechado. O cartão "Anotações no mapa" também recolhe, sem essas ressalvas.
 
 ## A fazer, em ordem
 

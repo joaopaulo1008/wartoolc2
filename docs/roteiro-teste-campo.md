@@ -4,29 +4,45 @@ Este roteiro é a entrega mais valiosa da Etapa 11: várias coisas nunca puderam
 
 **Formato de cada item:** o que fazer → o que esperar → como saber que falhou. Quando algo falhar, anote o item e continue para o próximo — não vale a pena parar o teste inteiro por um item quebrado.
 
-## Estado em 2026-09-14 — por onde começar
+## Estado em 2026-09-15 — por onde começar
 
-As migrations **`0010` e `0011` estão aplicadas em produção** e o commit
-`a65fb5e` está publicado e conferido no ar (o bundle servido foi inspecionado
-string a string). Sobre esse mesmo commit rodaram 719 casos de frontend e 80
-asserções de SQL contra Postgres de verdade, todos verdes.
+**Todas as migrations estão aplicadas em produção** (`0001`–`0015`), o código
+está publicado, e quem conduz a instrução confirmou que as entregas estão
+funcionando no uso normal: o editor de símbolo, o "Remover da turma", o texto
+no mapa, o recado de situação, o pedido de apoio com a resposta do instrutor, o
+enquadramento do mapa e os cartões recolhendo.
 
-**Nada disso é teste de campo.** Bateria verde prova que o código faz o que o
-teste diz; só celular, GPS, Realtime e duas contas provam que a instrução
-funciona. Este roteiro é a parte que a máquina não faz.
+Sobre o estado publicado rodam **895 casos de frontend** em catorze suítes e
+**168 asserções de SQL** contra Postgres 16 + PostGIS em bancos limpos
+(43 + 26 + 11 + 28 + 23 + 37), todos verdes.
 
-Se o tempo em campo for curto, esta é a ordem:
+### O que "funcionando" ainda NÃO cobre
 
-1. **15ad** — o carimbo de versão no rodapé. Sem ele, todo o resto mede a
-   versão errada do app.
-2. **15ak–15ap** — a gravação pela paleta. É o defeito que foi relatado **três
-   vezes** ("símbolo genérico") e o que mais importa confirmar.
-3. **15aq–15aw** — vetor de observação nas duas telas e dados de tiro. É a
-   entrega mais nova e a que a artilharia pediu; ninguém nunca a viu rodando.
-4. **15r–15t** — publicar calco pelo painel. Nunca funcionou desde a Etapa 7 e
-   ninguém tinha percebido; a correção nunca foi exercitada.
-5. **Item 6** — "Voltar ao padrão da turma", que continua sendo o item com
-   maior chance de expor problema real de Realtime.
+Esta distinção é a razão de este arquivo existir. Confirmar que um recurso
+responde ao toque é uma coisa; provar que ele se comporta com **duas forças,
+dois celulares e sinal ruim** é outra — e é justamente onde moram os modos de
+falha que interessam. Continuam em aberto, por ordem de consequência:
+
+1. **Os itens de VAZAMENTO ENTRE FORÇAS.** `15bt` (anotação só para o Azul),
+   `15ce` (recado de situação), `15cs` (pedido de apoio). Cada um exige um
+   celular do Vermelho na mão. Um vazamento aqui não parece defeito — parece
+   informação, e é assim que passa despercebido.
+2. **`15cl` — acionar o pedido de apoio SEM GPS** (modo avião). É o caso que a
+   coluna nulável existe para permitir, e o único jeito de saber se presta é
+   tentar. Junto, `15cm`: posição velha tem que dizer a idade.
+3. **`15dn` — cartão fechado e o instrutor responde.** O cartão tem que abrir
+   sozinho. Se falhar, a resposta fica escondida de quem está esperando por ela.
+4. **`15r`–`15t` — publicar calco pelo painel.** Corrigido em 2026-09-14 depois
+   de nunca ter funcionado desde a Etapa 7; a correção nunca foi exercitada.
+5. **Item 6 — "Voltar ao padrão da turma"**, que segue sendo o item com maior
+   chance de expor problema real de Realtime.
+6. **`15bp` — o teto de 60 rótulos** num calco grande de verdade: é o número
+   que só o campo diz se está no lugar certo.
+
+E duas perguntas que o campo responde e nenhum teste responde: **`15ca`** (as
+anotações atrapalham a leitura da carta? se sim, o próximo passo é um
+interruptor para o aluno) e **`14c`** (a declinação magnética faz falta a quem
+usa bússola?).
 
 ## 0. Antes de ir a campo
 
@@ -35,9 +51,11 @@ Sem isto pronto, nenhum item abaixo funciona:
 1. **GitHub Pages publicando via Actions.** ~~Deploy from branch → `main` / `/ (root)`~~ — **isto mudou na Etapa 9a**: com o Vite, o que precisa ser publicado é `dist/`, não a raiz do repo. Settings → Pages → Source = **"GitHub Actions"**. Confirmado funcionando em 2026-08-02 (o workflow roda em ~35 s por push). URL: `https://joaopaulo1008.github.io/wartoolc2/`.
 
    **Confira que o site no ar é o build atual antes de sair**: desde 2026-09-14 isso ficou trivial — **o rodapé do app mostra a data/hora do build**. Se ela não mudar depois de uma correção, o navegador está servindo a versão antiga (recarregue segurando Shift, ou abra numa aba anônima). O jeito antigo (F12 → Network, comparar o hash dos arquivos em `/wartoolc2/assets/` com o do último `npm run build` local) continua valendo como segunda opinião. Um push que falhou no Actions deixa o site anterior no ar, sem erro visível.
-2. **Migrations aplicadas** no SQL Editor do Supabase: `0001`-`0003` (desde etapas anteriores), `0004_perfis_realtime.sql`, `0005_rastro_historico.sql`, `0006_calcos.sql`, `0007_codigo_turma_valido.sql`, `0008_imagem_geo.sql`, **`0009_auditoria_edicao_e_preferencias.sql`** (Etapa 9b), **`0010_icones_rapidos.sql`**, **`0011_alvo_altitude_dimensoes.sql`**, **`0012_remover_da_turma.sql`** e **`0013_anotacoes.sql`** (2026-09-14) **`0014_situacao_e_apoio.sql`** e **`0015_resposta_ao_apoio.sql`** (2026-09-15).
+2. **Migrations aplicadas** no SQL Editor do Supabase: `0001`-`0003` (desde etapas anteriores), `0004_perfis_realtime.sql`, `0005_rastro_historico.sql`, `0006_calcos.sql`, `0007_codigo_turma_valido.sql`, `0008_imagem_geo.sql`, **`0009_auditoria_edicao_e_preferencias.sql`** (Etapa 9b), **`0010_icones_rapidos.sql`**, **`0011_alvo_altitude_dimensoes.sql`**, **`0012_remover_da_turma.sql`** e **`0013_anotacoes.sql`** (2026-09-14), **`0014_situacao_e_apoio.sql`** e **`0015_resposta_ao_apoio.sql`** (2026-09-15).
 
-   **A `0010` e a `0011` foram aplicadas em produção em 2026-09-14** — não é preciso rodar de novo. **A `0012`, a `0013`, a `0014` e a `0015` são as PENDENTES**, e as três falham de forma visível, não calada: sem a `0012` o botão "Remover da turma" avisa na tela que a migration falta (o editor de símbolo funciona normalmente); sem a `0013` o cartão "Anotações no mapa" não consegue gravar nada; sem a `0014` o cartão "Minha situação" e o botão de pedir apoio mostram o erro de gravação em vez de fingir que enviaram — **o pior modo de falha deste recurso seria justamente o silencioso**. Todas são idempotentes de propósito (rodar duas vezes não quebra nem perde dado), então, na dúvida, rodar outra vez é seguro.
+   **Todas foram aplicadas em produção** — a `0010` e a `0011` em 2026-09-14, e a `0012`, a `0013`, a `0014` e a `0015` em 2026-09-15. Nenhuma pendente. Todas são idempotentes de propósito (rodar duas vezes não quebra nem perde dado), então, se alguma tela reclamar de coluna ou função que falta, rodar a migration outra vez é seguro.
+
+   **Se uma delas faltar, a falha é visível e não calada** — foi desenhado assim: sem a `0012` o botão "Remover da turma" avisa na tela que a migration falta; sem a `0013` o cartão "Anotações no mapa" não grava; sem a `0014`/`0015` o cartão "Minha situação" e o pedido de apoio mostram o erro em vez de fingir que enviaram. **O pior modo de falha do pedido de apoio seria justamente o silencioso.**
 
    A `0009` é a única cujo efeito não aparece sozinho na tela — se ela faltar (ou se só parte dela for colada), o app funciona normalmente e apenas a linha "Corrigido por …" nunca aparece no popup, o que é indistinguível de "o instrutor não corrigiu nada". Vale confirmar, é uma consulta só:
    ```sql
