@@ -72,6 +72,7 @@ import {
   validarArquivoImagem, formatoDoArquivoImagem, validarBounds, textoEgress,
 } from './imagem-geo.js';
 import { criarBasemaps, BASEMAP_PADRAO } from './basemaps.js';
+import { CENTRO_PADRAO } from './enquadrar-mapa.js';
 
 // ── Estado ───────────────────────────────────────────────────────────────
 let meuUserId = null;
@@ -230,7 +231,12 @@ function garantirMapaImagem() {
     return mapaImagem;
   }
   const basemaps = criarBasemaps();
-  mapaImagem = L.map(container, { center: [-22, -47], zoom: 13 });
+  // Mesmo ponto padrão dos outros mapas (enquadrar-mapa.js). Aqui ele NÃO é
+  // substituído por posição de ninguém: este mapinha serve para o instrutor
+  // posicionar os cantos de uma imagem georreferenciada, e ele já chega
+  // sabendo que região vai procurar. Fica na constante compartilhada só
+  // para não existir um quarto lugar com a coordenada escrita à mão.
+  mapaImagem = L.map(container, { center: CENTRO_PADRAO, zoom: 13 });
   basemaps[BASEMAP_PADRAO].addTo(mapaImagem);
   return mapaImagem;
 }

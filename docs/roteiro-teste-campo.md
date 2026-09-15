@@ -736,4 +736,25 @@ escrito no próprio cartão. O item 15cn existe para conferir que a frase está 
   responder.
 - [ ] 15db. Com um celular do VERMELHO: nada disso existe.
 
+### Onde o mapa abre (2026-09-15, sem migration)
+
+- [ ] 15dc. Abra o app do aluno com o GPS funcionando: o mapa vai para a
+  **posição dele**, como já ia.
+- [ ] 15dd. **O caso novo:** abra o app num lugar sem GPS (galpão), ou com o
+  instrutor tendo desligado `ver_propria_posicao`, **com colegas em campo**. O
+  mapa tem que enquadrar **a força** em vez de ficar no ponto padrão.
+- [ ] 15de. No mesmo cenário, quando o GPS finalmente pegar, o mapa deve ir
+  para a **posição própria** — a dele vence a da força.
+- [ ] 15df. Painel do instrutor, aba "Situação atual", **abrindo ANTES de
+  qualquer aluno mandar posição**: o mapa começa no ponto padrão e **se move
+  sozinho** assim que o primeiro aluno aparece. Era exatamente isso que não
+  acontecia.
+- [ ] 15dg. Com vários alunos espalhados, o enquadramento mostra **todos**.
+- [ ] 15dh. **O caso degenerado, que vale testar na formatura:** com a turma
+  inteira parada no mesmo pátio, o mapa tem que abrir num zoom **útil** (dá
+  para ver o pátio e o entorno), não num quadrado de 20 metros.
+- [ ] 15di. Arraste o mapa e espere chegarem posições novas: o mapa **não pode
+  ser arrancado** de onde você deixou. O enquadramento automático é uma vez só.
+- [ ] 15dj. Troque de turma no seletor do topo: o mapa enquadra a turma NOVA.
+
 Qualquer item marcado como falha vira a prioridade do próximo chat — cole este checklist preenchido para retomar com contexto completo.

@@ -105,6 +105,12 @@ import { dispersarPosicoes } from './dispersar-avatares.js';
 // Etapa 9b: a mesma formatação de coordenada do app do aluno. Ver
 // preferencias.js — não existe segunda implementação disto em lugar nenhum.
 import { formatarCoordenada } from './preferencias.js';
+// Onde o mapa abre (2026-09-15). O `center:[-22,-47]` que estava escrito aqui
+// é um ponto arbitrário perto de Campinas — para uma turma em Ponta Grossa, o
+// painel abria a 400 km de onde a instrução acontece. Ver enquadrar-mapa.js.
+import {
+  planejarEnquadramento, CENTRO_PADRAO, ZOOM_PADRAO,
+} from './enquadrar-mapa.js';
 
 // ── Mapas base ───────────────────────────────────────────────────────────
 // Vêm de frontend/basemaps.js desde a Etapa 7.1. Até então esta tela tinha a
@@ -203,7 +209,7 @@ function garantirMapa() {
   }
 
   basemaps = criarBasemaps();
-  map = L.map('situacao-mapa', { center: [-22, -47], zoom: 10 });
+  map = L.map('situacao-mapa', { center: CENTRO_PADRAO, zoom: ZOOM_PADRAO });
   preencherSeletorBasemap(el('situacao-basemap'));
   basemapAtual = trocarBasemap(map, basemaps, BASEMAP_PADRAO, null);
   camadaPosicoes = L.layerGroup().addTo(map);
@@ -216,16 +222,65 @@ function garantirMapa() {
     });
   }
 
+  // Mexeu no mapa? O enquadramento automático não acontece mais. `dragstart`
+  // e `zoomstart` de roda/botão vêm de gesto humano; `setView`/`fitBounds`
+  // programáticos não disparam `dragstart`, e o `zoomstart` que eles disparam
+  // é inofensivo aqui porque o automático já marcou `jaEnquadrou` antes.
+  map.on('dragstart', () => { jaEnquadrou = true; });
+  map.on('zoomstart', () => { jaEnquadrou = true; });
+
   setTimeout(() => map.invalidateSize(), 0);
   return map;
 }
 
-function enquadrarPosicoes() {
+// `jaEnquadrou` existe para o mapa NÃO ser arrancado da mão de quem está
+// olhando. O enquadramento automático acontece UMA vez — na primeira vez que
+// se sabe onde alguém está — e nunca mais. Depois disso, quem manda na câmera
+// é o instrutor.
+//
+// Também vale quando ele já mexeu no mapa antes de a primeira posição chegar:
+// `dragstart`/`zoomstart` do usuário desarmam o automático, porque puxar a
+// tela de alguém que está examinando uma região é pior do que abrir no ponto
+// errado — isso ele corrige com um gesto.
+let jaEnquadrou = false;
+
+function pontosDasPosicoes() {
   const pontos = [];
   for (const estado of posicoes.values()) {
-    if (estado.marker) pontos.push(estado.marker.getLatLng());
+    // Lê a linha CRUA, não o marcador: `dispersarPosicoes()` desloca avatares
+    // empilhados alguns metros para eles não se taparem, e enquadrar pelo
+    // deslocado enquadraria a correção visual, não onde as pessoas estão.
+    if (estado.row) pontos.push({ lat: estado.row.latitude, lon: estado.row.longitude });
   }
-  if (pontos.length) map.fitBounds(L.latLngBounds(pontos), { padding: [40, 40] });
+  return pontos;
+}
+
+// Chamada manual (o botão), que SEMPRE enquadra: se o instrutor pediu, ele
+// quer, independente de já ter acontecido antes.
+function enquadrarPosicoes() {
+  aplicarEnquadramento(pontosDasPosicoes());
+}
+
+// Chamada automática, que só age na primeira vez e só se ninguém mexeu.
+function enquadrarSeAindaNao() {
+  if (jaEnquadrou || !map) return;
+  if (aplicarEnquadramento(pontosDasPosicoes())) jaEnquadrou = true;
+}
+
+// Devolve `true` se de fato mexeu na câmera — é o que permite ao automático
+// continuar tentando enquanto ainda não há nenhuma posição conhecida.
+function aplicarEnquadramento(pontos) {
+  const plano = planejarEnquadramento(pontos);
+  if (!plano || !map) return false;
+  if (plano.tipo === 'ponto') {
+    map.setView([plano.lat, plano.lon], plano.zoom);
+  } else {
+    map.fitBounds(
+      L.latLngBounds([[plano.sul, plano.oeste], [plano.norte, plano.leste]]),
+      { padding: [40, 40] }
+    );
+  }
+  return true;
 }
 
 // ── Ícone + popup de cada posição ────────────────────────────────────────
@@ -416,6 +471,12 @@ function assinarCanalPosicoes(turmaId) {
         if (!row) return;
         registrarPosicao(row);
         desenharOuAtualizarMarcador(row.usuario_id);
+        // O caso que não funcionava: o instrutor abre a aba ANTES de a turma
+        // começar a mandar posição. Na carga não havia nada para enquadrar, e
+        // o antigo `enquadrarPosicoes()` só rodava ali — então o mapa ficava
+        // no ponto padrão para sempre, mesmo com a turma inteira aparecendo.
+        // Agora a primeira posição que chega por aqui também enquadra.
+        enquadrarSeAindaNao();
         renderizarLista();
       }
     )
@@ -662,7 +723,7 @@ async function carregarTudo() {
   iniciarVigiaLocal();
 
   if (posicoesOk) {
-    enquadrarPosicoes();
+    enquadrarSeAindaNao();
     atualizarAvisoLotacao();
   }
 }
@@ -675,6 +736,10 @@ function pararTudo() {
   pararVigiaLocal();
   if (camadaPosicoes) camadaPosicoes.clearLayers();
   posicoes.clear();
+  // Trocar de turma é começar de novo: a turma nova pode estar noutro estado,
+  // e manter o enquadramento da anterior deixaria o instrutor olhando para
+  // onde a OUTRA turma estava.
+  jaEnquadrou = false;
   pararMarcacoes(); // teardown aditivo de marcacoes.js (Etapa 6c) — seguro mesmo se nunca chamado iniciarMarcacoes()
   pararPaleta();    // idem: a paleta é por turma, e esta aba troca de turma sem recarregar
 }

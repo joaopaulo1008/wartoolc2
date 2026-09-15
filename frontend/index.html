@@ -363,6 +363,8 @@ import { iniciarMarcacoes } from './marcacoes.js';
 import { iniciarCamadas } from './camadas.js';
 import { iniciarAnotacoes } from './anotacoes-tela.js';
 import { iniciarSituacaoUsuario } from './situacao-tela.js';
+// Onde o mapa abre antes do primeiro fix do GPS — ver enquadrar-mapa.js.
+import { CENTRO_PADRAO, ZOOM_PADRAO } from './enquadrar-mapa.js';
 import { iniciarOfflineMapa } from './offline-tela.js';
 import { iniciarPaleta } from './paleta-tela.js';
 import { iniciarPainelRecolhivel, tornarRecolhivel, LARGURA_PAINEL_ABERTO } from './painel-lateral.js';
@@ -387,7 +389,7 @@ mostrarVersao();
 const BASEMAPS = criarBasemaps();
 
 // ── Inicializa o mapa ────────────────────────────────────────────────────
-const map = L.map('map', { center:[-22,-47], zoom:10 });
+const map = L.map('map', { center: CENTRO_PADRAO, zoom: ZOOM_PADRAO });
 let basemapAtual = null;
 
 // Fininho em volta de trocarCamadaBasemap() (basemaps.js) só para manter a
@@ -543,8 +545,10 @@ const camadasPermissao = (() => {
 // nela no primeiro fix, `setView(..., 16)`). Até a Etapa 11 ela era o
 // enquadramento dos elementos do COP de junho — o mapa abria em União da
 // Vitória mesmo para uma turma do outro lado do país, e só saía de lá quando
-// o GPS pegava. O `center:[-22,-47]` de `L.map()` lá em cima é só o que fica
-// na tela nos segundos antes do primeiro fix.
+// o GPS pegava. `CENTRO_PADRAO` (enquadrar-mapa.js) é só o que fica na tela
+// nos segundos antes do primeiro fix — e, desde 2026-09-15, se o fix NÃO
+// vier (galpão, ou `ver_propria_posicao` desligada), colegas.js enquadra a
+// força em vez de deixar o mapa num ponto arbitrário.
 
 // ── Seletor de formato de coordenada (Etapa 9b) ──────────────────────────
 // Liga os três <input type=radio> do cartão "Coordenada" a

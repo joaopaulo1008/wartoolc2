@@ -1602,6 +1602,62 @@ mensagem aparece no celular do aluno **sem F5**; tocar em "Vi" e ver a faixa do
 instrutor mudar para "lido às"; e corrigir a resposta depois de ela ter sido
 lida, confirmando que a confirmação **volta a zero**.
 
+### O mapa abre onde as pessoas estão (2026-09-15) — sem migration
+
+Pedido: *"ao abrir o mapa, apareça na posição dos usuários. Hoje está abrindo
+numa área aleatória no centro do mapa."*
+
+A "área aleatória" era `center: [-22, -47]` — um ponto perto de Campinas,
+escrito **à mão em quatro arquivos** (`index.html`, `situacao.js`,
+`debriefing.js` e o mapinha de imagem georreferenciada em
+`instrutor-calcos.js`). Para uma turma em Ponta Grossa, o app abria a 400 km de
+onde a instrução acontece.
+
+**Três defeitos diferentes, e só o primeiro era o óbvio:**
+
+1. **O padrão morava em quatro lugares.** Virou `CENTRO_PADRAO`/`ZOOM_PADRAO`
+   em `enquadrar-mapa.js` (novo, puro). Ele continua existindo — é o que fica
+   na tela nos segundos antes de se saber onde alguém está.
+2. **No painel do instrutor, o enquadramento só rodava na CARGA.** Se o
+   instrutor abrisse a aba antes de a turma começar a mandar posição — o caso
+   normal —, não havia nada a enquadrar e o mapa ficava no ponto padrão para
+   sempre, mesmo com a turma inteira aparecendo depois. Agora a primeira
+   posição que chega **pelo Realtime** também enquadra.
+3. **No app do aluno, o mapa só se movia com fix do GPS próprio.** Sem fix
+   (galpão, mata fechada) ou com `ver_propria_posicao` desligada, ninguém
+   centralizava nada — e o aluno tinha que procurar os próprios colegas
+   arrastando o mapa. Agora `colegas.js` enquadra a força nesse caso, e só
+   nesse: quando o GPS fixa, `gps.js` centraliza na pessoa e isso prevalece
+   (`jaCentralizouNoProprio()`, novo em gps.js, é como um sabe da vez do outro).
+
+**O caso que justifica um módulo puro em vez de um `fitBounds` direto:**
+`fitBounds` com todos os pontos no mesmo lugar produz uma caixa de área zero, e
+o Leaflet responde com **zoom máximo** — a tela vira um quadrado de 20 metros.
+E esse não é um caso raro: é a **formatura no início do exercício**, a turma
+inteira parada no mesmo pátio, dentro do erro do GPS.
+`planejarEnquadramento()` separa "todos praticamente no mesmo ponto" (→
+`setView` com zoom 15) de "pontos espalhados" (→ `fitBounds`), com tolerância
+de 0,0005° ≈ 55 m — maior que o erro típico de um GPS de celular e menor que
+qualquer dispersão tática real.
+
+**Dois cuidados que não se veem funcionando, só quebrados:**
+
+- **O automático acontece UMA vez.** Depois disso quem manda na câmera é quem
+  está olhando. `dragstart`/`zoomstart` do usuário também desarmam — puxar a
+  tela de alguém que está examinando uma região é pior do que abrir no ponto
+  errado, que se corrige com um gesto. O botão de enquadrar manual continua
+  enquadrando sempre: se foi pedido, é porque se quer.
+- **O enquadramento lê a posição CRUA, não a do marcador.**
+  `dispersarPosicoes()` desloca avatares empilhados alguns metros para eles não
+  se taparem; enquadrar pelo deslocado enquadraria a correção visual em vez de
+  onde as pessoas estão.
+
+**Verificação.** `enquadrar-mapa.teste.mjs` (novo, 29 casos, 29/29), com o caso
+degenerado travado nos dois sentidos (metade da tolerância ainda é ponto; o
+dobro já é área) e com ponto inválido no meio da lista provando que não
+contamina a caixa. **895 casos de frontend** em catorze suítes; `npm run build`.
+Sem migration e sem mudança de banco.
+
 ## Estrutura de pastas
 
 ```

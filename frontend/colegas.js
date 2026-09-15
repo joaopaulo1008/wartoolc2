@@ -61,6 +61,10 @@ import { linhaSituacaoDe, observarSituacoes } from './situacao-tela.js';
 // qualquer mudança e aplica o resultado nos markers. Ver o cabeçalho de lá
 // para o porquê de usar a posição CRUA (não a já deslocada) como entrada.
 import { dispersarPosicoes } from './dispersar-avatares.js';
+// Onde o mapa abre quando o GPS do próprio aluno não fixa — ver
+// enquadrarNaForcaSePreciso(), no fim deste arquivo.
+import { planejarEnquadramento } from './enquadrar-mapa.js';
+import { jaCentralizouNoProprio } from './gps.js';
 
 // ── Estado do módulo ─────────────────────────────────────────────────────
 // perfisCache: usuario_id -> { id, nome_guerra, sidc }. Povoado de uma vez
@@ -167,6 +171,42 @@ function remontarPopups() {
   }
 }
 
+// ── Onde o mapa abre, quando o GPS do aluno não resolve ──────────────────
+// O mapa do aluno abre na posição DELE (gps.js, no primeiro fix) e isso
+// continua sendo a regra. Mas há dois casos em que esse fix não vem: o GPS não
+// pega (dentro de um galpão, sob copa fechada) ou o instrutor desligou
+// `ver_propria_posicao`. Nesses casos o mapa ficava no ponto padrão — um lugar
+// arbitrário perto de Campinas — mesmo com a força inteira desenhada na tela,
+// e o aluno tinha que procurar os próprios colegas arrastando o mapa.
+//
+// Aqui a vez é de colegas.js: enquadra na força. Só UMA vez, e só enquanto o
+// próprio GPS ainda não centralizou — quando ele fixar, gps.js centraliza na
+// pessoa e é isso que deve prevalecer.
+let jaEnquadreiNaForca = false;
+
+function enquadrarNaForcaSePreciso({ map }) {
+  if (jaEnquadreiNaForca || jaCentralizouNoProprio() || !map) return;
+  // Posição CRUA, não a do marcador: dispersarPosicoes() desloca avatares
+  // empilhados para eles não se taparem, e enquadrar pelo deslocado
+  // enquadraria a correção visual em vez de onde as pessoas estão.
+  const pontos = [];
+  for (const estado of colegas.values()) {
+    if (Number.isFinite(estado.lat) && Number.isFinite(estado.lng)) {
+      pontos.push({ lat: estado.lat, lon: estado.lng });
+    }
+  }
+  const plano = planejarEnquadramento(pontos);
+  if (!plano) return;
+  if (plano.tipo === 'ponto') map.setView([plano.lat, plano.lon], plano.zoom);
+  else {
+    map.fitBounds(
+      L.latLngBounds([[plano.sul, plano.oeste], [plano.norte, plano.leste]]),
+      { padding: [40, 40] }
+    );
+  }
+  jaEnquadreiNaForca = true;
+}
+
 // Perfil de um colega: procura no cache; se não achar (colega novo que
 // entrou na turma depois do carregamento inicial), busca sob demanda e
 // guarda no cache para a próxima vez.
@@ -215,6 +255,9 @@ async function upsertAvatar(row, { map }) {
   // o deslocamento se acumularia a cada posição nova).
   estado.lat = row.latitude;
   estado.lng = row.longitude;
+  // O caso comum: o aluno abre o app dentro de um galpão, o GPS dele não fixa
+  // e o primeiro colega só aparece pelo Realtime, depois da carga inicial.
+  enquadrarNaForcaSePreciso({ map });
   estado.ultimaAtualizacaoEm = row.atualizado_em ? new Date(row.atualizado_em).getTime() : Date.now();
   // Etapa 9b: a linha inteira fica guardada para o popup poder ser remontado
   // quando o formato de coordenada mudar (ver remontarPopups()).
@@ -480,6 +523,7 @@ async function ativar() {
 
   assinarCanal(turmaId, userId, { map });
   iniciarVigiaAusencia();
+  enquadrarNaForcaSePreciso({ map });
 
   // O recado de situação de um colega muda sem que a posição dele mude, e o
   // popup é montado no upsertAvatar() (a cada posição nova). Sem este

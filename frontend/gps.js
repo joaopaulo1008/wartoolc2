@@ -94,6 +94,16 @@ let ouvindoRetomada = false;
 let contexto = null;
 let jaCentralizou = false;   // o mapa só se centraliza na PRIMEIRA leitura da sessão
 
+// Quem pergunta: colegas.js (2026-09-15). O mapa do aluno abre na posição
+// DELE, e isso continua valendo — mas quando o GPS não fixa, ou o instrutor
+// desligou `ver_propria_posicao`, ninguém centralizava nada e o mapa ficava no
+// ponto padrão mesmo com os colegas desenhados na tela. Nesse caso colegas.js
+// enquadra a força; esta função é como ele sabe que a vez é dele, sem precisar
+// adivinhar o estado do GPS.
+export function jaCentralizouNoProprio() {
+  return jaCentralizou;
+}
+
 // Etapa 9b: o que está DESENHADO no popup agora — { lat, lon, accuracy,
 // timestamp }. Guardado à parte de `ultimaPosGravada` (que é sobre o
 // throttle de gravação, não sobre o que está na tela) para o popup poder ser

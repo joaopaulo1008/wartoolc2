@@ -86,6 +86,9 @@ import { criarBasemaps, preencherSeletorBasemap, BASEMAP_PADRAO, trocarBasemap }
 // o que o observador garante é que, no dia em que o rastro for exposto ao
 // aluno, o interruptor já vale sem código novo.
 import { observarPermissao } from './permissoes.js';
+// Onde o mapa abre antes de haver rastro carregado. Mesma constante dos outros
+// dois mapas — ver enquadrar-mapa.js.
+import { CENTRO_PADRAO, ZOOM_PADRAO } from './enquadrar-mapa.js';
 import {
   GAP_SEM_SINAL_MS,
   ALVO_PONTOS_TOTAL,
@@ -277,7 +280,7 @@ function garantirMapa() {
   }
 
   basemaps = criarBasemaps();
-  map = L.map('debriefing-mapa', { center: [-22, -47], zoom: 10 });
+  map = L.map('debriefing-mapa', { center: CENTRO_PADRAO, zoom: ZOOM_PADRAO });
   preencherSeletorBasemap(el('debriefing-basemap'));
   basemapAtual = trocarBasemap(map, basemaps, BASEMAP_PADRAO, null);
   camadaTrilhas = L.layerGroup().addTo(map);

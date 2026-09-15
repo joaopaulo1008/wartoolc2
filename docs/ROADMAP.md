@@ -414,6 +414,18 @@ que agora abre com a ordem de prioridade para um tempo curto em campo.
   texto muda, para uma correção nunca nascer parecendo já lida — ele nasceu de
   uma falha real que o teste pegou. Não virou chat de propósito.
 
+- [x] **O mapa abre onde as pessoas estão** (2026-09-15, sem migration). A
+  "área aleatória" era `center:[-22,-47]`, escrito à mão em quatro arquivos —
+  um ponto perto de Campinas, a 400 km de uma turma em Ponta Grossa. Virou
+  `enquadrar-mapa.js` (puro, testado). Além do padrão único, dois defeitos que
+  não eram óbvios: no painel do instrutor o enquadramento **só rodava na
+  carga** (abrir a aba antes de a turma mandar posição deixava o mapa perdido
+  para sempre — agora a primeira posição do Realtime também enquadra), e no app
+  do aluno o mapa **só se movia com fix do GPS próprio** (sem fix, ele tinha de
+  procurar os colegas arrastando o mapa — agora `colegas.js` enquadra a força).
+  Trata o caso degenerado: a turma toda no mesmo pátio faria `fitBounds` dar
+  zoom máximo, e a tela viraria um quadrado de 20 m.
+
 ## A fazer, em ordem
 
 - [ ] **Etapa 2 — Autenticação e papéis** *(em andamento — dividida em 2a e 2b)*
