@@ -50,7 +50,9 @@ import { formatarCoordenada, observarFormatoCoordenada } from './preferencias.js
 // cabeçalho de lá para o raciocínio completo. Este módulo continua dono do
 // PRÓPRIO laço (ele decide o que "esmaecer"/"remover" significam para um
 // avatar de colega), só não guarda mais os números nem a conta de idade.
-import { SEM_SINAL_MS, idadeMs, iniciarVigia, rotuloIdade } from './vigia-ausencia.js';
+import { SEM_SINAL_MS, idadeDaPosicao, iniciarVigia, rotuloIdade } from './vigia-ausencia.js';
+// consultarPosicoesAtuais: o select de posições, com `origem` quando o banco já a tem (migration 0016).
+import { consultarPosicoesAtuais } from './modo-posicao.js';
 // Recado de situação do colega (2026-09-15). O módulo já assina o Realtime e
 // guarda o estado; aqui só se pergunta o que escrever no popup.
 import { linhaSituacaoDe, observarSituacoes } from './situacao-tela.js';
@@ -135,13 +137,18 @@ function popupColega(perfil, row) {
     ? new Date(row.atualizado_em).toLocaleTimeString('pt-BR')
     : '—';
   const precisao = row.precisao_m != null ? `±${Math.round(row.precisao_m)}m` : '—';
+  // Posição manual (simulação) não tem precisão medida; dizer isso é mais
+  // honesto do que um travessão que parece dado faltando.
+  const linhaPrecisao = row.origem === 'manual'
+    ? 'Posição manual (simulação)'
+    : `Precisão: ${precisao}`;
   // Etapa 9b: a coordenada do colega, no formato que ESTE usuário escolheu.
   // A mesma função que gps.js e marcacoes.js chamam — ver o comentário do
   // import lá em cima.
   return (
     `<b>${perfil.nome_guerra || 'Sem nome de guerra'}</b><br>` +
     `${formatarCoordenada(row.latitude, row.longitude)}<br>` +
-    `Precisão: ${precisao}<br>` +
+    `${linhaPrecisao}<br>` +
     `Atualizado: ${atualizado}` +
     linhaSituacaoHtml(perfil.id)
   );
@@ -294,11 +301,11 @@ function redistribuirAvatares() {
 
 // ── 1. Estado inicial (select comum, não Realtime) ──────────────────────
 async function carregarEstadoInicial(turmaId, userId, { map }) {
-  const { data, error } = await supabase
+  const { data, error } = await consultarPosicoesAtuais((colunas) => supabase
     .from('posicoes_atuais')
-    .select('usuario_id, latitude, longitude, precisao_m, atualizado_em')
+    .select(colunas)
     .eq('turma_id', turmaId)
-    .neq('usuario_id', userId); // exclui a si mesmo — gps.js já desenha o próprio avatar
+    .neq('usuario_id', userId)); // exclui a si mesmo — gps.js já desenha o próprio avatar
 
   if (error) {
     console.error('Falha ao carregar posições iniciais dos colegas:', error);
@@ -314,7 +321,7 @@ async function carregarEstadoInicial(turmaId, userId, { map }) {
     // de quando ela é — a vigia (abaixo) só mantém a etiqueta em dia a
     // partir daqui, e nunca remove ninguém.
     await upsertAvatar(row, { map });
-    aplicarIdade(row.usuario_id, idadeMs(row.atualizado_em));
+    aplicarIdade(row.usuario_id, idadeDaPosicao(row.atualizado_em, row.origem));
   }
 
   if (colegas.size === 0) status('nenhum colega visível ainda', '#7a9ab8');
@@ -403,7 +410,7 @@ function assinarCanal(turmaId, userId, { map }) {
         // sem sinal há 10 minutos voltaria a parecer recente só porque o
         // instrutor corrigiu o símbolo dele — mentira barata e difícil de
         // rastrear depois. `aplicarIdade` é a mesma função que a vigia usa.
-        aplicarIdade(row.id, idadeMs(estado.ultimaAtualizacaoEm));
+        aplicarIdade(row.id, idadeDaPosicao(estado.ultimaAtualizacaoEm, estado.ultimaLinha?.origem));
         if (estado.ultimaLinha) estado.marker.bindPopup(popupColega(perfil, estado.ultimaLinha));
       }
     )
@@ -455,6 +462,8 @@ function iniciarVigiaAusencia() {
   vigiaControlador = iniciarVigia({
     listarEstados: () => [...colegas].map(([usuarioId, estado]) => ({
       usuarioId, ultimaAtualizacaoEm: estado.ultimaAtualizacaoEm, marker: estado.marker,
+      // Posição manual (simulação) não envelhece — ver idadeDaPosicao().
+      semEnvelhecer: estado.ultimaLinha?.origem === 'manual',
     })),
     // Chamado para TODO colega a cada ciclo, não só ao cruzar um limiar: a
     // etiqueta conta ("12m" vira "13m"), e quem voltou a ser recente precisa

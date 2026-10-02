@@ -149,7 +149,7 @@ async function copiar(texto, alvoValor, textoOriginal) {
   }
 }
 
-function abrir(map, latlng, ponto, { obterPosto }) {
+function abrir(map, latlng, ponto, { obterPosto, obterPosicionamento }) {
   fechar();
   injetarEstilos();
 
@@ -173,13 +173,33 @@ function abrir(map, latlng, ponto, { obterPosto }) {
     },
   ));
 
-  // 2. Coordenada, no formato escolhido pela pessoa.
+  // 2. Posicionar-me aqui — SÓ em simulação (turma em modo 'manual'). Em
+  //    exercício com GPS a linha não aparece: ali ela não faltou, ela não se
+  //    aplica, e uma linha desligada em todo exercício real seria só ruído.
+  //    O que decide é perguntado AQUI, ao abrir o menu, e não guardado: se o
+  //    instrutor trocar o modo, o próximo menu já reflete. Quando o instrutor
+  //    desligou o envio de posição a linha aparece desabilitada e diz por quê.
+  const posicionamento = obterPosicionamento ? obterPosicionamento() : null;
+  if (posicionamento) {
+    el.appendChild(linha('Posicionar-me aqui',
+      posicionamento.desabilitado
+        ? (posicionamento.motivo || 'indisponível agora')
+        : 'simulação — define a posição do meu posto',
+      {
+        desabilitado: posicionamento.desabilitado,
+        ausente: posicionamento.desabilitado,
+        aoTocar: () => { const ll = latlng; fechar(); posicionamento.aoPosicionar(ll); },
+      },
+    ));
+  }
+
+  // 3. Coordenada, no formato escolhido pela pessoa.
   const coord = formatarCoordenada(latlng.lat, latlng.lng);
   el.appendChild(linha('Coordenada', coord, {
     aoTocar: (_b, v) => copiar(coord, v, coord),
   }));
 
-  // 3. Visada do posto até aqui. Mesmo par de funções do popup da marcação, e
+  // 4. Visada do posto até aqui. Mesmo par de funções do popup da marcação, e
   //    o mesmo "qd" ao fim: o lançamento é de QUADRÍCULA. Um segundo caminho
   //    de cálculo aqui seria a forma mais fácil de um dia os dois discordarem.
   const posto = obterPosto ? obterPosto() : null;
@@ -228,9 +248,14 @@ function abrir(map, latlng, ponto, { obterPosto }) {
 //               `obterPostoObservacao`. Passar a mesma é o que garante que a
 //               visada do menu e a do popup concordem, inclusive no motivo
 //               quando não há posição.
+//   obterPosicionamento  opcional (2026-10-02). Devolve `null` quando a linha
+//               "Posicionar-me aqui" não se aplica, ou
+//               `{ desabilitado, motivo, aoPosicionar(latlng) }`. É
+//               `obterPosicionamentoManual` de gps.js. Sem ele (o painel do
+//               instrutor) a linha não existe.
 //
 // Devolve a função que desliga tudo.
-export function ligarMenuDoMapa({ map, obterPosto } = {}) {
+export function ligarMenuDoMapa({ map, obterPosto, obterPosicionamento } = {}) {
   if (!map) return () => {};
   injetarEstilos();
   const container = map.getContainer();
@@ -244,7 +269,7 @@ export function ligarMenuDoMapa({ map, obterPosto } = {}) {
       if (cliqueEstaSuspenso()) return;
       const r = container.getBoundingClientRect();
       const ponto = L.point(x - r.left, y - r.top);
-      abrir(map, map.containerPointToLatLng(ponto), ponto, { obterPosto });
+      abrir(map, map.containerPointToLatLng(ponto), ponto, { obterPosto, obterPosicionamento });
     },
   });
 

@@ -79,8 +79,10 @@ import { ligarMenuDoMapa } from './menu-contexto.js';
 // fez com marcacoes.js: nenhuma cópia, nenhuma tela nova.
 import { iniciarPaleta, pararPaleta } from './paleta-tela.js';
 import {
-  AVISO_PARADO_MS, SEM_SINAL_MS, idadeMs, iniciarVigia, rotuloIdade,
+  AVISO_PARADO_MS, SEM_SINAL_MS, idadeDaPosicao, iniciarVigia, rotuloIdade,
 } from './vigia-ausencia.js';
+// consultarPosicoesAtuais: o select de posições, com `origem` quando o banco já a tem (migration 0016).
+import { consultarPosicoesAtuais } from './modo-posicao.js';
 // Etapa 7: as camadas de arquivo (calcos KML/KMZ publicados + arquivo aberto
 // no próprio aparelho). Reuso direto do módulo do app do aluno — ele recebe o
 // mapa e o contêiner do painel por parâmetro justamente para servir às duas
@@ -328,6 +330,10 @@ function popupPosicao(usuario, row) {
     ? new Date(row.atualizado_em).toLocaleTimeString('pt-BR')
     : '—';
   const precisao = row.precisao_m != null ? `±${Math.round(row.precisao_m)}m` : '—';
+  // Posição manual (simulação) não tem precisão medida — o popup diz o que ela é.
+  const linhaPrecisao = row.origem === 'manual'
+    ? 'Posição manual (simulação)'
+    : `Precisão: ${precisao}`;
   const papel = usuario?.papel === 'instrutor' ? ' <i>(instrutor)</i>' : '';
   // Etapa 9b: a coordenada, no formato que ESTE instrutor escolheu — a mesma
   // função dos popups do app do aluno. Aqui ela importa até mais: é o
@@ -336,7 +342,7 @@ function popupPosicao(usuario, row) {
     `<b>${esc(usuario ? nomeDoUsuario(usuario) : 'Usuário desconhecido')}</b>${papel}<br>` +
     `Força: ${esc(usuario?.partido?.nome || 'sem força')}<br>` +
     `${esc(formatarCoordenada(row.latitude, row.longitude))}<br>` +
-    `Precisão: ${precisao}<br>` +
+    `${linhaPrecisao}<br>` +
     `Atualizado: ${atualizado}` +
     (linhaSituacaoDe(row.usuario_id)
       ? `<br><span style="color:#c8a24a">${esc(linhaSituacaoDe(row.usuario_id))}</span>`
@@ -354,7 +360,8 @@ function popupPosicao(usuario, row) {
 function estadoDe(usuarioId) {
   const estado = posicoes.get(usuarioId);
   if (!estado) return { texto: 'sem posição', cor: '#4a6a8a', temPosicao: false };
-  const idade = idadeMs(estado.row.atualizado_em);
+  // Posição manual (simulação) não envelhece — ver idadeDaPosicao().
+  const idade = idadeDaPosicao(estado.row.atualizado_em, estado.row.origem);
   if (idade >= SEM_SINAL_MS) {
     return { texto: `sem sinal há ${duracaoCurta(idade)}`, cor: '#e05252', temPosicao: true };
   }
@@ -438,10 +445,10 @@ function esquecerPosicao(usuarioId) {
 
 // ── 1. Estado inicial (select comum, não Realtime) ──────────────────────
 async function carregarPosicoesIniciais(turmaId) {
-  const { data, error } = await supabase
+  const { data, error } = await consultarPosicoesAtuais((colunas) => supabase
     .from('posicoes_atuais')
-    .select('usuario_id, latitude, longitude, precisao_m, atualizado_em')
-    .eq('turma_id', turmaId);
+    .select(colunas)
+    .eq('turma_id', turmaId));
 
   if (error) {
     console.error('Falha ao carregar posições da turma:', error);
@@ -458,7 +465,7 @@ async function carregarPosicoesIniciais(turmaId) {
     // SEMPRE desenha; aplicarIdade() já põe a etiqueta de idade correta de
     // cara, sem esperar o próximo ciclo da vigia.
     desenharOuAtualizarMarcador(row.usuario_id);
-    aplicarIdade(row.usuario_id, idadeMs(row.atualizado_em));
+    aplicarIdade(row.usuario_id, idadeDaPosicao(row.atualizado_em, row.origem));
   }
   renderizarLista();
   return true;
@@ -531,6 +538,8 @@ function iniciarVigiaLocal() {
   vigiaControlador = iniciarVigia({
     listarEstados: () => [...posicoes].map(([usuarioId, estado]) => ({
       usuarioId, ultimaAtualizacaoEm: estado.ultimaAtualizacaoEm,
+      // Posição manual (simulação) não envelhece — ver idadeDaPosicao().
+      semEnvelhecer: estado.row?.origem === 'manual',
     })),
     // Chamado para TODO mundo a cada ciclo (não só ao cruzar um limiar),
     // porque a etiqueta conta e porque a lista lateral precisa continuar
@@ -704,7 +713,7 @@ async function iniciarMarcacoesDaTurma(turmaId) {
       if (!estado?.row) {
         return { rotulo: `Do posto de ${nome}`, motivo: 'ainda sem posição reportada' };
       }
-      const idade = rotuloIdade(Date.now() - estado.ultimaAtualizacaoEm);
+      const idade = rotuloIdade(idadeDaPosicao(estado.row.atualizado_em, estado.row.origem));
       return {
         lat: estado.row.latitude,
         lon: estado.row.longitude,
@@ -802,7 +811,7 @@ async function reatualizarTurma() {
   for (const [usuarioId, estado] of posicoes) {
     if (!estado.marker) continue;
     estado.marker.setIcon(iconePosicao(usuarioPorId(usuarioId)));
-    aplicarIdade(usuarioId, idadeMs(estado.row?.atualizado_em));
+    aplicarIdade(usuarioId, idadeDaPosicao(estado.row?.atualizado_em, estado.row?.origem));
   }
 }
 

@@ -75,6 +75,22 @@ export function idadeMs(atualizadoEm) {
   return Date.now() - carimbo;
 }
 
+// Idade de uma posição para fins de "ausência" (2026-10-02, simulação).
+//
+// Posição de origem 'manual' NÃO ENVELHECE: ela é o que o aluno declarou, e
+// continua valendo até ele declarar outra. A vigia existe para detectar quem
+// PARA de mandar um fluxo que devia estar chegando (o heartbeat do GPS); numa
+// turma em simulação ninguém manda fluxo nenhum, e etiquetar todo mundo com
+// "12m" / "sem sinal" diria o contrário da verdade — que ninguém perdeu sinal,
+// só não se mexeu. Posição de GPS (e linha sem `origem`, de antes da migration
+// 0016) continua envelhecendo exatamente como sempre.
+//
+// Uma linha de GPS antiga num exercício que depois virou simulação CONTINUA
+// etiquetada com a idade dela, de propósito: aquela posição é velha de verdade.
+export function idadeDaPosicao(atualizadoEm, origem) {
+  return origem === 'manual' ? 0 : idadeMs(atualizadoEm);
+}
+
 // Texto da etiqueta desenhada ao lado do símbolo, ou '' quando a posição
 // ainda é recente (abaixo de AVISO_PARADO_MS) e não há o que avisar.
 //
@@ -128,7 +144,8 @@ export function rotuloIdade(idade) {
 export function iniciarVigia({ listarEstados, aoConferir, aoFim }) {
   const id = setInterval(() => {
     for (const estado of listarEstados()) {
-      const idade = Date.now() - estado.ultimaAtualizacaoEm;
+      // `semEnvelhecer` (opcional): posição de origem manual — ver idadeDaPosicao().
+      const idade = estado.semEnvelhecer ? 0 : Date.now() - estado.ultimaAtualizacaoEm;
       aoConferir(estado, {
         idade,
         atrasado: idade >= AVISO_PARADO_MS,

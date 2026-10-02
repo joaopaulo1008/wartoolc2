@@ -36,6 +36,22 @@ import { formatarCoordenada, observarFormatoCoordenada } from './preferencias.js
 // garante que o aluno leia a lacuna com as mesmas palavras e o mesmo limiar
 // com que ela apareceu na tela de quem estava acompanhando.
 import { rotuloIdade } from './vigia-ausencia.js';
+// Fonte de posição (2026-10-02): o que é uma "leitura", a linha que vai para o
+// banco e a DECISÃO de gravar saíram daqui para um módulo puro, com teste.
+// Este arquivo continua dono do que depende do navegador: o watchPosition, o
+// marcador no mapa e a gravação no Supabase. A razão da extração é que a
+// posição passou a poder vir de mais de um lugar (GPS, toque no mapa e, no
+// futuro, simulador) e o resto do pipeline não deve saber de qual.
+import {
+  leituraDeGeolocation, leituraManual, paraLinhaPosicao, decidirGravacao,
+  usaGps, aceitaPosicaoManual, posicaoVemDeFora,
+} from './fonte-posicao.js';
+// Modo de posição da turma (2026-10-02, migration 0016): de onde vem a posição
+// própria neste exercício — GPS, toque no mapa (simulação) ou simulador. Ver o
+// cabeçalho de modo-posicao.js.
+import {
+  iniciarModoPosicao, observarModoPosicao, origemSuportada, reler as relerModoPosicao,
+} from './modo-posicao.js';
 
 // ── watchPosition ────────────────────────────────────────────────────────
 // `navigator.geolocation.watchPosition(sucesso, erro, opcoes)` é a API do
@@ -70,9 +86,9 @@ const WATCH_OPTIONS = {
 //      distinguir "está parado" de "perdeu conexão".
 //
 // O upsert só acontece quando (1) permite E ((2) ou (3) for verdade).
-const INTERVALO_MINIMO_MS = 5_000;   // 5s → no máximo 12 gravações/minuto por usuário
-const DISTANCIA_MINIMA_M  = 10;      // abaixo disso, é ruído do GPS, não movimento real
-const HEARTBEAT_MS        = 30_000;  // 30s sem gravar → grava mesmo parado, como "sinal de vida"
+// Os três limiares (INTERVALO_MINIMO_MS = 5 s, DISTANCIA_MINIMA_M = 10 m,
+// HEARTBEAT_MS = 30 s) moram em fonte-posicao.js, junto de `decidirGravacao()`,
+// que é a função que os usa. Os valores não mudaram; as razões estão acima.
 const SEM_SINAL_MS        = 20_000;  // 20s sem NENHUMA leitura (nem descartada) → avisa na tela
 
 // Estado do módulo (só existe um "próprio avatar" por página carregada).
@@ -88,6 +104,13 @@ let vigiaSinalId      = null;
 let forcarProximoEnvio = false;
 let lacunaRetomada = '';
 let ouvindoRetomada = false;
+
+// Modo de posição da turma. O valor de verdade mora em modo-posicao.js; esta é a
+// cópia de que as funções DESTE módulo precisam para decidir "ligo o GPS?" sem
+// importar o estado a cada linha — atualizada por `aoMudarModo()`, que é o único
+// escritor. Antes de o modo ser lido, vale 'gps': o comportamento de sempre.
+let modoAtual = 'gps';
+let temGeolocation = true;   // o navegador tem a API (só importa no modo gps)
 
 // Etapa 6a: contexto guardado no início para o watch poder ser religado
 // quando o instrutor reabilitar a permissão no meio da sessão.
@@ -137,11 +160,49 @@ export function minhaPosicao() {
   };
 }
 
+// ── Posição manual (simulação) ────────────────────────────────────────────
+// Posiciona o posto do aluno em (lat, lon): é a única entrada da fonte
+// 'manual', chamada pelo menu de toque longo e pelo arrasto do símbolo. Entra
+// no MESMO pipeline do GPS (desenho, gravação), só que com origem 'manual'.
+// Devolve `false` quando não se aplica (modo da turma não é manual, ou a
+// coordenada é inválida).
+export function posicionarMeuPosto(lat, lon) {
+  if (!contexto || !aceitaPosicaoManual(modoAtual)) return false;
+  const leitura = leituraManual(lat, lon);
+  if (!leitura) return false;
+  aoReceberLeitura(leitura, contexto);
+  return true;
+}
+
+// O que o menu de toque longo pergunta ao abrir: "há uma linha de
+// posicionamento para mostrar?". `null` = não se aplica (turma em modo GPS ou
+// do simulador) — a linha nem aparece, porque ali ela não faltou, ela não
+// existe. Em modo manual devolve o gancho; com o envio desabilitado pelo
+// instrutor a linha aparece e diz por quê, em vez de sumir (lacuna declarada).
+export function obterPosicionamentoManual() {
+  if (!contexto || !aceitaPosicaoManual(modoAtual)) return null;
+  const permitido = podeEnviar();
+  return {
+    desabilitado: !permitido,
+    motivo: permitido ? '' : 'envio de posição desabilitado pelo instrutor',
+    aoPosicionar: (latlng) => posicionarMeuPosto(latlng.lat, latlng.lng),
+  };
+}
+
+function aoArrastarMeuPosto() {
+  if (!marcadorProprio) return;
+  const { lat, lng } = marcadorProprio.getLatLng();
+  posicionarMeuPosto(lat, lng);
+}
+
 function popupProprio(perfil, pos) {
   return (
     `<b>${perfil.nome_guerra || 'Você'}</b><br>` +
     `${formatarCoordenada(pos.lat, pos.lon)}<br>` +
-    `Precisão: ±${Math.round(pos.accuracy)}m<br>` +
+    // Posição manual não tem precisão medida: dizer "±0m" seria afirmar o que ninguém mediu.
+    (pos.origem === 'manual'
+      ? 'Posição manual (simulação)<br>'
+      : `Precisão: ±${Math.round(pos.accuracy)}m<br>`) +
     `Atualizado: ${new Date(pos.timestamp).toLocaleTimeString('pt-BR')}`
   );
 }
@@ -152,29 +213,19 @@ function popupProprio(perfil, pos) {
 const podeEnviar    = () => pode('enviar_posicao_gps');
 const podeVerAvatar = () => pode('ver_propria_posicao');
 
-// Distância em metros entre dois pontos lat/lon (fórmula de Haversine — trata
-// a Terra como uma esfera; erro desprezível para escala de exercício de campo).
-function distanciaMetros(a, b) {
-  const R = 6_371_000;
-  const rad = Math.PI / 180;
-  const dLat = (b.lat - a.lat) * rad;
-  const dLon = (b.lon - a.lon) * rad;
-  const s = Math.sin(dLat / 2) ** 2 +
-    Math.cos(a.lat * rad) * Math.cos(b.lat * rad) * Math.sin(dLon / 2) ** 2;
-  return 2 * R * Math.asin(Math.sqrt(s));
-}
-
-function deveGravar(novaPos) {
-  const agora = Date.now();
-  // Retomada: fura as TRÊS regras, inclusive o teto de frequência. É o único
-  // lugar que faz isso, e o motivo é que as três existem para conter excesso
-  // de gravação — e aqui o problema é o oposto: acabou de haver um buraco.
-  if (forcarProximoEnvio) return true;
-  if (agora - ultimoEnvioEm < INTERVALO_MINIMO_MS) return false; // regra 1: teto de frequência
-  if (!ultimaPosGravada) return true;                            // primeira leitura: sempre grava
-  if (distanciaMetros(ultimaPosGravada, novaPos) >= DISTANCIA_MINIMA_M) return true; // regra 2
-  if (agora - ultimoEnvioEm >= HEARTBEAT_MS) return true;        // regra 3: sinal de vida
-  return false;
+// A distância (Haversine) e a decisão de gravar — as três regras do throttling,
+// mais a retomada — moraram aqui até 2026-10-02. Agora são puras, em
+// fonte-posicao.js, onde têm teste; esta função só fornece o estado do módulo.
+function deveGravar(posicao) {
+  return decidirGravacao({
+    agora: Date.now(),
+    ultimoEnvioEm,
+    ultimaPosGravada,
+    posicao,
+    // Retomada: fura as três regras. O motivo está no bloco "Retomada depois do
+    // congelamento do sistema", mais abaixo.
+    forcar: forcarProximoEnvio,
+  });
 }
 
 // ── UI: status do GPS ────────────────────────────────────────────────────
@@ -183,7 +234,7 @@ function deveGravar(novaPos) {
 function status(texto, cor) {
   const el = document.getElementById('gps-status');
   if (!el) return;
-  el.textContent = `GPS: ${texto}`;
+  el.textContent = `${usaGps(modoAtual) ? 'GPS' : 'Posição'}: ${texto}`;
   el.style.color = cor || '#7a9ab8';
 }
 
@@ -323,11 +374,6 @@ function ouvirRetomada() {
 // perfil: objeto devolvido por buscarPerfil() em auth.js (papel, nome_guerra,
 // turma_id, sidc, turma).
 export function iniciarRastreamentoProprio({ map, userId, perfil }) {
-  if (!('geolocation' in navigator)) {
-    status('não suportado neste navegador', '#e05252');
-    return;
-  }
-
   if (!perfil.turma_id) {
     // Sem turma, a policy de RLS de posicoes_atuais rejeitaria a gravação
     // mesmo assim (e não faz sentido aparecer num mapa sem turma) — melhor
@@ -336,7 +382,36 @@ export function iniciarRastreamentoProprio({ map, userId, perfil }) {
     return;
   }
 
+  // Sem a API de geolocalização o app ainda serve para simulação (modo
+  // manual), então a ausência dela deixou de ser um `return` aqui no começo:
+  // vira a mensagem de `avaliarRastreamento()`, só quando o modo é GPS.
+  temGeolocation = 'geolocation' in navigator;
+
   contexto = { map, userId, perfil };
+
+  window.addEventListener('beforeunload', pararWatch);
+
+  // O modo da turma é lido ANTES de qualquer observador poder ligar o watch.
+  // Sem isso, um aluno de turma em simulação pediria a permissão de
+  // localização à toa e tentaria gravar uma posição de GPS que a policy do
+  // banco ia recusar. A espera é curta e tem teto (ver modo-posicao.js); se o
+  // Supabase estiver lento o app segue como 'gps' e se corrige quando a
+  // resposta chegar.
+  //
+  // Falha aqui NUNCA pode matar o GPS: o rastreamento existia antes desta
+  // camada e tem que continuar funcionando se ela quebrar.
+  Promise.resolve()
+    .then(() => iniciarModoPosicao({ turmaId: perfil.turma_id }))
+    .catch((e) => console.warn('Modo de posição indisponível; seguindo como GPS:', e))
+    .then(ligarObservadores);
+}
+
+function ligarObservadores() {
+  const { perfil } = contexto;
+
+  // O do modo vem PRIMEIRO: os de permissão logo abaixo chamam
+  // avaliarRastreamento() na hora, e ele precisa já saber de que modo se trata.
+  observarModoPosicao(aoMudarModo);
 
   // Cada observador é chamado NA HORA com o valor atual (então isto também
   // faz o papel do "start" original) e de novo a cada mudança feita pelo
@@ -355,8 +430,24 @@ export function iniciarRastreamentoProprio({ map, userId, perfil }) {
     if (!marcadorProprio || !ultimaPosicaoDesenhada) return;
     marcadorProprio.bindPopup(popupProprio(perfil, ultimaPosicaoDesenhada));
   });
+}
 
-  window.addEventListener('beforeunload', pararWatch);
+// O instrutor trocou o modo da turma (ou o modo acabou de ser lido).
+//
+// O que estava no mapa era do modo ANTERIOR: a última posição do GPS não é onde
+// o aluno "está" na simulação, e a última posição manual não é onde ele está de
+// verdade. Mantê-la desenhada seria deixar uma posição de um jeito de medir
+// passar por posição do outro — exatamente o que a coluna `origem` existe para
+// evitar. O marcador some e o próximo posicionamento (ou a próxima leitura do
+// GPS) o redesenha.
+function aoMudarModo({ modo }) {
+  if (modo === modoAtual) return;
+  modoAtual = modo;
+  removerMarcadorProprio();
+  ultimaPosicaoDesenhada = null;
+  ultimaPosGravada = null;
+  ultimoEnvioEm = 0;
+  avaliarRastreamento();
 }
 
 // Liga/desliga o watchPosition conforme sobrou (ou não) motivo para ele
@@ -367,6 +458,32 @@ function avaliarRastreamento() {
   if (!podeEnviar() && !podeVerAvatar()) {
     pararWatch();
     status('desabilitado pelo instrutor', '#f5c842');
+    return;
+  }
+
+  // Simulação (modo manual ou externa): o GPS do aparelho NÃO é a fonte da
+  // posição, então o watch não liga — nem pede permissão de localização, nem
+  // gasta bateria. A posição vem de um toque no mapa (manual) ou de um serviço
+  // no servidor (externa); nos dois casos o que decide o que o aluno pode
+  // gravar é a policy do banco, e isto aqui só faz a tela concordar.
+  if (!usaGps(modoAtual)) {
+    pararWatch();
+    if (posicaoVemDeFora(modoAtual)) {
+      status('posição fornecida pelo simulador', '#f5c842');
+    } else if (!podeEnviar()) {
+      status('envio ao servidor desabilitado pelo instrutor', '#f5c842');
+    } else if (!podeVerAvatar()) {
+      status('simulação — seu avatar está oculto pelo instrutor', '#f5c842');
+    } else if (!ultimaPosicaoDesenhada) {
+      status('simulação — toque longo no mapa e escolha "Posicionar-me aqui"', '#f5c842');
+    } else {
+      status('simulação — posição manual', '#7af57a');
+    }
+    return;
+  }
+
+  if (!temGeolocation) {
+    status('não suportado neste navegador', '#e05252');
     return;
   }
 
@@ -428,9 +545,25 @@ function removerMarcadorProprio() {
   marcadorProprio = null;
 }
 
-function aoReceberPosicao(posicao, { map, userId, perfil }) {
+// Adaptador da fonte GPS: o navegador entrega um GeolocationPosition; o resto
+// do pipeline (desenho, throttling, gravação) trabalha com uma Leitura, que é
+// o que qualquer outra fonte também entregaria.
+function aoReceberPosicao(posicao, ctx) {
+  // Uma leitura que já estava a caminho quando o instrutor tirou a turma do
+  // modo GPS não pode virar posição: o watch foi desligado, mas o callback
+  // pendente ainda chega.
+  if (!usaGps(modoAtual)) return;
+  // Marca que CHEGOU leitura antes de qualquer outra coisa: o vigia de sinal
+  // mede "há quanto tempo nada chega", e uma leitura sem fixação utilizável
+  // também prova que o aparelho está respondendo.
   ultimaLeituraEm = Date.now();
-  const { latitude, longitude, altitude, accuracy, heading, speed } = posicao.coords;
+  const leitura = leituraDeGeolocation(posicao);
+  if (!leitura) return;
+  aoReceberLeitura(leitura, ctx);
+}
+
+function aoReceberLeitura(leitura, { map, userId, perfil }) {
+  const { lat: latitude, lon: longitude, precisao: accuracy } = leitura;
   const novaPos = { lat: latitude, lon: longitude };
 
   // Marcador local: atualiza a CADA leitura, sem throttle — é só desenho no
@@ -442,9 +575,16 @@ function aoReceberPosicao(posicao, { map, userId, perfil }) {
       marcadorProprio = L.marker([latitude, longitude], {
         icon: criarIconeProprio(perfil.sidc, perfil.nome_guerra),
         zIndexOffset: 1000, // o próprio avatar fica por cima de todo o resto
+        // Em simulação o aluno ARRASTA o próprio posto até onde ele está. Fora
+        // dela o marcador não se mexe: o GPS é quem manda, e um símbolo que se
+        // deixa arrastar por engano seria posição falsa em exercício real.
+        draggable: aceitaPosicaoManual(modoAtual),
       }).addTo(map);
+      marcadorProprio.on('dragend', aoArrastarMeuPosto);
       if (!jaCentralizou) {
-        map.setView([latitude, longitude], 16); // centraliza no próprio avatar só na primeira vez
+        // Posição manual NÃO move o mapa: quem posiciona já está olhando para o
+        // lugar, e um zoom 16 de repente é perder a visão que ele montou.
+        if (leitura.origem !== 'manual') map.setView([latitude, longitude], 16); // centraliza no próprio avatar só na primeira vez
         jaCentralizou = true;
       }
     } else {
@@ -455,11 +595,18 @@ function aoReceberPosicao(posicao, { map, userId, perfil }) {
     // remontar o popup quando o usuário trocar de UTM para grau decimal sem
     // esperar a próxima leitura do GPS — que pode demorar 30s (heartbeat) ou
     // não vir nunca, se a pessoa estiver parada dentro de um prédio.
-    ultimaPosicaoDesenhada = { lat: latitude, lon: longitude, accuracy, timestamp: posicao.timestamp };
+    ultimaPosicaoDesenhada = {
+      lat: latitude, lon: longitude, accuracy, timestamp: leitura.instante, origem: leitura.origem,
+    };
     marcadorProprio.bindPopup(popupProprio(perfil, ultimaPosicaoDesenhada));
   }
 
-  if (podeEnviar() && podeVerAvatar()) {
+  if (leitura.origem === 'manual') {
+    // Sem precisão medida para mostrar: o texto diz o que a posição É.
+    if (podeEnviar() && podeVerAvatar()) status('simulação — posição manual', '#7af57a');
+    else if (podeEnviar()) status('simulação — enviando, avatar oculto pelo instrutor', '#f5c842');
+    else status('simulação — envio desabilitado pelo instrutor', '#f5c842');
+  } else if (podeEnviar() && podeVerAvatar()) {
     status(`ativo (precisão ±${Math.round(accuracy)}m)`, '#7af57a');
   } else if (podeEnviar()) {
     status(`enviando, avatar oculto pelo instrutor (±${Math.round(accuracy)}m)`, '#f5c842');
@@ -471,7 +618,11 @@ function aoReceberPosicao(posicao, { map, userId, perfil }) {
   // 1-3 acima) libera. A ordem importa — com o envio desligado, nem contamos
   // a leitura como "gravação que aconteceu".
   if (!podeEnviar()) return;
-  if (!deveGravar(novaPos)) return;
+  // O throttling existe para conter o fluxo CONTÍNUO do GPS (jitter, várias
+  // leituras por segundo). Posição manual é um gesto único e deliberado — o
+  // aluno tocou ali ou soltou o símbolo ali — e filtrá-la por "andou pouco"
+  // faria o posicionamento parecer que não funcionou.
+  if (leitura.origem !== 'manual' && !deveGravar(novaPos)) return;
   ultimaPosGravada = novaPos;
   ultimoEnvioEm = Date.now();
 
@@ -487,11 +638,7 @@ function aoReceberPosicao(posicao, { map, userId, perfil }) {
     status(`ativo — recuperado após ${quanto} sem enviar`, '#7af57a');
   }
 
-  gravarPosicao({
-    userId, turmaId: perfil.turma_id,
-    latitude, longitude, altitude, accuracy, heading, speed,
-    timestamp: posicao.timestamp,
-  });
+  gravarPosicao(leitura, { userId, turmaId: perfil.turma_id });
 }
 
 // "upsert" = grava se a linha não existir, atualiza se já existir — aqui pela
@@ -499,24 +646,26 @@ function aoReceberPosicao(posicao, { map, userId, perfil }) {
 // Escrevemos SÓ nesta tabela: um trigger no banco copia sozinho para
 // posicoes_historico (ver CLAUDE.md / backend/README.md) — nenhuma lógica de
 // duplicação de histórico deve entrar no frontend.
-async function gravarPosicao({ userId, turmaId, latitude, longitude, altitude, accuracy, heading, speed, timestamp }) {
+async function gravarPosicao(leitura, { userId, turmaId }) {
+  // A montagem da linha (inclusive o que fazer com heading/speed `null` ou
+  // `NaN`, que o GPS devolve parado) mora em fonte-posicao.js.
   const { error } = await supabase.from('posicoes_atuais').upsert(
-    {
-      usuario_id: userId,
-      turma_id: turmaId,
-      latitude,
-      longitude,
-      altitude_m: altitude,
-      precisao_m: accuracy,
-      // heading/speed podem vir `null` (sem suporte) ou `NaN` (parado, pela
-      // spec do W3C) — em ambos os casos o JSON enviado ao Supabase vira
-      // `null` (JSON não tem NaN), o que já é aceito pelo `check` da tabela.
-      rumo_graus: heading,
-      velocidade_ms: speed,
-      medido_em: new Date(timestamp).toISOString(),
-    },
+    // `incluirOrigem` só liga depois de o modo da turma ter sido lido com
+    // sucesso (prova de que a migration 0016 está no banco). Antes disso a
+    // linha é idêntica à de antes dela. Ver paraLinhaPosicao().
+    paraLinhaPosicao(leitura, { userId, turmaId, incluirOrigem: origemSuportada() }),
     { onConflict: 'usuario_id' }
   );
+  if (error && error.code === '42501') {
+    // Violação de RLS. Com a 0016 a causa provável é o modo da turma ter
+    // mudado sem este aparelho saber (página congelada, sem rede): a policy
+    // exige que a origem gravada seja a do modo atual. Reler o modo é o que
+    // corrige, em vez de insistir numa gravação que vai continuar falhando.
+    console.warn('Gravação de posição recusada pela RLS — relendo o modo da turma:', error);
+    status('o modo de posição da turma mudou — reajustando…', '#f5c842');
+    relerModoPosicao();
+    return;
+  }
   if (error) {
     console.warn('Falha ao gravar posição GPS:', error);
     status(`erro ao enviar posição (${traduzirErro(error)})`, '#e05252');

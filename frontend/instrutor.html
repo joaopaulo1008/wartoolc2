@@ -442,6 +442,9 @@
 
 <div id="contexto">
   <span id="seletor-turma"></span>
+  <!-- Modo de posição da turma (GPS ou simulação). Montado por
+       instrutor-modo-posicao.js sobre a turma escolhida acima. -->
+  <span id="modo-posicao-instrutor"></span>
   <span style="color:#4a6a8a">
     As mudanças chegam ao app do aluno na hora, sem ele recarregar a página.
   </span>
@@ -799,6 +802,7 @@ import { iniciarPermissoes } from './permissoes.js';
 // situacao.js cairiam sempre no padrão, ignorando a escolha dele.
 import { iniciarPreferencias } from './preferencias.js';
 import { iniciarPainelPermissoes, observarTurma } from './instrutor-permissoes.js';
+import { iniciarModoPosicaoInstrutor } from './instrutor-modo-posicao.js';
 import { iniciarDebriefing, aoAbrirDebriefing, definirTurmaDebriefing, abrirRastroDoAluno } from './debriefing.js';
 import { iniciarSituacao, aoAbrirSituacao, definirTurmaSituacao } from './situacao.js';
 import { iniciarPainelCalcos, definirTurmaCalcos } from './instrutor-calcos.js';
@@ -843,6 +847,11 @@ if (resultado) {
   // vw_permissoes_efetivas, escrita nas duas camadas) está em
   // frontend/instrutor-permissoes.js — este arquivo é só a casca.
   iniciarPainelPermissoes({ session, perfil });
+
+  // Modo de posição da turma (2026-10-02, migration 0016): o seletor "GPS /
+  // simulação" na barra de contexto. Observa a turma escolhida pelo seletor de
+  // turma de instrutor-permissoes.js, como as demais abas.
+  iniciarModoPosicaoInstrutor();
 
   // Etapa 6b: a tela de debriefing. A turma vem de instrutor-permissoes.js
   // (o seletor de turma mora lá), para as duas abas trabalharem sempre sobre
