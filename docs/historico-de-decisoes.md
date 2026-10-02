@@ -1,0 +1,1698 @@
+# Histórico de decisões — WartoolC2
+
+Registro cronológico de **por que** cada entrega ficou do jeito que ficou.
+Saiu do `CLAUDE.md` em 2026-09-19, quando aquele arquivo passou de 247 KB
+(≈ 62 mil tokens carregados a cada sessão) para um manual de operação curto.
+
+**Nada aqui foi reescrito ou resumido** — as 32 seções estão
+íntegras, na ordem original.
+
+## Como usar este arquivo
+
+Não leia inteiro. As **regras** que saíram daqui já estão destiladas no
+`CLAUDE.md`, em forma imperativa; este arquivo guarda o **raciocínio** por trás
+delas. Venha aqui quando precisar saber *por que* uma regra existe, ou antes de
+mexer numa área cuja decisão você não conhece — o `CLAUDE.md` aponta a seção
+certa nos pontos em que isso importa.
+
+As seções mais caras de reaprender, se um dia sumirem da sua memória:
+
+- **"A CAUSA DE VERDADE do símbolo genérico"** — três diagnósticos errados
+  antes do certo. O melhor exemplo do projeto de seguir o dado em vez de
+  explicar o sintoma.
+- **"Símbolo do aluno e saída da turma" (0012)** — a política de **leitura**
+  barrando um `UPDATE`. Contraintuitivo e caro de redescobrir.
+- **"Paleta de ícones rápidos" (0010)** e **"Situação do usuário e pedido de
+  apoio" (0014)** — as decisões de separação de tabelas e de escopo.
+
+## Sumário
+
+1. [Decisões de modelagem do backend (Etapa 1, concluída)](#decisoes-de-modelagem-do-backend-etapa-1-concluida)
+2. [Decisões da Etapa 2b (autenticação no frontend, concluída)](#decisoes-da-etapa-2b-autenticacao-no-frontend-concluida)
+3. [Decisões da Etapa 3 (GPS próprio no mapa, concluída)](#decisoes-da-etapa-3-gps-proprio-no-mapa-concluida)
+4. [Decisões da Etapa 4 (colegas de turma em tempo real, concluída)](#decisoes-da-etapa-4-colegas-de-turma-em-tempo-real-concluida)
+5. [Decisões da Etapa 4.5 (partidos e hostilidade relativa, concluída)](#decisoes-da-etapa-45-partidos-e-hostilidade-relativa-concluida)
+6. [Decisões da Etapa 5 (marcação de elemento no mapa, concluída)](#decisoes-da-etapa-5-marcacao-de-elemento-no-mapa-concluida)
+7. [Decisões da Etapa 6a (painel do instrutor — permissões e forças por usuário, concluída)](#decisoes-da-etapa-6a-painel-do-instrutor-permissoes-e-forcas-por-usuario-concluida)
+8. [Decisões da Etapa 6b (debriefing — histórico e replay do rastro, concluída)](#decisoes-da-etapa-6b-debriefing-historico-e-replay-do-rastro-concluida)
+9. [Decisões da Etapa 6c (situação atual — mapa ao vivo do instrutor, concluída)](#decisoes-da-etapa-6c-situacao-atual-mapa-ao-vivo-do-instrutor-concluida)
+10. [Decisões da Etapa 7 (upload de KML/KMZ com opacidade, concluída)](#decisoes-da-etapa-7-upload-de-kmlkmz-com-opacidade-concluida)
+11. [Decisões da Etapa 7.1 (o painel para de tomar a tela, concluída)](#decisoes-da-etapa-71-o-painel-para-de-tomar-a-tela-concluida)
+12. [Decisões da Etapa 8a (mapa offline — salvar uma área da carta, concluída)](#decisoes-da-etapa-8a-mapa-offline-salvar-uma-area-da-carta-concluida)
+13. [Decisões da Etapa 8b (imagem georreferenciada — foto aérea/carta atualizada, publicada pelo instrutor, concluída)](#decisoes-da-etapa-8b-imagem-georreferenciada-foto-aereacarta-atualizada-publicada-pelo-instrutor-concluida)
+14. [Decisões da Etapa 11 (deploy — HTTPS e domínio, concluída)](#decisoes-da-etapa-11-deploy-https-e-dominio-concluida)
+15. [Correções de campo (2026-08-01)](#correcoes-de-campo-2026-08-01)
+16. [Decisões da Etapa 9a (migração para bundler, concluída)](#decisoes-da-etapa-9a-migracao-para-bundler-concluida)
+17. [Decisões da Etapa 9b (catálogo oficial do MD/EB, autoridade do instrutor e coordenadas, concluída)](#decisoes-da-etapa-9b-catalogo-oficial-do-mdeb-autoridade-do-instrutor-e-coordenadas-concluida)
+18. [Correção: o que vai escrito AO LADO do símbolo (2026-08-02)](#correcao-o-que-vai-escrito-ao-lado-do-simbolo-2026-08-02)
+19. [Vetor de observação — distância e azimute até o alvo (2026-08-02)](#vetor-de-observacao-distancia-e-azimute-ate-o-alvo-2026-08-02)
+20. [Etiqueta de idade no lugar do esmaecimento (2026-09-14)](#etiqueta-de-idade-no-lugar-do-esmaecimento-2026-09-14)
+21. [Paleta de ícones rápidos (2026-09-14) — migration 0010](#paleta-de-icones-rapidos-2026-09-14-migration-0010)
+22. ["Um objeto marcado está saindo como genérico" (2026-09-14)](#um-objeto-marcado-esta-saindo-como-generico-2026-09-14)
+23. [Fim da herança de junho de 2026 (2026-09-14)](#fim-da-heranca-de-junho-de-2026-2026-09-14)
+24. [Três ajustes do segundo relato (2026-09-14)](#tres-ajustes-do-segundo-relato-2026-09-14)
+25. [App em segundo plano: o que dá e o que não dá (2026-09-14)](#app-em-segundo-plano-o-que-da-e-o-que-nao-da-2026-09-14)
+26. [A CAUSA DE VERDADE do símbolo genérico (2026-09-14) — e três diagnósticos errados antes dela](#a-causa-de-verdade-do-simbolo-generico-2026-09-14-e-tres-diagnosticos-errados-antes-dela)
+27. [Vetor de observação nas duas telas + dados de tiro (2026-09-14) — migration 0011](#vetor-de-observacao-nas-duas-telas-dados-de-tiro-2026-09-14-migration-0011)
+28. [Símbolo do aluno e saída da turma, pelo painel (2026-09-14) — migration 0012](#simbolo-do-aluno-e-saida-da-turma-pelo-painel-2026-09-14-migration-0012)
+29. [Texto no mapa: rótulo de calco e anotações (2026-09-14) — migration 0013](#texto-no-mapa-rotulo-de-calco-e-anotacoes-2026-09-14-migration-0013)
+30. [Situação do usuário e pedido de apoio (2026-09-15) — migration 0014](#situacao-do-usuario-e-pedido-de-apoio-2026-09-15-migration-0014)
+31. [A resposta do instrutor ao pedido de apoio (2026-09-15) — migration 0015](#a-resposta-do-instrutor-ao-pedido-de-apoio-2026-09-15-migration-0015)
+32. [O mapa abre onde as pessoas estão (2026-09-15) — sem migration](#o-mapa-abre-onde-as-pessoas-estao-2026-09-15-sem-migration)
+
+---
+
+### Decisões de modelagem do backend (Etapa 1, concluída)
+
+Schema em `backend/supabase/`, documentado em `backend/README.md`. As decisões que valem carregar para as próximas etapas:
+
+- **A turma é a unidade de isolamento.** Tudo (posição, marcação, permissão) pendura numa turma; a RLS nunca deixa dados atravessarem de uma turma para outra. Aluno entra na turma pelo `codigo_acesso`, não pelo UUID.
+- **Posição GPS em duas tabelas.** `posicoes_atuais` (uma linha por usuário, sobrescrita) alimenta o mapa ao vivo via Realtime; `posicoes_historico` (append-only) guarda o rastro para debriefing. O cliente escreve só na primeira — um trigger copia para a segunda. **Nas Etapas 3 e 4, o frontend faz `upsert` em `posicoes_atuais` e nada mais.**
+- **Geometria híbrida.** `latitude`/`longitude` são a fonte de verdade e é o que o frontend lê/escreve (formato Leaflet direto, sem WKB). Existe também uma coluna `geom geography(Point,4326)` derivada por trigger, com índice GIST, reservada para consultas espaciais futuras (geocerca, proximidade). **O frontend deve ignorar `geom`.**
+- **Permissões em três camadas**: catálogo (padrão global) → `permissoes_turma` (padrão da turma) → `permissoes_usuario` (override individual). A view `vw_permissoes_efetivas` resolve a precedência e devolve a coluna `origem`, dizendo qual camada decidiu — é dela que o painel do instrutor (Etapa 6) deve ler, não das tabelas cruas. Instrutor recebe tudo habilitado por definição.
+- **Chaves de permissão são linhas, não enum** (`catalogo_permissoes`): permissão nova entra com um `insert`, sem migration.
+- **Exclusão de marcação é lógica** (`removida_em`/`removida_por`), para o instrutor auditar o que foi apagado durante o exercício.
+- ~~**Marcações guardam `hostilidade` absoluta** (enum `hostilidade_marcacao`) na tabela `marcacoes_inimigas`.~~ **CORRIGIDO na Etapa 4.5** — estava errado com duas forças no mesmo exercício. Ver a seção de decisões da Etapa 4.5 abaixo: a tabela virou `elementos_marcados` e guarda o *partido* do elemento; a hostilidade é derivada na renderização.
+- **Papel não é escolhido pelo cliente.** Todo cadastro nasce `usuario`; promover a `instrutor` é operação de `service_role`. Um trigger em `perfis` impede autopromoção e troca direta de turma.
+- **Contas são pré-cadastradas, não auto-cadastradas — mas isso é a Etapa 2c, ainda não feita.** O plano final é o uso em exercício com efetivo e funções definidos de antemão, com a lista de usuários montada antes (`backend/seed/usuarios_exercicio.csv`, fora do repo) e criada de uma vez por script via Admin API — cada linha já traz papel, turma, nome de guerra e símbolo militar, sem o aluno escolher nada. **Por decisão de escopo, a Etapa 2c foi adiada** para só antes do exercício real; enquanto isso (Etapa 2b), o cadastro é **aberto**: qualquer um cria a própria conta usuário+senha em `frontend/login.html`, nasce com `papel = usuario` e símbolo padrão do schema, e entra manualmente na turma `TESTE`. E-mails são fictícios (`usuario@wartool.local`) porque a confirmação por e-mail fica desligada. A RPC `entrar_na_turma(codigo)` é hoje o fluxo **principal** de entrada em turma (não a exceção) — só volta a ser caminho secundário quando o seed da 2c estiver pronto.
+- **SIDC é APP-6D de 20 dígitos**, não APP-6B de 15 caracteres. Formato: `10 | hostilidade(2) | dimensão(2) | situação(1) | hqtf(1) | escalão(2) | entidade(6) | mod1(2) | mod2(2)` — os últimos 10 dígitos são o que `getSIDC()` chama de `natureza_code`. Há `check (sidc ~ '^[0-9]{20}$')` em `perfis` e em `elementos_marcados`. As tabelas de conversão e o `getSIDC()` moravam em `frontend/index.html`; **desde a Etapa 4.5 moram em `frontend/simbolos.js`**, que é a fonte única. Qualquer código novo que gere SIDC importa de lá — nunca redefine as tabelas. **Desde a Etapa 9b**, `DIMENSAO` (= o *symbol set*) e `NATUREZA` são DERIVADAS do catálogo oficial (`frontend/simbolos-catalogo.js`, gerado), e só `HOSTILIDADE`/`SITUACAO`/`HQTF`/`ESCALAO` continuam escritas à mão — são os amplificadores do APP-6D, que o portal do MD/EB não publica como tabela.
+- **Recursão de RLS.** As policies de `perfis` consultam `perfis`; para não recursar, papel e turma do chamador saem de funções `SECURITY DEFINER` (`fn_meu_papel`, `fn_minha_turma`, `fn_sou_instrutor`, `fn_sou_instrutor_da_turma`, e desde a 4.5 `fn_meu_partido` e `fn_usuarios_visiveis`). Qualquer policy nova que precise saber "quem sou eu" ou "quem eu enxergo" deve usar essas funções, nunca um `select` direto em `perfis`.
+- **Realtime** publica `posicoes_atuais`, `elementos_marcados`, `partidos`, `permissoes_turma`, `permissoes_usuario` e — desde a `0004` (Etapa 6a) — `perfis`, todas com `REPLICA IDENTITY FULL`. Publicar as tabelas de permissão é o que faz o painel do instrutor surtir efeito imediato no app do aluno; publicar `perfis` é o que faz a troca de força chegar lá.
+
+### Decisões da Etapa 2b (autenticação no frontend, concluída)
+
+- **`supabase-js` via CDN em ESM, sem bundler.** O frontend continua HTML estático (bundler só entra na Etapa 9), então o cliente Supabase é importado direto no navegador a partir de `https://esm.sh/@supabase/supabase-js@2.111.0` dentro de `frontend/auth.js`. O `@supabase/supabase-js` que já está em `node_modules`/`package.json` não é usado ainda — fica pronto para quando houver bundler.
+- **`frontend/auth.js` é o módulo central de sessão.** Reúne cliente Supabase, conversão usuário→e-mail, `cadastrar()`, `entrar()`, `sair()`, `buscarPerfil()` e o guard `exigirSessao(papelEsperado)` usado no topo de `index.html` e `instrutor.html`. Qualquer tela nova que precise de sessão/papel deve importar daqui, não duplicar a lógica.
+- **Usuário nunca vê "e-mail".** O formulário pede só *usuário* + senha; `usuarioParaEmail()` em `auth.js` completa com `@wartool.local` por baixo dos panos. Regra do usuário: 3–20 caracteres, letras/números/`.`/`_`/`-`, sem espaço nem `@`.
+- **`nome_guerra` é gravado em dois passos.** A trigger `fn_criar_perfil_para_novo_usuario` (0001) só lê `nome_completo` e `papel` dos metadados do `signUp` — não existe campo de nome de guerra nela. `cadastrar()` manda o nome de guerra como `nome_completo` (cadastro aberto e simples, sem pedir nome completo à parte) e, logo em seguida, faz um `update` em `perfis.nome_guerra` como uma segunda chamada — permitido pela policy `perfis_editar_proprio` porque o papel não muda.
+- **Roteamento por papel é feito no cliente, lendo `perfis.papel`** logo após login/cadastro: `instrutor` → `frontend/instrutor.html`, `usuario` → `frontend/index.html`. `frontend/index.html` (antes só leitura/protótipo) ganhou o guard de sessão, meta de usuário/turma no topbar e botão de logout, mas o mapa/GPS em si é inalterado (isso é Etapa 3+). `frontend/instrutor.html` é só esqueleto (Etapa 6 traz o painel de verdade).
+- **Página escondida até o guard confirmar a sessão.** `index.html` e `instrutor.html` nascem com `<body style="visibility:hidden">`; o script de guard (module, portanto sempre executado depois do parsing) só revela a página depois de validar sessão + papel — evita flash de conteúdo para quem não devia ver.
+- **Sessão expirada / sem perfil → sempre volta para `login.html`**, nunca deixa a tela quebrada em silêncio (`redirecionarParaLogin`, chamado também por um listener de `SIGNED_OUT`).
+- **Pegadinha validada em produção: embed `perfis` → `turmas` precisa do hint de FK.** Existem DOIS caminhos de foreign key entre as duas tabelas (`perfis.turma_id -> turmas.id` e `turmas.instrutor_id -> perfis.id`), então `select('...turma:turmas(...)')` sem qualificar falha com `PGRST201` (relacionamento ambíguo) em vez de trazer o dado — descoberto ao testar o login pela primeira vez. `buscarPerfil()` usa `turmas!perfis_turma_id_fkey` para desambiguar. **Qualquer query futura que faça embed entre `perfis` e `turmas` (painel do instrutor na Etapa 6, por exemplo) precisa do mesmo hint.**
+
+### Decisões da Etapa 3 (GPS próprio no mapa, concluída)
+
+- **`frontend/gps.js` é o módulo novo, separado de `auth.js`.** Reusa o mesmo cliente Supabase (`import { supabase } from './auth.js'`) em vez de criar um segundo `createClient` — evita duplicar estado de sessão no navegador. Só cuida do GPS/avatar próprio; ver os avatares dos colegas ficou para `frontend/colegas.js` (Etapa 4, ver decisões logo abaixo).
+- **Throttling do upsert: três regras combinadas**, não só uma — ver comentários no topo de `gps.js` para o raciocínio completo. Resumo: intervalo mínimo de 5s (teto de gravações/minuto), distância mínima de 10m (filtra o jitter do GPS parado — a precisão típica é 5-15m, então menos que isso não é movimento real), heartbeat de 30s (garante que a posição não pareça "congelada" quando a pessoa está parada, mas sem mover o suficiente para passar no filtro de distância). O marcador local no mapa é atualizado em TODA leitura do GPS, sem throttle — só a gravação no banco é limitada, porque desenhar no navegador não custa rede.
+- **`map` é passado por parâmetro para `gps.js`, não lido como variável global implícita.** O padrão usado no guard de sessão (`typeof map !== 'undefined'`, ver Etapa 2b) funciona para código inline no próprio `index.html`, mas passar explicitamente é mais robusto para um módulo importado de outro arquivo — e evita quebrar quando `index.html` virar SPA com bundler na Etapa 9.
+- **`perfis.sidc` precisou entrar no `select` de `buscarPerfil()` em `auth.js`.** Antes a função não trazia essa coluna (não era usada até agora). Qualquer código novo que precise de campos de `perfis` ainda não expostos por `buscarPerfil()` deve estender esse `select`, não duplicar a query.
+- **Sem evento de "perda de sinal"**: `watchPosition` simplesmente para de chamar o callback de sucesso quando o GPS não consegue mais fixar posição (não dispara erro). `gps.js` cobre isso com um `setInterval` próprio ("vigia de sinal") que compara `Date.now()` contra a última leitura recebida.
+- **Sem gravação de `bateria_pct`** (coluna existe em `posicoes_atuais` e é nullable): a Battery Status API foi removida/restringida na maioria dos navegadores por privacidade — não é uma fonte confiável hoje. Fica de fora até (se) precisar resolver isso especificamente.
+- **Teste local funciona no `http-server`/`python3 -m http.server` já usado desde a Etapa 2b**: a API de geolocalização exige "contexto seguro" (HTTPS), mas `http://localhost` é uma exceção explícita da spec — não precisa de certificado para testar no navegador do próprio PC. **Atenção para quando for testar no celular de verdade**: acessar por IP de rede local (`http://192.168.x.x:8000`) NÃO conta como `localhost` e o navegador do celular vai bloquear a geolocalização — nesse ponto (Etapa 11, deploy, ou um túnel HTTPS tipo ngrok antes disso) vai ser necessário HTTPS de verdade.
+
+### Decisões da Etapa 4 (colegas de turma em tempo real, concluída)
+
+- **`frontend/colegas.js` é o módulo novo**, no mesmo padrão de `gps.js`: reusa o cliente Supabase de `auth.js`, recebe `map` por parâmetro (não lê global), e cuida só de mostrar os OUTROS avatares — o próprio continua sendo desenhado por `gps.js`, sem sobreposição (`colegas.js` sempre ignora o próprio `usuario_id`, tanto no select inicial quanto nos eventos do canal).
+- **Realtime não faz backfill.** `postgres_changes` só avisa de mudanças a partir do momento em que o cliente assina o canal — por isso o fluxo é sempre *select inicial primeiro, `subscribe()` depois*: um `select` comum em `posicoes_atuais` filtrado por `turma_id` monta o estado de quem já estava no mapa, e só então o canal é assinado para pegar o que muda dali em diante. Se a ordem fosse invertida (ou se o select faltasse), só apareceria gente que se mexeu depois que a página abriu.
+- **Cache de perfis: tudo de uma vez no início, com fallback sob demanda.** `posicoes_atuais` não guarda `nome_guerra` nem `sidc` (só `usuario_id` e coordenadas), então o avatar do colega depende de um lookup em `perfis`. `buscarPerfisDaTurma()` (novo em `auth.js`) traz a turma inteira num round-trip só no início — turma de exercício é pequena, então isso é mais simples e mais barato que ficar buscando perfil individual a cada posição nova. `buscarPerfilBasico()` (também novo em `auth.js`) cobre o caso de alguém entrar na turma DEPOIS desse carregamento: busca sob demanda na primeira posição desse `usuario_id` desconhecido, e guarda no cache — não repete a busca depois.
+- **Vigia de ausência local, porque não existe evento de "usuário sumiu".** O Realtime só dispara `INSERT`/`UPDATE` (posição nova) e `DELETE` (alguém apagou a linha — normalmente o instrutor). Se o colega simplesmente fechar o app, nenhum evento chega nunca mais, e o último avatar desenhado ficaria parado no mapa para sempre. Por isso `colegas.js` roda um `setInterval` próprio que mede a idade de `atualizado_em` de cada colega: esmaece o avatar depois de ~2 heartbeats perdidos (60s) e remove do mapa depois de ~4 (120s). Usa `atualizado_em` (carimbo do SERVIDOR, gravado a cada upsert) em vez de `medido_em` (carimbo do celular do colega) de propósito — um celular com relógio errado bagunçaria a conta de inatividade; o relógio do servidor é a mesma referência para todo mundo. `DELETE` explícito (instrutor apagando a posição de alguém) remove o avatar na hora, sem esperar a vigia.
+- **Ícone do colega é uma função própria em `colegas.js`, não compartilhada com `criarIconeProprio()` de `gps.js`.** Pequena duplicação deliberada: o helper tem ~15 linhas e extrair um `frontend/simbolos.js` compartilhado significaria mexer no `gps.js` já testado da Etapa 3 por um ganho pequeno. Vale reconsiderar se aparecer um terceiro consumidor (ex.: marcação de posição inimiga na Etapa 5).
+- ~~**Permissões (`ver_posicao_outros` etc.) ainda não são checadas no cliente.**~~ **FECHADO na Etapa 6a** — `colegas.js`, `gps.js` e `marcacoes.js` passaram a observar as chaves correspondentes via `frontend/permissoes.js`. Ver a seção de decisões da Etapa 6a abaixo.
+
+### Decisões da Etapa 4.5 (partidos e hostilidade relativa, concluída)
+
+Migration `backend/supabase/0003_partidos.sql`, incremental — **0001 e 0002 não foram reescritas**, porque o schema já estava aplicado num projeto Supabase real. Estas decisões substituem o modelo de hostilidade absoluta descrito na Etapa 1.
+
+- **Hostilidade não é um fato do elemento; é uma relação com quem olha.** Com Azul e Vermelho no mesmo exercício, o mesmo pelotão é hostil para um e amigo para o outro. O banco guarda **só o partido** do elemento; o dígito de hostilidade do SIDC é calculado na renderização. Uma linha no banco, dois símbolos diferentes na tela. Foi correção de modelagem errada, não conforto.
+- **`marcacoes_inimigas` virou `elementos_marcados`**, e a coluna `hostilidade` (enum) deu lugar a `partido_id`. O nome antigo mentia sobre o modelo novo. A renomeação foi segura porque nenhum `.js`/`.html` referenciava a tabela (verificado por grep, não presumido) — e não seria mais depois da Etapa 5. O enum `hostilidade_marcacao` continua existindo, marcado como obsoleto por `comment on type`; dropar tipo é irreversível e ele não custa nada parado.
+- **Partidos são tabela, não enum, e são por turma** (`partidos`, com `unique (turma_id, nome)`). Verde/neutro, civil ou uma terceira força entram com um `insert`. Azul e Vermelho nascem em toda turma por trigger (`fn_criar_partidos_padrao`). A coluna `partidos.tipo` (`beligerante` | `neutro`) é o que permite acrescentar um partido neutro **sem tocar em código**: a derivação lê o `tipo`, não uma lista de nomes no JavaScript.
+- **`fn_usuarios_visiveis()` é o ponto único de mudança.** É a única resposta para "quem eu enxergo", e as policies de leitura de `posicoes_atuais`, `posicoes_historico` e `elementos_marcados` chamam ela em vez de inlinar `turma_id = fn_minha_turma()`. **A Etapa 6.5 troca só o corpo dela** (árvore ORBAT) e nenhuma policy é reescrita. O comentário na seção 5 da migration lista as três invariantes que qualquer corpo novo precisa manter — leia antes de mexer.
+- **Desempenho pensado desde já**, porque essa função roda em toda leitura de posição com 60+ usuários mandando GPS a cada poucos segundos: ela é `stable` + `parallel safe` e aparece nas policies como `x in (select fn_usuarios_visiveis())`. Sendo subconsulta **não correlacionada**, o planejador a executa **uma vez por consulta** e resolve por hash — confirmado no `explain analyze` (`hashed SubPlan`, `loops=1`). O índice `idx_perfis_turma_partido (turma_id, partido_id) include (papel)` cobre exatamente o predicado. Se algum dia a função virar correlacionada (receber parâmetro da linha), esse ganho evapora — cuidado na 6.5.
+- **Partido nulo é restritivo, por decisão.** Quem ainda não foi distribuído numa força não enxerga ninguém além de si, e não é enxergado. Não é coringa. **Consequência prática: depois de aplicar a 0003 o mapa fica vazio até o instrutor distribuir os partidos** — pelo painel (Etapa 6a) ou, para a turma inteira de uma vez, pelo `update` que está em `backend/README.md`. O instrutor é a exceção: continua vendo a turma inteira, os dois partidos, independentemente de partido próprio.
+- **O aluno não muda o próprio partido; o instrutor corrige o de quem estiver errado** (desde a Etapa 6a, pelo painel; antes, só por SQL). Se o aluno pudesse, um `update` transformaria o Vermelho em Azul e a RLS inteira desta etapa cairia. A regra entrou em `fn_proteger_campos_do_perfil` (mesma função de 0002, corpo estendido). Um segundo trigger (`fn_normalizar_partido_do_perfil`) garante que o partido pertence à turma do perfil e zera o partido quando a pessoa troca de turma — partido é por turma, referência órfã não faz sentido.
+- **Permissão ≠ filtro.** `perfis.preferencias_visualizacao` (jsonb) é o que o **usuário escolhe** ver e o próprio dono edita; permissão é o que o **instrutor deixa** ver, mora na RLS e não se contorna. São camadas independentes; a interface de filtros não foi feita nesta etapa (só a coluna).
+- **`frontend/simbolos.js` é a fonte única do SIDC.** As tabelas APP-6D e `getSIDC()` saíram de `index.html` para cá, junto com `hostilidadeRelativa()` e `sidcParaObservador()`. **A ordem das guardas em `hostilidadeRelativa()` importa** e tem teste: observador sem partido devolve `null` ("não afirma nada", preserva o SIDC gravado) e isso precisa ser checado ANTES de "elemento sem partido → DESCONHECIDO" — invertido, um banco recém-migrado desenharia todo mundo como desconhecido. Foi exatamente a regressão que o teste apanhou.
+- **Ponte `window.WartoolSimbolos`.** O `<script>` de `index.html` não é module e não pode `import`; converter ele em module quebraria o `map` global que o script de sessão lê. Então `simbolos.js` se publica em `window.WartoolSimbolos` e o script clássico consome de lá — uma definição, dois caminhos de acesso. Como módulos são *deferred*, a carga inicial do COP passou a esperar `DOMContentLoaded`. **A ponte some na Etapa 9**, quando tudo virar `import`.
+- **Testes ficaram no repositório** (`backend/testes/`, `frontend/simbolos.teste.mjs`) porque são o que torna verificável a promessa da 6.5. `backend/testes/00_stub_supabase.sql` recria o mínimo do ambiente Supabase (schema `auth`, `auth.uid()`, papéis, publicação) para as migrations rodarem num Postgres cru — **não rodar no Supabase**.
+
+### Decisões da Etapa 5 (marcação de elemento no mapa, concluída)
+
+Nenhuma migration nova: `elementos_marcados` e a RLS dela já estavam prontas desde a 0003 (Etapa 4.5) — esta etapa só foi a primeira a escrever na tabela.
+
+- **`frontend/marcacoes.js` é o módulo novo**, mesmo padrão de `gps.js`/`colegas.js`: reusa o cliente Supabase de `auth.js`, recebe `map` por parâmetro, e é o primeiro a fazer `insert`/`update` em `elementos_marcados`. O formulário pede tipo/natureza, dimensão, escalão e **o partido do elemento observado** (dropdown com "Não identificado" = `partido_id` nulo como primeira opção) — hostilidade nunca é um campo do formulário, e nunca é gravada: o SIDC sai de `getSIDC()` com o dígito de hostilidade como placeholder, e quem lê depois passa sempre por `sidcParaObservador()`.
+- **`frontend/icones.js` é a extração prevista desde o comentário de `colegas.js`** ("vale reconsiderar se aparecer um terceiro consumidor"): reúne `sidcParaObservador()` + a montagem do `L.divIcon` via milsymbol (com fallback para SIDC inválido) num só `criarIconeSimbolo()`, consumido por `gps.js`, `colegas.js` e `marcacoes.js`. Acabou a duplicação; qualquer código novo que precise desenhar um símbolo NATO no mapa importa daqui, não redefine o helper.
+- **`decomporSidc()` (novo em `frontend/simbolos.js`) é o inverso de `getSIDC()`**, usado só para pré-preencher o formulário de EDIÇÃO de uma marcação (o banco grava só o SIDC final, não os rótulos humanos que o formulário usa) — procura, em `DIMENSAO`/`ESCALAO`/`NATUREZA`, a chave cujo valor bate com o trecho correspondente do SIDC. Fica em `simbolos.js` (não em `marcacoes.js`) pelo mesmo motivo de `getSIDC()` morar lá: é o par montar/desmontar do MESMO formato, e `simbolos.js` é a fonte única dele.
+- **`NATUREZA` (nova tabela em `simbolos.js`)** é reduzida a partir do `NATUREZA_MAP` de `legacy-qgis/cop_tatico_v7.py` (mesma fonte das demais tabelas manuais), guardando só o código de entidade de 6 dígitos — a "dimensão" não vem embutida nela como no script legado, porque aqui quem marca escolhe `DIMENSAO` separadamente no formulário. Como as outras, é candidata a virar as tabelas oficiais do `stanag-app6` na Etapa 9.
+- **Editar reconstrói o SIDC do zero a partir dos rótulos re-selecionados** (via `getSIDC()`), não faz splicing de dígitos individuais do SIDC antigo — `decomporSidc()` só serve para PRÉ-PREENCHER os `<select>`, a gravação em si sempre monta um SIDC novo e completo. Simplificação deliberada para o escopo "baixa-média complexidade" desta etapa.
+- **Exclusão continua lógica** (`removida_em`/`removida_por`, via `UPDATE`, nunca `DELETE`): o autor edita/remove a própria marcação, o instrutor da turma edita/remove qualquer uma — as policies `elementos_editar_proprio`/`elementos_editar_instrutor` (0003) já cobriam isso. O cliente só esconde os botões Editar/Remover quando o usuário não tem esse direito (conveniência de UI); a RLS é a barreira de verdade, não o botão escondido.
+- **Realtime no mesmo padrão de `colegas.js`**: select inicial (o Realtime não faz backfill) seguido de assinatura de canal `postgres_changes`, filtrado por `turma_id` no servidor e confiando na RLS (`autor_id in fn_usuarios_visiveis()`) para restringir mais — sem vigia de ausência (diferente de `colegas.js`): uma marcação não fica "obsoleta" com o tempo como uma posição de GPS, então não há o que uma vigia devesse remover além do que a própria exclusão lógica já cobre.
+- **Achado importante sobre a RLS existente, relevante para testar esta etapa**: a visibilidade de `elementos_marcados` é amarrada ao **autor** (`autor_id in fn_usuarios_visiveis()`), não ao partido do elemento marcado. Consequência: **duas contas de partidos diferentes nunca veem a marcação uma da outra** — mesmo comportamento, por design, de `posicoes_atuais` desde a 4.5 ("o Azul não recebe a marcação que o Vermelho fez do próprio dispositivo"). Para confirmar ao vivo que a hostilidade renderiza diferente por observador, o teste certo é com **duas contas do MESMO partido**: uma marca um elemento do próprio partido (deve aparecer AMIGO) e outra do partido adversário (deve aparecer HOSTIL), ambas visíveis para as duas contas. Testar com partidos diferentes só prova que a marcação NÃO vaza — o que também é o comportamento correto, só que é outro teste.
+
+### Decisões da Etapa 6a (painel do instrutor — permissões e forças por usuário, concluída)
+
+As três tabelas de permissão, a view e a RLS delas estão prontas desde a `0001`/`0002`, e já eram publicadas no Realtime desde a `0001` — a Etapa 6a foi a primeira a *usar* tudo isso. A única migration nova é a **`0004_perfis_realtime.sql`**, e ela não cria nem altera regra nenhuma: só publica `perfis` no Realtime (ver a última seção, sobre a troca de força).
+
+- **`frontend/permissoes.js` é a fonte única de permissão no cliente**, compartilhado pelas duas telas (app do aluno e painel do instrutor), no mesmo espírito de `simbolos.js` para o SIDC. Ele concentra as leituras (`vw_permissoes_efetivas`), as escritas nas duas camadas e o estado reativo do lado do aluno. Nenhum outro arquivo fala com `permissoes_turma`/`permissoes_usuario` direto.
+- **Ler sempre da view, nunca das tabelas cruas** — a precedência mora no banco e não pode ganhar uma segunda implementação em JavaScript. **Uma exceção legítima:** o painel de *padrão da turma* lê `permissoes_turma` direto, porque a view é por usuário e não sabe responder "esta chave está definida no nível da turma ou está caindo no padrão do catálogo?" — e é exatamente essa diferença que o botão "voltar ao padrão do sistema" precisa saber.
+- **Mudança de permissão dispara uma releitura da view, não a aplicação do payload do Realtime.** O evento diz "`permissoes_turma.camada_bdgex` virou `false`", mas não diz o valor *efetivo* depois disso: se aquele aluno tiver override individual, o padrão da turma não muda nada para ele. Quem resolve precedência é a view. Um round-trip por mudança é barato — permissão muda quando o instrutor clica, não quando o GPS dispara. Há um *debounce* de 200ms para a rajada de vários toggles seguidos virar uma releitura só.
+- **`observarPermissao(chave, cb)` chama o callback na hora e a cada mudança.** Isso elimina o "e o estado inicial?" duplicado em cada módulo: o mesmo callback que reage à mudança é o que faz o start. Corolário registrado no código: **quem só precisa saber "posso agora?" chama `pode()` na hora do uso** — nenhum módulo guarda cópia local do valor, que seria uma segunda fonte de verdade esperando para ficar desatualizada.
+- **`iniciarPermissoes()` é `await`-ado antes dos três módulos** em `index.html`. Sem isso, o primeiro `observarPermissao()` de cada módulo receberia o padrão otimista e o aluno veria por um instante coisas que o instrutor já tinha desligado — piscar e sumir é pior que aparecer 200ms depois.
+- **Falha de leitura é permissiva, por decisão.** Se a view não responder, `pode()` cai no padrão do catálogo; se nem o catálogo carregar, devolve `true`. Falhar fechado transformaria uma queda de rede momentânea num aluno sem mapa, sem GPS e sem marcação no meio do exercício.
+- **Estas checagens são de interface, NÃO de segurança.** Elas rodam no navegador do aluno; quem abrir o console contorna qualquer uma. A barreira de verdade é a RLS — e **a RLS não conhece o catálogo de permissões**: ela restringe por turma e por partido (`fn_usuarios_visiveis`). Ou seja, desligar `ver_posicao_outros` tira os colegas da TELA, não do alcance da API. É aceitável para instrução (o adversário aqui é a distração, não a espionagem), mas está escrito em `permissoes.js` e aqui para ninguém confundir as duas coisas depois.
+- **`marcacoes.js` passou a guardar duas coisas separadas: `linhas` (tudo que a RLS deixou chegar) e `marcadores` (o que está desenhado).** Com `ver_marcacoes_outros` desligada, as marcações dos outros continuam chegando pelo Realtime (a RLS não sabe da permissão); guardando a linha, religar a chave redesenha na hora, sem novo `select`. Se só existisse o mapa de marcadores, o que passou durante o período desligado sumiria para sempre — o Realtime não faz backfill.
+- **`gps.js` separa "enviar" de "ver-se".** `enviar_posicao_gps` controla o `upsert`; `ver_propria_posicao` controla o desenho local. O `watchPosition` só é desligado quando **as duas** estão desligadas — aí não sobrou motivo para gastar bateria. Desligar só o envio não precisa cegar o aluno sobre onde ele mesmo está.
+- **`colegas.js` fecha o canal Realtime quando `ver_posicao_outros` cai**, em vez de só esconder os avatares: com 60+ alunos mandando GPS, receber posição que não vai ser desenhada é tráfego à toa no aparelho de quem está proibido de ver. Ao religar, o módulo refaz o caminho completo (select inicial → assinatura), como faria numa carga de página.
+- **`window.WartoolCamadas` é a segunda ponte do projeto**, pelo mesmo motivo (e com o mesmo prazo de validade) de `window.WartoolSimbolos`: as camadas moram no `<script>` clássico de `index.html`, que não pode `import`. O script clássico publica comandos com nome de intenção ("pode/não pode ver a camada X") e o módulo só chama. **Some na Etapa 9.**
+- **Permissão e escolha do aluno são coisas diferentes e as duas são respeitadas**: a camada só aparece quando o instrutor PERMITE e o aluno MARCOU a caixa. Nenhuma função da ponte desmarca a caixa do aluno — ao reabilitar, ele volta ao estado que tinha escolhido, não a "tudo ligado".
+- **Mapeamento chave → interface que existe hoje:** ~~`camada_manobra` → `EXTRA_LAYERS` (o GeoJSON "Limites e Eixos"); `camada_inimigo` → grupo I (hostis) do painel COP legado~~ — **os dois alvos fixos deixaram de existir em 2026-09-14** (ver "Fim da herança de junho de 2026"); as quatro chaves de camada valem hoje só nos calcos publicados, via `camadas.js`. `camada_bdgex` → a opção BDGEx do seletor de mapa base (se estiver aberta quando a permissão cair, volta para OSM na hora); `trocar_mapa_base` → o seletor inteiro; `ver_mapa` → uma cobertura sobre a área do mapa, com a topbar ainda visível (tela toda preta pareceria bug, não decisão do instrutor). ~~**`camada_logistica`, `camada_obstaculos`, `carregar_kml`, `carregar_imagem_geo` e `ver_historico_rastro` não têm interface ainda**~~ — `ver_historico_rastro` **passou a valer na Etapa 6b** (aba de debriefing); as outras quatro continuam sem interface. `CHAVES_APLICADAS`, em `permissoes.js`, é a lista única do que de fato surte efeito, e o painel do instrutor usa ela para marcar as demais com "sem efeito ainda" em vez de prometer o que não existe.
+- **O painel espelha `fn_sou_instrutor_da_turma()` no cliente** ("lotado nela OU responsável por ela") só para avisar antes, não para autorizar: se o instrutor não passar nessa condição, os controles saem desabilitados e o aviso já traz o `update` de correção pronto. Sem isso, ele clicaria em tudo e só descobriria pelo erro cru do PostgREST.
+- **O painel também distribui as forças (`perfis.partido_id`), e isso NÃO é permissão** — é coluna de `perfis`, mas era a outra coisa que o instrutor precisava ajustar por aluno e que só existia como `UPDATE` no SQL Editor (o `backend/README.md` documentava esse UPDATE). Nenhuma regra nova foi precisa: `perfis_editar_instrutor` (0002), `fn_proteger_campos_do_perfil` (que só barra quem *não* é instrutor) e `fn_normalizar_partido_do_perfil` (que valida se o partido é da turma) já cobriam desde a 0003. O seletor fica no cabeçalho do aluno, separado da grade de permissões, e avisa na tela que **partido nulo é restritivo** — é exatamente o estado em que um aluno recém-cadastrado cai, e o sintoma (mapa vazio) não sugere a causa.
+- **Trocar a força recarrega a página do aluno, de propósito.** É a única reação desta etapa que não é incremental, e é deliberado: o partido de quem olha é metade do par que decide a hostilidade de *cada símbolo já desenhado* e entra em `fn_usuarios_visiveis()`, que decide *quem ele enxerga*. Reagir "direito" significaria trocar `meuPartido` em dois módulos, recriar todo ícone no mapa, descartar quem saiu do alcance da RLS, refazer os dois selects iniciais e reassinar canais — cinco caminhos de estado novos em três módulos já testados, para uma operação que acontece uma ou duas vezes por exercício, na montagem. `location.reload()` chega ao mesmo lugar por um caminho que já é exercitado toda vez que alguém abre o app. **Se um dia a troca virar rotina, o lugar de pagar o preço do redesenho é o corpo de `aoMudarPartido()` em `frontend/perfil-ao-vivo.js`, sem mexer no resto.**
+- **`0004_perfis_realtime.sql` publica `perfis` e nada mais.** É o que permite o parágrafo acima: `perfis` era a única tabela relevante ao mapa fora da publicação. Publicar **não alarga o alcance de ninguém** — o Realtime aplica a RLS de `SELECT` antes de entregar cada evento, e `perfis_ler` já deixava qualquer colega de turma ler essas colunas por consulta comum; muda o caminho (empurrado em vez de perguntado), não o que se vê. `frontend/perfil-ao-vivo.js` assina **só a própria linha** e ignora mudanças que não sejam de `partido_id` — a mesma linha muda por nome de guerra, sidc e `atualizado_em`, e nenhum desses justifica derrubar a sessão de mapa de alguém.
+- **`buscarPartidosDaTurma()` saiu de `marcacoes.js` para `auth.js`** ao ganhar o segundo consumidor (o seletor de força), pelo mesmo critério que criou `icones.js` na Etapa 5: a segunda cópia de uma consulta é a que diverge em silêncio quando alguém acrescenta uma coluna só de um lado.
+- **`auth.js` ganhou `buscarUsuariosDaTurma()` e `buscarTurmasDoInstrutor()`**, separadas de `buscarPerfisDaTurma()` de propósito: esta última roda no caminho crítico do mapa e não deve carregar colunas que só a tela do instrutor usa. A ordenação "instrutor primeiro" é feita em JavaScript, não no `order` do PostgREST, porque ordenar por `papel` dependeria da ordem de declaração dos valores no `create type` — um detalhe do banco que não deve decidir layout de tela.
+
+### Decisões da Etapa 6b (debriefing — histórico e replay do rastro, concluída)
+
+Nenhum dado novo e nenhuma regra de acesso nova. O rastro é gravado desde a Etapa 3 e a RLS desde a 0002/0003; a única migration é a **`0005_rastro_historico.sql`**, que acrescenta uma função de **leitura**.
+
+- **O problema da etapa era VOLUME, não permissão.** 60 alunos × heartbeat de 30s × 4 horas chega perto de 170 mil linhas, e o PostgREST do Supabase corta a resposta em 1000. Três defesas em camadas, todas necessárias: **janela de tempo obrigatória** (não existe "buscar tudo"; sem intervalo o índice não serve para nada), **amostragem no servidor** (um ponto por aluno por balde de N segundos, N derivado da janela e da quantidade de alunos) e **busca em lotes**. A justificativa completa, com as contas, está no cabeçalho da `0005` — é o lugar de ler antes de mexer nisso.
+- **Amostrar reduz tráfego e memória, NÃO reduz o trabalho do Postgres.** A policy `historico_ler` chama `fn_sou_instrutor_da_turma(turma_id)` com uma coluna *da linha*, ou seja, de forma **correlacionada**: ela roda uma vez por linha bruta da janela. É o oposto do `x in (select fn_usuarios_visiveis())` do mesmo predicado, que o planejador resolve por hash uma vez só. Por isso a janela continua obrigatória mesmo com a amostragem pronta — ela é o que limita quantas linhas a policy avalia. Se virar gargalo medido (Etapa 10), o conserto é trocar aquele ramo da policy por uma forma não correlacionada, não mexer na função.
+- **Lotes de ALUNOS, não paginação por deslocamento.** Paginar uma RPC com `.range()` faz o PostgREST **reexecutar a função inteira a cada página** — 12 páginas custariam 12 varreduras do mesmo intervalo. Como a resolução automática garante que nenhum aluno sozinho passa de 1000 pontos (`ALVO_PONTOS_POR_ALUNO` em `rastro.js`, com teste que trava a invariante), cada requisição leva o maior lote de alunos que ainda cabe numa página e a soma custa **uma** varredura. A paginação por offset sobrou só como rede de segurança, para quando o instrutor força uma resolução fina à mão.
+- **Truncar em silêncio é o pior modo de falha desta tela.** Um rastro incompleto com cara de completo vira afirmação errada numa sala de debriefing. Por isso a busca pede `count: 'exact'` (para distinguir "acabou" de "o `max-rows` cortou"), a tela mostra o balde escolhido **antes** de consultar, informa quantas leituras reais cada ponto representa (`leituras_no_balde`, que sai de graça na mesma passagem da RPC) e avisa em vermelho quando bateu no teto.
+- **`fn_rastro_historico` é `security invoker`, e isso é o ponto de segurança da etapa.** Quase toda função do projeto é `security definer`, mas por um motivo específico: elas são chamadas *de dentro* de policies e recursariam. Esta é chamada *de fora*, pelo cliente, e lê uma tabela protegida — `definer` aqui faria a função **passar por cima de `historico_ler`**, e qualquer aluno autenticado leria o rastro de quem quisesse bastando ter o UUID. Sendo invoker, a policy vale dentro da função. Isso importa além do zelo: `ver_historico_rastro` é checada no navegador e não é barreira; quem sustenta a regra é a policy. **Se alguém "consertar" isso para definer um dia, a RLS do histórico cai junto.**
+- **A consulta foi moldada para o índice que já existia.** `usuario_id = any(...)` + faixa em `medido_em` é exatamente o formato de `idx_hist_usuario_tempo (usuario_id, medido_em desc)`. `turma_id` **não** entra no filtro de propósito: empurraria o planejador para `idx_hist_turma_tempo`, muito menos seletivo, e a turma já é garantida pela policy — repeti-la na consulta daria uma segunda cópia da regra, livre para divergir.
+- **`frontend/rastro.js` é a matemática, `frontend/debriefing.js` é a tela.** Mesma separação de `permissoes.js`/`instrutor-permissoes.js`. `rastro.js` não tem DOM, Leaflet, Supabase nem `window`, e por isso é testável em Node — e é justamente a parte que precisa de teste: "onde este aluno estava às 14h37?" se responde errado em silêncio.
+- **A interpolação suaviza, mas nunca atravessa uma perda de sinal.** Entre duas leituras próximas o símbolo desliza (a cadência real é de 30s; sem isso o replay anda aos trancos). Passando de `GAP_SEM_SINAL_MS`, ele **para** no último ponto conhecido, esmaece e some — e a trilha desenhada quebra em segmentos em vez de ligar os dois lados em linha reta, que seria desenhar um trajeto que ninguém percorreu (e inflar a distância percorrida). **Os dois limiares são de propósito os mesmos de `colegas.js`** (60s esmaece, 120s some): o instrutor que viu um avatar sumir ao vivo precisa ver o mesmo comportamento, pelo mesmo motivo, ao reproduzir aquele momento.
+- **Cor da trilha é por ALUNO, não por partido.** Numa turma real quase todos os selecionados estão do mesmo lado, e colorir por partido deixaria quinze trilhas azuis indistinguíveis — o contrário do que um debriefing precisa. O partido continua sendo dito por duas vias mais confiáveis que a cor da linha: o **símbolo** (a hostilidade que `criarIconeSimbolo` deriva) e o rótulo no resumo.
+- **O painel do instrutor passou a CONSUMIR permissão, não só editá-la.** `instrutor.html` agora chama `iniciarPermissoes()`. Sem isso, o `observarPermissao('ver_historico_rastro')` de `debriefing.js` cairia no padrão do catálogo — que para essa chave é `false` — e a aba abriria bloqueada para o próprio instrutor. Com a view carregada ele recebe `true` pelo papel, independentemente de turma.
+- **A turma vem de `instrutor-permissoes.js` via `observarTurma()`** (novo, mesmo formato de `observarPermissao`: chama na hora e a cada troca). O seletor de turma mora lá porque é lá que ele é desenhado; dois seletores independentes na mesma página fariam o instrutor configurar uma turma e analisar outra sem perceber.
+- **Sem Realtime aqui, de propósito.** `posicoes_historico` não é publicada e não deve ser: debriefing é consulta a um passado fechado, e assinar uma tabela append-only que recebe centenas de inserts por minuto durante o exercício seria a pior aplicação possível de Realtime no projeto.
+- **Mapas base reduzidos, e declarados como tal.** A aba de debriefing tem 4 opções, contra as 10 do `index.html`. A tabela completa mora no `<script>` clássico de lá, que não pode ser importado; unificar exigiria extrair um `basemaps.js` e mexer na ponte `window.WartoolCamadas`, que é onde a permissão `camada_bdgex` atua — não vale o risco agora, e a unificação já está prevista na Etapa 9. Mesmo critério da tabela `NATUREZA` em `simbolos.js`.
+- **`buscarUsuariosDaTurma()` ganhou `sidc`** em vez de virar uma segunda consulta: as duas telas do instrutor pedem a mesma lista de gente da mesma turma. O que continua valendo é não engordar `buscarPerfisDaTurma()`, essa sim no caminho crítico do mapa do aluno.
+- **A `0005` não foi executada contra um Postgres** (sem ambiente na sessão, como a `0004`). Foi validada com o **parser oficial do PostgreSQL** (`libpg_query` via `pglast`), inclusive o corpo da função — que para o parser externo é só uma string —, e a semântica da amostragem por balde foi reproduzida e verificada à parte. Continua faltando rodar no banco real e olhar o `explain analyze`.
+
+### Decisões da Etapa 6c (situação atual — mapa ao vivo do instrutor, concluída)
+
+Lacuna encontrada depois da 6b, não etapa do plano original: o instrutor não tinha como ver o mapa ao vivo (`index.html` redireciona quem não é `usuario`), e a aba de debriefing responde "onde ele esteve", não "onde todo mundo está agora". Nenhuma migration nova — as quatro policies usadas aqui (`posicoes_ler`, `posicoes_remover_instrutor`, `elementos_criar`, `elementos_editar_instrutor`, `elementos_remover`) e as duas publicações no Realtime já existiam desde 0002/0003.
+
+- **Terceira aba em `frontend/instrutor.html` ("Situação atual"), entre Permissões e Debriefing** — decisão tomada (não `index.html` liberado para os dois papéis): o painel reúne as três coisas que o instrutor faz — configurar, acompanhar, analisar. Ganhou uma instância PRÓPRIA de Leaflet, separada da de `debriefing.js`: compartilhar uma só entre "mapa ao vivo" e "replay de um passado fechado" exigiria limpar/reconstruir estado a cada troca de aba, um lugar fácil para um marcador de um vazar para o outro. Mesmo cuidado de Leaflet-em-aba-escondida da 6b: o mapa só é montado quando a aba abre pela primeira vez.
+- **`frontend/situacao.js` (módulo novo) é a tela.** Select inicial + canal Realtime + vigia de ausência em `posicoes_atuais`, sem excluir ninguém — o instrutor enxerga os dois partidos (a policy `posicoes_ler` já entrega isso via `fn_sou_instrutor_da_turma`), e a tela nunca importa `gps.js`: o avatar do instrutor não é enviado nem desenhado no mapa dos alunos por efeito colateral de abrir o painel. A lista da turma ao lado do mapa mostra "ao vivo"/"parado há Xm"/"sem sinal há Xm"/"sem posição" por aluno, com botões para centralizar o mapa nele, apagar sua posição se virou fantasma (`DELETE` em `posicoes_atuais`, confirmado — destrutivo, sem desfazer) e pular para o rastro dele no Debriefing.
+- **Reuso avaliado caso a caso, não por regra fixa.** `colegas.js` foi DESCARTADO como base a generalizar: ele sempre exclui o próprio `usuario_id` (aqui não existe "próprio avatar"), liga/desliga o módulo inteiro pela permissão `ver_posicao_outros` do aluno (o instrutor não tem essa amarra) e escreve status num `#colegas-status` que não existe neste painel — parametrizar os três pontos para um único outro consumidor não pagaria a duplicação evitada. Já `frontend/marcacoes.js` foi REAPROVEITADO como está: `meuPapel === 'instrutor'` já fazia `deveMostrar()`/`podeMexer` valerem "vê e mexe em tudo" sem lógica nova. Ganhou só dois acréscimos ADITIVOS (não mudam nada do app do aluno): `avaliarCriacaoExtra` (hook opcional para a pegadinha de lotação, ver abaixo) e `pararMarcacoes()` (teardown limpo, usado quando a aba troca de turma, para não sobrepor marcações de duas turmas na mesma tela).
+- **`frontend/vigia-ausencia.js` (novo) é a extração dos limiares de ausência de `colegas.js`.** Com um segundo consumidor real dos MESMOS dois números (60s esmaece, 120s some) e do mesmo cálculo de idade, copiá-los seria o risco que o projeto evita desde `icones.js` (Etapa 5): duas cópias livres para divergir em silêncio se um dia alguém ajustar um limiar só de um lado. `colegas.js` foi ajustado para importar de lá (`AVISO_PARADO_MS`/`REMOVER_MS`/`idadeMs`/`iniciarVigia`) — comportamento idêntico ao de antes, só a fonte dos números mudou.
+- **A pegadinha de `elementos_criar`**: a policy exige `turma_id = fn_minha_turma()` (estar LOTADO na turma), não `fn_sou_instrutor_da_turma()` (lotado OU responsável) — um instrutor apenas responsável (`turmas.instrutor_id`) sem estar lotado lê e apaga mas não cria marcação. `situacao.js` avisa isso com um banner (mesmo padrão de `avaliarPermissaoDeEscrita()` em `instrutor-permissoes.js`, com o `update` de correção pronto) e um status curto no clique do mapa, em vez de deixar o insert falhar com o erro cru do PostgREST.
+- **Símbolo NATO sempre via `criarIconeSimbolo()`.** O observador é o instrutor, que normalmente não tem partido — `hostilidadeRelativa()` devolve `null` de propósito nesse caso (preserva o SIDC gravado) e o código comenta isso explicitamente, para não parecer descuido; é o mesmo comportamento que o replay de `debriefing.js` já tinha para o mesmo observador.
+- **`debriefing.js` ganhou `abrirRastroDoAluno(usuarioId)` (aditivo)**: garante mapa e lista de alunos carregados (aguarda o `carregarAlunos()` inicial se for a primeira vez que a aba de debriefing é tocada nesta sessão), seleciona só aquele aluno e busca. `instrutor.html` é quem troca a aba visível antes de chamar — `situacao.js` não sabe nada sobre abas, de propósito, e chamar `abrirRastroDoAluno` com a aba ainda escondida repetiria o erro do Leaflet 0×0.
+- **Nenhuma chave nova em `CHAVES_APLICADAS`**: o instrutor recebe tudo habilitado pelo papel, então nada nesta etapa precisava de item novo no catálogo de permissões.
+- **Sem teste automatizado novo** (mesmo critério de `colegas.js` desde a Etapa 4): `situacao.js` é DOM/Leaflet/Supabase de ponta a ponta, sem lógica pura isolável para testar em Node. `vigia-ausencia.js` também não ganhou teste próprio — é puramente aritmética de limiares, já coberta indiretamente pelo uso real em `colegas.js` desde a Etapa 4.
+- ~~**Ponta solta**: o mapa da Situação atual não mostra os calcos publicados pelo instrutor.~~ **FECHADA** logo depois, ainda na Etapa 7: `iniciarCamadas()` passou a receber o **contêiner do painel por parâmetro**, e a aba passa `#situacao-lateral` (o app do aluno continua com `#side-panel`). `definirTurmaCamadas()` acompanha a troca de turma do seletor do topo. Nenhuma cópia do módulo, nenhum segundo caminho de desenho — a mesma `camadas.js` serve às duas telas.
+
+### Decisões da Etapa 7 (upload de KML/KMZ com opacidade, concluída)
+
+Migration `backend/supabase/0006_calcos.sql` (tabela `calcos` + bucket de Storage + RLS dos dois), incremental sobre 0001–0005.
+
+- **São DOIS caminhos, e confundi-los seria o erro central da etapa.** (1) O **arquivo do aluno**: ele escolhe um `.kml`/`.kmz` do próprio aparelho, a camada aparece só para ele e some no F5 — não sobe nada, não grava nada, é governado por `carregar_kml`. (2) O **calco do instrutor**: publicado pelo painel, guardado no Supabase Storage, baixado por quem tem direito de ver, aparecendo em tempo real — governado pela chave de CAMADA que o instrutor escolheu ao publicar. A separação é o que impede **lavagem de permissão**: se o aluno pudesse classificar o próprio arquivo numa categoria, ele carregaria qualquer coisa, chamaria de "manobra" e recuperaria uma camada que o instrutor tinha desligado.
+- **`camada_logistica` e `camada_obstaculos` saíram de "sem efeito ainda" — e o mecanismo é esse.** `calcos.categoria` é uma **FK para `catalogo_permissoes`** restrita às quatro chaves de camada; o instrutor classifica ao publicar e o app aplica a permissão daquela chave. Não existe "camada fixa de logística" no código: existe *o calco de logística que alguém publicou*. Uma chave pode valer nos dois caminhos ao mesmo tempo — desligar `camada_manobra` esconde tanto o GeoJSON do repositório (`EXTRA_LAYERS`) quanto os calcos de manobra publicados, que é o comportamento certo: para o aluno é "a camada de manobra", não dois mecanismos.
+- **`carregar_kml` valendo de verdade, e a interface tratando o padrão `false` como estado normal.** A chave entrou em `CHAVES_APLICADAS` e é observada. Como o padrão do catálogo é `false`, o aluno nasce SEM a função — então o botão **continua na tela, desabilitado**, com a frase dizendo que vem desligado por padrão e que o instrutor pode liberar. Um botão que some pareceria app quebrado; um botão que some sem explicação é pior, porque o aluno nem saberia que a função existe para pedir.
+- **Quem publica calco é só o instrutor da turma.** Não é zelo: um calco é HTML de terceiro desenhado na tela de 60 pessoas. Aluno publicando transformaria um `<description>` malicioso num ataque de aluno contra a turma. O cliente sanitiza de todo jeito (o instrutor também baixa arquivo da internet), mas a barreira é a policy `calcos_escrever`, não o JavaScript.
+- **Visibilidade do calco NÃO passa por `fn_usuarios_visiveis()`, e isso é proposital.** Aquela função responde "quais PESSOAS eu enxergo" e é amarrada ao AUTOR da linha; aqui o autor é sempre o instrutor — que os dois partidos enxergam —, então usá-la faria todo calco vazar. A pergunta certa é sobre o DESTINATÁRIO: `calcos.partido_id` nulo = turma inteira, setado = só aquele partido (+ instrutor). Consequência para a Etapa 6.5: trocar o corpo de `fn_usuarios_visiveis()` **não muda nada** nesta tabela; se o calco precisar ser endereçado por unidade, é aqui que muda.
+- **A policy de leitura do OBJETO não repete a regra de quem vê o calco.** `calcos_objeto_ler` pergunta "existe uma linha de `calcos` com este caminho que eu consiga ler?" e deixa `calcos_ler` responder — uma regra, um lugar, mesmo princípio de `fn_usuarios_visiveis()`. Isso se apoia num comportamento documentado do PostgreSQL (tabela referenciada dentro de policy tem as policies dela aplicadas), **mas o modo de falha dessa dependência seria ABERTO, não fechado** — por isso está na lista de testes ao vivo abaixo.
+- **O caminho do objeto é imposto por trigger, não escolhido pelo cliente** (`<turma_id>/<id>.<formato>`, `fn_normalizar_calco`). Sem isso, um instrutor de uma turma poderia cadastrar uma linha apontando para o objeto de OUTRA turma e, com ela, autorizar a própria turma a baixá-lo. O `id` é gerado no **cliente** (`crypto.randomUUID()`) porque o upload precisa acontecer antes do insert — senão existiria, por um instante, uma linha apontando para um objeto que ainda não subiu.
+- **Dois limites de tamanho, e a diferença entre eles é a rede.** Arquivo local: 8 MB (não passa por rede nem ocupa cota; o limite é a memória do celular). Calco compartilhado: **2 MB**, e o número sai de conta feita, não de chute — 2 MB × 60 alunos × 3 calcos × ~5 recargas ≈ 1,8 GB, mais de um terço dos 5 GB/mês de egress do plano Free, num único exercício. Está enforced em três lugares que falham em momentos diferentes: navegador (antes de gastar o upload), `file_size_limit` do bucket, `check` da tabela.
+- **Zip bomb é barrado ANTES de inflar.** KMZ é KML zipado e XML comprime ~10:1 (100:1 de propósito é possível), então um `.kmz` de 2 MB pode conter 200 MB de KML. O filtro do `fflate` decide o que inflar olhando o `originalSize` do diretório central do zip — checar depois de inflar seria checar depois do estrago.
+- **Limite de feições e simplificação de geometria, com números justificados.** 5.000 feições é o teto (cada feição é um nó de SVG que o navegador reposiciona a cada pan/zoom; acima disso o celular trava com o dedo na tela) — arquivo maior é **recusado**, não aceito e travado depois. Acima de 40.000 vértices, Douglas-Peucker com a **menor** tolerância que resolva, escolhida de `[1, 2, 5, 10, 25] m`. **O teto de 25 m é a carta:** a referência do projeto é a BDGEx 1:50.000, onde 0,5 mm de papel valem 25 m — simplificar mais deslocaria a linha mais do que a carta consegue representar. Se 25 m não bastarem, recusa e manda simplificar no QGIS, em vez de afrouxar. **A ordem das checagens importa:** feições primeiro, porque Douglas-Peucker tira vértices de dentro de uma linha e nunca apaga a linha.
+- **Simplificar é mexer no dado, então é dito em voz alta.** A tela informa a tolerância aplicada e a redução de vértices — mesma postura da 6b, onde o debriefing avisa quantas leituras cada ponto representa em vez de mostrar um rastro amostrado com cara de completo. E **o que sobe para o Storage é o arquivo ORIGINAL**, não o simplificado: simplificação é decisão de renderização e cada aluno a refaz ao abrir, então uma tolerância melhor no futuro não exige republicar.
+- **XSS: a defesa é `textContent`, não `esc()`.** KML traz `<description>` com HTML arbitrário e, no calco publicado, ele é desenhado na tela de 60 pessoas. Os popups de `camadas.js` são montados com `document.createElement` + `textContent`, **nunca** `innerHTML` — segurança por construção, e não por lembrar de escapar em todo ponto de saída, que é o tipo de coisa que alguém esquece na décima linha. `textoSimples()` em `kml.js` tira as tags só por LEGIBILIDADE; se ela errar, o resultado é texto feio, nunca HTML executado. A mesma disciplina vale para cor (`#rrggbb` ou nada) e espessura de traço (limitada a 8) vindas do arquivo.
+- **`carregarExtraLayers()` em `index.html` deixou de interpolar sem escapar.** O `bindPopup(\`<b>${nome}</b>\`)` era defensável enquanto o único GeoJSON desenhado era um arquivo que nós exportávamos e commitávamos; deixou de ser quando esta etapa abriu a porta para arquivo de fora. Mesmo que `EXTRA_LAYERS` continue vindo do repositório, um erro desses é do tipo que se copia para o próximo lugar.
+- **Ícone declarado no KML NÃO é honrado.** Um `<IconStyle>` aponta para URL remota: buscá-la entregaria o IP de cada aluno (e o momento em que abriu o calco) a quem hospeda o arquivo — um pixel de rastreamento embutido num calco funcionaria perfeitamente. Ponto vira `circleMarker`.
+- **Opacidade e ordem: um mecanismo só, para todas as camadas de arquivo.** Cada camada ganha um `pane` próprio do Leaflet; opacidade é a opacidade CSS do pane, ordem é o z-index dele. Serve para vetor, vai servir para o GeoTIFF da Etapa 8 sem mudança, e não sobrescreve a cor que veio do próprio KML (o que `setStyle` faria). As faixas (`FAIXAS_PANE` em `kml.js`): 410 repositório, 440 calcos do instrutor, 470 arquivo do aluno, teto em 500 — **abaixo do `markerPane` (600) do Leaflet, de modo que nenhum calco consegue tapar um símbolo militar**. Os números têm cópia no `<script>` clássico de `index.html`, que não pode importar; o teste trava as invariantes (faixas não se sobrepõem, nada encosta no teto).
+- **Opacidade é preferência, não permissão.** `calcos.opacidade` é a sugestão do instrutor; o ajuste que o aluno faz na tela dele é local e não volta para o banco — mesma distinção da 4.5 entre `preferencias_visualizacao` e as tabelas de permissão. Na lista do instrutor, o controle grava no `change` (soltar), não no `input`: arrastar dispararia dezenas de UPDATEs, e cada um vira um evento de Realtime para os 60 aparelhos da turma.
+- **Exclusão: linha lógica, bytes de verdade.** `removido_em`/`removido_por` seguem a decisão da Etapa 1 (auditar depois o que foi retirado), mas o objeto no Storage é apagado junto — a linha custa bytes desprezíveis e serve de registro; o arquivo custa cota, e cota é dinheiro. **Não existe desfazer: republica-se.** A ordem importa (linha primeiro, objeto depois): invertida, uma falha no update deixaria uma linha vigente apontando para um objeto que já não existe.
+- **Bibliotecas novas por CDN em ESM, mas sob demanda.** `@tmcw/togeojson@7.1.2` e `fflate@0.8.3` entram por `await import()` **dentro da função**, não no topo do arquivo. Como `carregar_kml` nasce `false`, a maioria dos alunos nunca abre arquivo — importar no topo faria 60 celulares baixarem ~120 kB pelo 4G do campo por um recurso que quase ninguém usa.
+- **Seis arquivos novos, na separação de sempre.** `kml.js` é a lógica pura e testável (limites, contagem, simplificação, poda de texto, decisão de guardar) — sem DOM, sem Leaflet, sem Supabase, no padrão de `rastro.js`. `kml-navegador.js` é a costura que só existe no navegador (DOMParser + zip). `armazem-camadas.js` é o IndexedDB. `calcos.js` é o acesso ao banco/Storage, compartilhado pelas duas telas, no padrão de `permissoes.js`. `camadas.js` é o painel de camadas (usado pelo app do aluno e pela aba "Situação atual" do instrutor) e `instrutor-calcos.js` é a aba de publicação — o par tela/regra de sempre.
+- **O arquivo do aluno sobrevive ao F5, guardado no IndexedDB** (`frontend/armazem-camadas.js`). `localStorage` não serviria (teto de ~5 MB e só string — um arquivo de 8 MB viraria ~11 MB em base64), e a File System Access API, que seria melhor em teoria, só existe no Chrome/Edge de desktop e pede permissão a cada sessão — inútil para celular em campo. **Guardam-se os bytes ORIGINAIS**, não o GeoJSON convertido, pelo mesmo motivo de subir o original para o Storage: o KMZ comprimido ocupa uma fração, e reprocessar na abertura faz uma melhoria futura nos limites valer para o que já está guardado. Corolário tratado: se os limites ficarem mais estritos, um arquivo aceito antes pode ser recusado na restauração — nesse caso ele sai do aparelho e o aluno é avisado, em vez de ficar ocupando espaço e tempo de boot para nunca mais abrir.
+- **Escopo por usuário, mas sem apagar no logout.** O celular é pessoal de cada aluno, então limpar no `sair()` só faria ele perder o calco a cada troca de sessão sem proteger ninguém. Ainda assim cada registro carrega o `usuario_id` e toda leitura filtra por ele — cobre o aparelho emprestado e o instrutor que entra na conta dele no celular de um aluno. Sem essa chave, num exercício com Azul e Vermelho, o calco de um partido apareceria para quem entrasse depois.
+- **Não cabe? Recusa e diz o que fazer — não descarta o mais antigo em silêncio.** Tetos de 24 MB e 8 arquivos, e eles não existem por causa da cota do navegador (que é generosa): existem porque cada arquivo guardado é **reprocessado na abertura da página**, e oito de 8 MB seriam ~64 MB de KML para parsear antes de o mapa aparecer, num celular. A escolha de recusar segue a postura da 6b: o aluno que abriu um calco ontem e não o encontra hoje não vai imaginar que o app o descartou — vai achar que o app perdeu o arquivo dele.
+- **Falha de armazenamento é sempre suave.** Navegação privada, cota negada, IndexedDB bloqueado por outra aba: nada disso derruba a camada. Toda função de `armazem-camadas.js` devolve um resultado utilizável em vez de lançar, e a tela diz exatamente o que se perdeu — "continua no mapa nesta sessão, mas some ao recarregar" —, nunca deixando o aluno achar que o arquivo não abriu. `navigator.storage.persist()` é pedido para reduzir despejo (o Safari/iOS apaga storage de script depois de ~7 dias sem uso), mas o resultado não decide nada: é melhoria de chance, não garantia.
+- **O mesmo módulo serve às duas telas.** `iniciarCamadas()` recebe o **contêiner do painel por parâmetro** (`#side-panel` no app do aluno, `#situacao-lateral` na aba "Situação atual" da 6c) e monta o card inteiro por DOM, sem uma linha de HTML pré-escrito em nenhuma das duas. `definirTurmaCamadas()` troca os calcos quando o instrutor troca de turma no seletor do topo — os arquivos LOCAIS ficam, porque são do usuário e não da turma. O visual base do card vem do CSS injetado pelo próprio módulo, já que `.panel-card` só existe em `index.html`.
+- **O calco NÃO move a câmera.** O arquivo local do aluno enquadra (foi ele quem pediu); o calco do instrutor não, porque pode chegar por Realtime no meio do exercício, e arrastar o mapa de 60 alunos enquanto eles olham a própria posição seria hostil. Os downloads iniciais são em série, não em paralelo: no 4G do campo, 4 downloads simultâneos competem pela mesma banda e todos ficam lentos.
+- **`backend/testes/valida_sql.py` é novo e vale para as próximas migrations.** Valida em três níveis, porque para o parser externo o corpo de uma função é só uma string: o arquivo comando a comando, o corpo de cada função (SQL e plpgsql) e o SQL embutido nos `EXECUTE` dentro dos blocos `DO`. Traz documentada uma limitação **da ferramenta, não do SQL**: `parse_plpgsql()` desta versão do `pglast` quebra em qualquer função `returns trigger` (reproduzível com um `begin return new; end` vazio, e idêntico nas funções da 0003 que já estão em produção) — o script contorna trocando o cabeçalho e declarando `new`/`old`, sem tocar em uma linha do corpo.
+- **A `0006` não foi executada contra um Postgres** (sem ambiente na sessão, como a 0004 e a 0005). Foi validada nos três níveis acima, com as 0001–0005 junto.
+
+### Decisões da Etapa 7.1 (o painel para de tomar a tela, concluída)
+
+Ajustes pedidos depois de ver a Etapa 7 funcionando. Nenhuma migration, nenhuma regra de acesso nova.
+
+- **O painel recolhe, em dois níveis** (`frontend/painel-lateral.js`, módulo novo): cada cartão recolhe pelo título, e o painel inteiro recolhe num botão que **nasce fechado em tela estreita** (abaixo de 820px). "Mapa Base" nasce recolhido mesmo no monitor — é o maior cartão e o menos usado: depois de escolher a carta no começo do exercício, ninguém volta nele. O módulo é separado de `camadas.js` porque isto não é sobre camadas: vale para os cartões de Mapa Base e Forças, que moram no `<script>` clássico e não têm relação nenhuma com arquivo. **A largura é medida uma vez, na montagem, e não por listener de `resize`** — girar o celular no meio do exercício não pode fechar na cara da pessoa o painel que ela acabou de abrir.
+- **Sem estado persistido, de propósito.** O que fica recolhido nesta sessão volta ao padrão na próxima. Guardar isso exigiria decidir onde (localStorage por usuário? `preferencias_visualizacao`, que segue fora de escopo?), e a escolha errada é mais cara de desfazer do que reabrir um cartão.
+- **Onze mapas base viraram seis**, a pedido de quem usa: BDGEx, OpenTopoMap, Google satélite, Google híbrido, Híbrido (Sat+Labels) e Claro. Saíram OSM, Esri topográfico, Esri satélite, CartoDB escuro e "sem mapa base". **O BDGEx é o primeiro da lista e o padrão do app** — é a carta do Exército, a que a tropa lê no papel.
+- **A redução obrigou a antecipar `frontend/basemaps.js`, que estava adiado para a Etapa 9.** A tabela estava copiada em **quatro** lugares (`index.html`, `debriefing.js`, `situacao.js` e os `<select>` fixos do HTML do instrutor); aplicar a redução em quatro cópias à mão era garantir que uma divergisse — o mesmo erro que a 4.5 corrigiu no SIDC. Agora são **duas**: `basemaps.js` e a cópia do `<script>` clássico de `index.html`, que não pode importar. A que sobrou tem guarda automática (ver o teste, abaixo). **De quebra, as duas telas do instrutor ganharam o BDGEx**, que não estava em nenhuma delas — faltava justamente para quem conduz a instrução.
+- **Dois bugs reais que a redução expôs, e que estariam lá calados:**
+  1. **O fallback de `camada_bdgex` apontava para o `osm`**, que acabou de sair da lista. Desligar a permissão com o aluno no BDGEx o deixaria com **mapa vazio, sem erro nenhum**. Virou a constante `BASEMAP_FALLBACK` (= `otopo`), com teste que exige que ela exista na lista.
+  2. **O BDGEx estava fixo em `http://`.** Numa página https isso é conteúdo misto e o navegador **bloqueia** — ou seja, no deploy da Etapa 11 a carta mais importante do projeto simplesmente não desenharia. Passou a herdar `location.protocol`: em `http://localhost` continua http (funciona como sempre), em produção vai https. **Se o `bdgex.eb.mil.br` não atender em https, a saída é um proxy reverso próprio — não existe "voltar para http" numa página https.** Está nas pendências de teste ao vivo.
+- **Cor por camada, em três opções fixas** (`CORES_CAMADA` em `kml.js`): azul, preta, vermelha. Não é um seletor livre porque calco militar tem convenção de cor, e escolher livremente convida a inventar uma. **Azul e vermelho são exatamente os tons da legenda de forças** (Amigo e Hostil) logo acima no mesmo painel — a mesma cor querendo dizer a mesma coisa nos dois lugares da tela; há teste travando isso. Preto não é `#000000`: sobre a carta BDGEx e sobre satélite escuro, preto puro some no traço fino.
+- **`corForcada`: o estilo do arquivo manda até alguém discordar.** Enquanto o usuário não escolhe uma cor à mão, o `<Style>` do KML prevalece — foi o autor do calco que o desenhou assim. Depois do primeiro clique numa bolinha, a escolha passa a valer sobre tudo: quem pede vermelho quer vermelho, não "vermelho onde o arquivo não disser nada". A mesma marca impede que o instrutor renomear um calco desfaça a cor que o aluno já tinha ajustado.
+- **A opacidade continua existindo, mas deixou de ser o controle principal** — foi para trás de um botão de detalhe (`⋯`) na linha da camada. Foi a troca pedida: cor é o que muda a leitura de um calco sobre a carta; a opacidade merecia continuar existindo, não uma linha inteira do painel em cada camada, num celular.
+- **O BDGEx estava pedindo a camada errada e o CRS errado — os dois falhando em silêncio.** Descoberto ao ler a documentação do serviço depois da 7.1:
+  1. **`ctm50` cobre só parte do território.** A Carta Topográfica Matricial 1:50.000 existe em RS, SC, PR, SP, RJ, ES e pedaços de MG, BA, AM, PA, AP, AL, RN e MA. **Num exercício fora dessa cobertura, o aluno abria o app e via mapa branco**, sem nenhuma pista do motivo. Trocado por **`ctmmultiescalas_mercator`**, que empilha 1:25.000 → 1:250.000 e escolhe pelo zoom: cobre ~90% do território e ainda entrega 1:25.000 onde ela existe. Uma opção só no seletor, mais carta do que antes.
+  2. **`crs: L.CRS.EPSG4326` estava forçado, e foi removido.** O sufixo `_mercator` do nome da camada é literal — ela é publicada em Web Mercator (EPSG:3857), que já é o padrão do Leaflet. E `mapcache` **não é um WMS completo**: ele serve apenas as grades de tiles que tem em cache, então pedir a grade errada não devolve erro, devolve **tile em branco**. Era candidato forte a explicar o BDGEx parecer instável.
+
+  Plano B registrado no código, caso o `mapcache` dê problema: o Exército publica endpoints por escala em https (`/teogc/25/`, `/50/`, `/100/`, `/250/`, com o nome de camada `ctm`). Os dois erros estão travados por teste, nas duas cópias.
+- **Boa notícia parcial sobre o https:** a documentação pública lista `https://bdgex.eb.mil.br/teogc/...` e o app oficial roda em `https://bdgex.eb.mil.br/bdgexapp/mobile/` — o host atende https. Falta confirmar especificamente o caminho `/mapcache`, que é o que o projeto usa.
+- **`frontend/basemaps.teste.mjs` (24) é um teste de tipo novo no projeto: ele LÊ o `index.html`.** Não valida comportamento, valida que as cópias não divergiram — as chaves de `BASEMAPS`, os rádios do seletor, o rádio marcado, a constante de fallback, o protocolo do BDGEx e as três cores. É o que torna aceitável manter uma cópia até a Etapa 9: a duplicação continua declarada, mas agora falha alto se alguém mexer em um lado só.
+
+### Decisões da Etapa 8a (mapa offline — salvar uma área da carta, concluída)
+
+Sem migration — é toda de navegador. A etapa trocou de escopo antes de começar: "Etapa 8" era upload de imagem georreferenciada; virou cache offline a pedido, porque o uso real é "rede que OSCILA em campo", não "rede que falta por completo" — o upload de imagem virou a 8b, menor, só para o instrutor.
+
+- **Service Worker + Cache API, não `fetch` + IndexedDB — a decisão que define a etapa inteira.** O Leaflet pede tile como `<img src>`; para servir offline é preciso interceptar essa requisição. O ponto que decide entre as duas abordagens é CORS: um `fetch()` cross-origin para `bdgex.eb.mil.br` sem `Access-Control-Allow-Origin` devolve resposta *opaque* (bytes ilegíveis pelo JavaScript), e não há como confirmar daqui se o BDGEx manda esse cabeçalho. Um Service Worker guarda a resposta opaca no Cache API e a devolve ao `<img>` sem que ninguém precise ler os bytes — funciona mesmo sem CORS. Em compensação, o Chrome infla artificialmente a cota reportada para respostas opacas (padding, para dificultar rastreamento por medição de cota), então **a estimativa de MB que a tela mostra é otimista** — isso está dito explicitamente na tela de confirmação, não só no comentário do código.
+- **`frontend/carta-offline.js` é a parte pura e testável** (68 casos em `carta-offline.teste.mjs`), no mesmo padrão de `rastro.js`/`kml.js`/`dispersar-avatares.js`: matemática de tile (slippy map/Web Mercator — a mesma fórmula do OSM, porque o Leaflet grade a camada WMS do BDGEx como grade uma XYZ comum), contagem que cresce ~4× por nível de zoom, estimativa de bytes, decisão de cota, decisão de suporte do navegador, e o indicador "esta área está salva". Nenhum DOM, Leaflet, Service Worker ou `fetch` aqui.
+- **HTTPS obrigatório, mesma exigência já documentada para o GPS na Etapa 3** — Service Worker só roda em contexto seguro, e `localhost` é a mesma exceção explícita da spec (testável sem deploy). A tela NUNCA some quando falta contexto seguro: o cartão "Mapa offline" sempre aparece no painel, mas com o corpo substituído por um aviso dizendo o motivo — mesma postura de `carregar_kml` nascer desabilitado na Etapa 7 (sumir pareceria app quebrado; sumir sem explicação seria pior, porque ninguém saberia que a função existe para pedir). `avaliarSuporte()` em `carta-offline.js` é a função pura que decide isso; `offline-tela.js` só obedece.
+- **Só o BDGEx é elegível para download em massa**, e o motivo aparece na PRÓPRIA tela (`offline-explicacao`), não só no comentário: os termos padrão do Google Maps proíbem uso militar/defesa **e** proíbem explicitamente cache/pré-carga de tiles (as duas coisas ao mesmo tempo, para `google_sat`/`google_hybrid`); o OpenTopoMap desencoraja download em bloco; o Esri (usado no `hybrid`) e o CartoDB (`light`) são serviços de terceiro sem licença clara para isso. O BDGEx é do próprio Exército para uso do próprio Exército — o único sem essa zona cinzenta.
+- **Faixa de zoom 12–16, teto de 2000 tiles por área, 6 áreas no máximo.** Números justificados com uma tabela real no cabeçalho de `carta-offline.js`: um bbox de 20×20 km na faixa inteira (12–16) dá ~1.772 tiles; 2.000 cobre uma área de operações de companhia/batalhão e barra uma área do tamanho de uma região ANTES de listar um tile sequer, com a conta mostrada na tela (mesma postura de `LIMITE_FEICOES` na Etapa 7: recusar e dizer o porquê, não travar depois). O teto de zoom (16, não os 18 do BDGEx ao vivo) é também precaução contra o `mapcache` não ter grade REAL até esse nível — pedir 17/18 arriscaria gastar cota em tiles que voltam em branco mesmo online (mesma armadilha do CRS errado que a 7.1 encontrou). O tamanho por tile (15 kB) é palpite documentado como tal, não medição — não dá para medir sem acesso ao serviço.
+- **Ser educado com o servidor: concorrência 4, pausa de 300 ms a cada lote de 20 tiles.** 60 celulares confirmando a mesma área ao mesmo tempo (ex.: instrutor manda "baixem a carta antes de sair") é uma negação de serviço involuntária contra a Diretoria de Serviço Geográfico se cada um abrir dezenas de conexões simultâneas.
+- **A URL de cada tile é gerada pela PRÓPRIA camada Leaflet ao vivo (`BASEMAPS.bdgex.getTileUrl()`), nunca por uma segunda montagem de query string WMS.** Isto é o ponto mais frágil da etapa: o Cache API bate a URL da requisição ao vivo contra a URL usada para gravar — qualquer divergência (ordem de parâmetro, versão WMS, SRS) faz o cache nunca bater, e a falha é silenciosa (a área aparece "salva", e offline a carta continua em branco). `offline-tela.js` (`prepararCamadaParaUrl`) preenche só os três campos que o Leaflet normalmente preenche sozinho quando a camada está de fato no mapa (`_map`, `_crs`, `wmsParams.srs`) — necessário porque o usuário pode ter trocado de mapa base (Etapa 7.1) enquanto o objeto BDGEx continua existindo, só não anexado — e chama a função de verdade do Leaflet depois disso. Não desenha nada, não busca tile sozinho. **Isto depende da forma interna do `L.TileLayer.WMS` da versão 1.9.4 (fixa via CDN em index.html) e só se prova certo contra o BDGEx de verdade — é a pendência de teste ao vivo mais importante desta etapa.**
+- **Cota e despejo: nunca "meia área salva sem avisar".** `avaliarCota()` usa `navigator.storage.estimate()` com 10% de margem antes de confirmar o download (mesma cota que `armazem-camadas.js` também usa, então a margem cobre os dois). Se a cota estourar NO MEIO do download (ou o usuário cancelar), a área é marcada `'incompleta'` — nunca `'pronta'` — e a lista oferece "Completar" (retoma só os tiles que faltam, pulando os que já estão no cache — mesma função serve para baixar novo e para retomar) ou "Apagar". `navigator.storage.persist()` é pedido antes de cada download (reexporta `pedirDurabilidade()` de `armazem-camadas.js`, sem duplicar).
+- **`frontend/armazem-offline.js` guarda só o REGISTRO da área (bbox, zoom, status, contagem)** — os tiles em si moram no Cache API, endereçados pela própria URL. Mesmo padrão de `armazem-camadas.js`: banco IndexedDB próprio (`wartool-offline`), falha sempre suave, escopo por `usuario_id`. **Apagar uma área recomputa a lista de URLs dela e a de TODAS as outras áreas salvas (via `listarTiles`, determinística) e só remove do Cache API o que nenhuma outra área usa** — evita apagar um tile que duas áreas vizinhas compartilham. Não guarda a lista de URLs no IndexedDB (custaria milhares de strings por área); recomputa na hora.
+- **Dois indicadores honestos, pedidos explicitamente na etapa.** "Área atual: salva/não salva" (`areaCobreViewport`, pura) compara o viewport contra as áreas com status `'pronta'` — nunca `'incompleta'`, porque uma incompleta pode ter buraco dentro do próprio bbox/zoom que reivindica. "Carta vindo de: rede/cache" vem do Service Worker avisando a página (`postMessage`) toda vez que intercepta uma requisição para `bdgex.eb.mil.br`, dizendo se serviu do cache ou buscou da rede — só é significativo enquanto o mapa base ativo é o BDGEx, e a tela diz isso.
+- **`frontend/sw-bdgex.js` NÃO é um Service Worker de app-shell.** Só intercepta (`respondWith`) requisições para o host `bdgex.eb.mil.br` — tudo o mais (HTML, módulos `.js`, qualquer outro host) passa direto, sem tocar em nada. Duas razões: a etapa pediu para salvar a CARTA, não o app inteiro offline (isso seria PWA instalável, `manifest.json`, estratégia de atualização do próprio app — problema à parte, já registrado como ponto de atenção separado na Etapa 11); e um SW que intercepta o próprio HTML/JS pode prender alguém numa versão antiga do código depois de um deploy, sem hard-refresh — ficar de fora elimina essa classe de bug. **Também nunca grava no cache sozinho**: só serve o que já está lá; quem escreve é sempre a página, dentro do fluxo deliberado de "desenhar → ver quantos tiles/MB → confirmar" — um SW que cacheasse toda tile vista de passagem faria a lista de "áreas salvas" mentir sobre o que está realmente guardado. **Sem versionamento de nome de cache**: trocar o nome a cada mudança (padrão comum de tutorial) apagaria em silêncio as áreas de quem já tinha baixado para usar em campo no primeiro deploy seguinte — o nome só muda se o FORMATO precisar mudar de verdade, e mesmo aí tem que ser uma migração avisada, não uma limpeza automática no `activate`.
+- **Sem plugin de desenho (leaflet-draw).** O retângulo é dois cliques + prévia ao mover o mouse + Esc cancela, implementado à mão em `offline-tela.js` — mesmo espírito de `marcacoes.js` resolver "tocar no mapa" sem dependência nova.
+- ~~**Só o app do aluno.**~~ **CORRIGIDO ainda na mesma sessão, a partir de uma correção de quem usa.** A primeira versão desta etapa deixou de fora o painel do instrutor, com o argumento de que `situacao.js`/`debriefing.js` dependem de rede para o DADO em si (Realtime/RPC), então "carta offline" resolveria só metade do problema. O argumento estava certo e a conclusão estava errada: o instrutor sem rede também fica sem posição atualizada dos alunos, mas continua precisando enxergar o TERRENO por baixo para se orientar — exatamente o mesmo raciocínio que já valia para o aluno ("um app sem carta é pior que um app sem foto aérea"), só que aplicado apenas de um lado. Ter o mapa funcionando com dado desatualizado é estritamente melhor do que não ter mapa nenhum.
+  - **`frontend/situacao.js` ganhou `iniciarOfflineMapa()`**, chamado dentro de `aoAbrirSituacao()` junto com `iniciarCamadas()` (mesmo padrão, mesmo módulo — `frontend/offline-tela.js` não mudou uma linha, já recebia `map`/`camadaBdgex`/contêiner por parâmetro exatamente para servir a mais de uma tela). `camadaBdgex` é `basemaps.bdgex`, a MESMA instância WMS que `garantirMapa()` já usa para desenhar a carta ao vivo nesta aba — não uma segunda instância.
+  - **`debriefing.js` não precisou de nenhuma mudança.** O Service Worker tem escopo em toda `frontend/`, e as duas abas do painel do instrutor vivem na MESMA página (`instrutor.html`) — uma vez que "Situação atual" é aberta ao menos uma vez (mesmo padrão de montagem preguiçosa da Etapa 6c: `garantirMapa()` só roda quando a aba abre) e registra o Service Worker, ele passa a interceptar `bdgex.eb.mil.br` para a página INTEIRA, incluindo o mapa de replay do Debriefing (outra instância de Leaflet, outro BDGEx, mesmo host) — de graça, sem precisar de um segundo `iniciarOfflineMapa()` lá. **Consequência prática:** se o instrutor nunca abrir "Situação atual" numa sessão, o Debriefing não ganha o benefício nessa sessão — mas a lista de áreas salvas é por USUÁRIO (não por aba), então quem já baixou uma área alguma vez continua com ela disponível assim que a aba certa (ou qualquer uma, dali em diante) rodar de novo.
+  - **Bug pego nesta correção, não achado antes por falta de um segundo consumidor:** o card de `offline-tela.js` assumia a classe `.panel-card` de `index.html` para o fundo/borda (regra `#card-offline { }` vazia, só um comentário). Funcionava por acidente no app do aluno e ficaria sem estilo nenhum no painel do instrutor — mesma armadilha que `camadas.js` já resolveu para `#card-camadas` (o comentário de lá até avisa: "essa classe não existe no painel do instrutor"). Corrigido com a mesma solução: `#card-offline` ganhou fundo/borda/padding PRÓPRIOS, sem depender de `.panel-card`.
+  - Nenhum arquivo de teste novo — mesmo critério já registrado para `situacao.js` desde a Etapa 6c: é tela DOM/Leaflet de ponta a ponta, sem lógica pura isolável que `carta-offline.teste.mjs` já não cubra.
+- **Sem chave nova em `CHAVES_APLICADAS`** (`permissoes.js`): a função não toca em nenhum dado protegido por RLS, só em tiles públicos de um mapa; não há o que o instrutor devesse poder ligar/desligar por aluno aqui.
+- **Cinco arquivos novos**: `carta-offline.js` (regra pura), `carta-offline.teste.mjs` (68 casos), `armazem-offline.js` (IndexedDB dos registros), `sw-bdgex.js` (Service Worker), `offline-tela.js` (a tela — desenho, planejamento, download, lista, indicadores). **Ligado em DUAS telas**: `index.html` (app do aluno, `#side-panel`) e `situacao.js` (painel do instrutor, `#situacao-lateral`) — mesmo módulo, mesmo padrão de `camadas.js` de receber `map`/contêiner por parâmetro. **E três arquivos alterados pela tarefa da opacidade** (não relacionada ao offline em si, ver acima): `camadas.js`, `instrutor-calcos.js`, `instrutor.html`.
+
+Verificado com `node --check` em todos os arquivos novos (incluindo os dois blocos `<script>` embutidos de `index.html`, extraídos evitando a armadilha do `<script>` dentro de comentário HTML) e com os seis testes existentes ainda verdes — **25** (`simbolos`), **40** (`marcacoes`), **64** (`rastro`), **116** (`kml`), **24** (`basemaps`), **14** (`dispersar-avatares`) — mais o teste novo, **`carta-offline.teste.mjs` (68/68)**.
+
+**O que dá para testar sem deploy, e o que não dá.** Dá: toda a matemática pura (Node); o registro/ativação do Service Worker e leitura/escrita no Cache API, porque `localhost` conta como contexto seguro (mesma exceção já usada para testar GPS desde a Etapa 3) — inclusive simular "sem rede" via DevTools contra tiles fictícios. NÃO dá, sem abrir o site publicado no celular: se a URL gerada por `getTileUrl()` bate byte a byte com o que o BDGEx aceita, e se o tamanho real por tile fica perto dos 15 kB estimados.
+
+**A pendência que mais importava para abrir esta etapa fechou em campo, em 2026-08-01: o BDGEx desenha em produção sobre https** (item 2 do roteiro, `docs/roteiro-teste-campo.md`) — confirmado depois deste módulo já estar escrito, não muda nenhuma decisão de código, só remove a maior incerteza que pairava sobre a etapa inteira (se o `mapcache` não respondesse em https, a saída seria um proxy reverso e o Service Worker não faria sentido). Os itens 1 e 3 do mesmo roteiro (cadastro barrando código errado / aceitando o certo; dois celulares vendo a posição um do outro em tempo real) também foram confirmados na mesma sessão de campo.
+
+**Pequena tarefa separada, empacotada na mesma sessão a pedido de quem usa: opacidade saiu das camadas de ARQUIVO (KML/KMZ).** O slider de opacidade por camada (`.cam-opacidade` em `frontend/camadas.js`, atrás do botão `⋯`) não fazia sentido para calco/traçado tático — o que importa é a cor (`CORES_CAMADA`, que continua sendo o controle principal desde a 7.1) e ligar/desligar. Removido dos dois lados que o expunham: `frontend/camadas.js` (a linha da camada no painel do aluno/da aba "Situação atual") e `frontend/instrutor-calcos.js`/`instrutor.html` (o campo "Opacidade padrão" no formulário de publicação e o slider por calco na lista). **Decisão: não mexer em formato de dado nem em banco por causa de uma remoção de interface.** A coluna `calcos.opacidade` continua existindo (sem migration), `publicarCalco()`/`atualizarCalco()` (`calcos.js`) continuam aceitando o campo, e `registro.opacidade` continua sendo lido/gravado em `armazem-camadas.js` — só ninguém mais lê essas gravações para aplicar ao pane (`aplicarOpacidade()` foi removida de `camadas.js`; o pane de cada camada de arquivo continua existindo e continua controlando a ORDEM via z-index, só não a opacidade). **Não confundir com a opacidade de `EXTRA_LAYERS`** (painel "Camadas" do `<script>` clássico de `index.html`, os GeoJSON do repositório) — outra funcionalidade, não mudou. `kml.teste.mjs` foi conferido e continua verde (116/116): o teste cobre `planejarCarga`/`planejarGuardar`/`FAIXAS_PANE`, não o range de opacidade em si.
+
+**Pendente de teste ao vivo**, somando ao que já se acumula desde a Etapa 3: desenhar uma área pequena, baixar, ativar o modo avião e conferir que a carta continua desenhando exatamente nessa área; conferir que fora da área desenhada a carta fica em branco (não trava, não mostra tile de outro lugar); cancelar um download no meio e confirmar que a área fica `'incompleta'` e "Completar" só busca o que falta; apagar uma área que se sobrepõe a outra e confirmar que a outra continua funcionando; medir o tamanho real de um tile do BDGEx para corrigir `TAMANHO_TILE_ESTIMADO_BYTES` se estiver longe de 15 kB; e, já que agora dá para checar de verdade, abrir o DevTools numa resposta de tile do BDGEx e ver se `Access-Control-Allow-Origin` aparece (não muda a arquitetura desta etapa — o Service Worker funciona com ou sem CORS —, mas fecha a curiosidade registrada na decisão 1). **Específico do painel do instrutor**: o cartão "Mapa offline" aparece com o visual correto em `instrutor.html` (a correção do `#card-offline` acima); baixar uma área pela aba "Situação atual" e, sem tocar em nada na aba "Debriefing", conferir que o replay ali também mostra a carta do BDGEx offline (prova de que o Service Worker está mesmo compartilhado entre as duas abas da mesma página).
+
+### Decisões da Etapa 8b (imagem georreferenciada — foto aérea/carta atualizada, publicada pelo instrutor, concluída)
+
+Migration **`0008_imagem_geo.sql`**, incremental sobre 0001–0007 (nenhuma reescrita): estende `calcos` — não cria tabela nova — para aceitar dois formatos de imagem (`'jpg'`, `'png'`), com quatro colunas novas de bounds e um teto de tamanho maior (3 MB) e específico por formato.
+
+O ROADMAP tinha uma tensão que não se resolvia sozinha, e resolvê-la era o primeiro passo desta etapa: o catálogo (`carregar_imagem_geo`, 0001) descreve a chave como "própria" — mesma redação de `carregar_kml`, que governa o arquivo LOCAL do aluno — mas a nota da etapa só falava do caminho do INSTRUTOR. As cinco decisões abaixo (pedidas explicitamente no prompt de abertura, `docs/prompt-etapa-8b.md`) resolvem essa tensão e as demais escolhas de arquitetura.
+
+**1. UM CAMINHO SÓ — o do instrutor — e `carregar_imagem_geo` fica DELIBERADAMENTE sem interface.** Dos três caminhos possíveis (só instrutor; os dois caminhos, como a Etapa 7 fez para KML; ou instrutor agora com a chave local adiada por escrito), foi o terceiro. Ao contrário do KML — que pode vir de um planejamento feito no QGIS antes do exercício, plausível de já estar no aparelho do aluno —, uma imagem georreferenciada de verdade raramente é algo que o aluno carrega pronto: quem tem a imagem atualizada e o contexto de por que ela importa é o instrutor. Abrir os dois caminhos dobraria a superfície da etapa (duas UIs, dois fluxos de bounds) para um caminho local de valor prático baixo. `carregar_imagem_geo` continua no catálogo, padrão `false`, reservada para esse caminho local se um dia fizer sentido — a decisão e o raciocínio completo estão comentados em `frontend/permissoes.js`, perto de `CHAVES_APLICADAS`, para quem só ler o código não precisar reconstruir esta conversa. O calco de imagem do instrutor usa as MESMAS chaves `camada_*` que os calcos KML já usam — mesmo padrão de "uma chave, vários mecanismos" que a Etapa 7 estabeleceu (uma categoria já governava o GeoJSON do repositório e um calco KML ao mesmo tempo; agora governa os três).
+
+**2. Georreferenciamento por DOIS CLIQUES no mapa — bounds retangulares, sem rotação.** GeoTIFF pesaria uma biblioteca de parsing binário no navegador para um recurso raro; world file (`.pgw`/`.jgw`) exigiria o instrutor já ter o par de arquivos pronto, o que raramente é o caso em campo. `L.imageOverlay` do Leaflet aceita bounds retangulares nativamente (2 cantos — noroeste e sudeste); rotação/distorção livre exigiria `L.ImageOverlay.Rotated`, plugin que o projeto não usa hoje, e uma ortofoto de área pequena raramente precisa de rotação fina. A interação em si (`iniciarDesenhoBoundsImagem()`, novo em `frontend/instrutor-calcos.js`) é uma cópia pequena e deliberada de `iniciarDesenhoRetangulo()` de `frontend/offline-tela.js` (dois cliques, prévia até o segundo, Esc cancela, sem plugin) — não importada de lá, primeiro para não tocar na arquitetura da 8a além do estritamente necessário (pedido explícito do prompt de abertura), segundo porque são só dois consumidores: mesmo critério já registrado para `icones.js`/`marcacoes.js` — vale extrair um lugar comum no TERCEIRO consumidor, não no segundo. Depois dos dois cliques, a tela desenha a própria imagem escolhida (não só um retângulo vazio) sobre os bounds, para o instrutor conferir visualmente o enquadramento antes de publicar — mesma ideia de "mostrar antes de gastar" que já vale para o tamanho/egress, aplicada ao georreferenciamento.
+
+**3. Teto de 3 MB (contra 2 MB do KML compartilhado), com a conta de egress calculada sobre o arquivo REAL e mostrada antes do upload — sem reaproveitar o tiling da 8a.** A conta que fechou os 2 MB do KML (2 MB × 60 alunos = 120 MB por carga) não sobrevive a uma ortofoto, que facilmente passa de 10-20 MB crua. Fatiar a imagem em tiles e servir via Service Worker resolveria o problema de egress de verdade, mas exigiria gerar tiles no navegador do instrutor (ou um pipeline novo), estender `sw-bdgex.js` para reconhecer um host/padrão de URL que hoje não existe, e uma segunda forma de "área salva" que não é sobre BDGEx — trabalho de etapa própria, não um acréscimo pequeno a esta, e o prompt de abertura pediu explicitamente para não reabrir a 8a além do estritamente necessário. A saída adotada combina as opções (a)+(c) do prompt: teto agressivo — 3 MB, 1,5× o do KML compartilhado, mas ainda uma fração do que uma ortofoto crua pesa, forçando o instrutor a comprimir antes de publicar — e aceitar que a função é RARA (uma foto aérea ocasional, não uma por aula, ao contrário dos calcos táticos). `estimarEgress()`/`textoEgress()` (novo em `frontend/imagem-geo.js`) calculam o custo do arquivo ESCOLHIDO, não uma tabela fixa, e a tela mostra a frase pronta (`aviso(textoEgress(...))`) assim que o arquivo passa na validação de tamanho — antes de qualquer clique em publicar.
+
+**4. Reaproveita a tabela `calcos` — não cria tabela nova.** A própria migration 0006 já antecipava isto no cabeçalho ("formato é um `check` de texto, e acrescentar um valor é uma linha"). Os três motivos, documentados no cabeçalho da 0008: (a) RLS/trigger/policies de Storage da 0006 já servem raster sem mudar uma linha — `fn_normalizar_calco` já monta o caminho a partir de `new.formato` genericamente, e duplicar essas regras numa tabela nova arriscaria as duas cópias divergirem, o erro que o projeto evita desde a correção do SIDC na Etapa 4.5; (b) um só lugar para "o que está publicado nesta turma" — o painel do instrutor e `frontend/camadas.js` já leem `calcos` como uma coisa só; (c) o custo aceito é pequeno e nulável — quatro colunas de bounds, nulas para kml/kmz. O `check` de `formato` passou a aceitar `'jpg'`/`'png'` (dois valores, não um `'imagem'` genérico — para o caminho do objeto no Storage continuar tendo uma extensão real, `<turma_id>/<id>.jpg`). `calcos_bounds_coerentes` garante que os quatro campos existem juntos (formato imagem) ou não existem nenhum (formato vetor), nunca pela metade, e que norte>sul/leste>oeste. `calcos_tamanho_bytes_check` passou a depender do formato (2 MB para kml/kmz, 3 MB para jpg/png); o `file_size_limit` do BUCKET (que não distingue formato) subiu para o maior dos dois, 3 MB — a distinção fina continua sendo o `check` da tabela, a segunda das três camadas de defesa já usadas desde a 0006 (navegador, bucket, tabela).
+
+**5. Opacidade volta — só para imagem, sem tocar no que a 8a tirou de KML/KMZ.** A 8a removeu opacidade de camada de ARQUIVO porque "não fazia sentido para calco/traçado tático" — o que importa lá é cor + ligar/desligar. Uma foto aérea é o caso oposto: o valor dela está em comparar contra o mapa base por baixo (uma obra nova, uma trilha que mudou), e raster não tem "cor" que resolva isso (não há stroke/fill por feição). Por isso um calco `'jpg'`/`'png'` ganhou opacidade PRÓPRIA, usando a opacidade nativa do `L.imageOverlay` (`setOpacity()`) — não a opacidade CSS do pane que a 8a desligou, mecanismo que continua desligado para vetor. Sugestão do instrutor ao publicar (campo novo em `instrutor.html`/`instrutor-calcos.js`, default 85%), ajuste do aluno na própria tela por cima (slider em `frontend/camadas.js`, só desenhado quando `formato` é imagem) — mesma distinção preferência-x-permissão de sempre, e o mesmo mecanismo de "a escolha do instrutor vale até o aluno mexer" que `corForcada` já usa para calco vetor (aqui, `opacidadeForcada`). Nada em `camadas.js`/`instrutor-calcos.js` reintroduziu o seletor de cor ou a opacidade de pane para KML/KMZ — o comentário grande no topo de `camadas.js` documenta as duas coisas juntas para não se confundirem depois.
+
+**Onde mora a lógica pura, testável:** `frontend/imagem-geo.js` (novo), no padrão de `rastro.js`/`kml.js`/`carta-offline.js` — sem DOM, sem Leaflet, sem Supabase. `validarArquivoImagem()` (extensão + teto de 3 MB), `validarBounds()` (coerência dos quatro cantos: existem, formam retângulo com a orientação certa, dentro dos limites do globo, área mínima de 5 m de lado para pegar um clique duplo por engano) e `estimarEgress()`/`textoEgress()` (custo real do arquivo, sobre a mesma premissa de turma de 60 alunos/~5 recargas já usada na 0006 — reaproveitada como CONSTANTE, não reescrita, para as duas contas não divergirem se um dia alguém ajustar só um lado). `frontend/imagem-geo.teste.mjs` (novo, 34 casos) trava: tamanho recusa antes do upload; bounds invertidos, fora do globo, incompletos ou degenerados nunca chegam a virar `{ok:true}`; dobrar o tamanho do arquivo dobra a estimativa de egress; o padrão de alunos/recargas é 60/5.
+
+**Arquivos tocados, além dos dois novos:** `backend/supabase/0008_imagem_geo.sql` (migration); `frontend/calcos.js` (select de `buscarCalcosDaTurma` ganhou as quatro colunas de bounds; `publicarCalco()` passou a aceitar `boundsNorte/Sul/Leste/Oeste`, sempre opcionais — quem exige que sejam obrigatórios para imagem é o `check` da 0008, não este módulo; o upload passou a mandar o `contentType` real do arquivo quando o navegador souber dizer, em vez de sempre `application/octet-stream`); `frontend/camadas.js` (branch por formato em `desenharCalco()` — imagem monta `L.imageOverlay` com bounds/opacidade, vetor continua com `L.geoJSON`; `linhaDaCamada()` esconde o seletor de cor e mostra o slider de opacidade quando o registro é imagem; `descartar()` revoga o Object URL da imagem); `frontend/instrutor-calcos.js` (detecção de formato no `<input type=file>`, fluxo `conferirImagem()` inteiro, mini-mapa próprio para os dois cliques, preview da imagem sobre os bounds); `frontend/instrutor.html` (campo de arquivo aceita `.jpg,.jpeg,.png`; painel novo `#calco-imagem-painel` com o mini-mapa, botão "Marcar cantos no mapa" e o campo de opacidade; `#calco-cor-campo` ganhou `id` para poder ser escondido quando o arquivo é imagem); `frontend/kml.js` (`nomeDeCamada()` passou a reconhecer também `.jpg/.jpeg/.png` na extensão a remover — pequena generalização, sem mudar o comportamento para `.kml/.kmz`); `frontend/permissoes.js` (comentário grande e deliberado perto de `CHAVES_APLICADAS` explicando por que `carregar_imagem_geo` continua fora da lista).
+
+**O que NÃO mudou:** RLS de `calcos` (seção 3 da 0006), as policies de `storage.objects` (seção 5), a publicação no Realtime (seção 6) e `fn_normalizar_calco` — todas indiferentes a formato desde que escritas. Nenhuma linha de `frontend/carta-offline.js`, `frontend/offline-tela.js` ou `frontend/sw-bdgex.js` foi tocada (decisão 3 optou por não reaproveitar aquele mecanismo). `CORES_CAMADA`/`corForcada` de KML/KMZ, intactos.
+
+Verificado com `node --check` em todos os arquivos novos/alterados (incluindo o bloco `<script>` embutido de `instrutor.html`, extraído removendo comentários HTML primeiro — mesma armadilha do `<script>` dentro de comentário já registrada desde a Etapa 7) e com os sete testes existentes ainda verdes — **25** (`simbolos`), **40** (`marcacoes`), **64** (`rastro`), **116** (`kml`), **24** (`basemaps`), **14** (`dispersar-avatares`), **68** (`carta-offline`) — mais o teste novo, **`frontend/imagem-geo.teste.mjs` (34/34)**. `backend/testes/valida_sql.py` validou `0001`–`0008` juntas, sem falhas.
+
+**A `0008` não foi executada contra um Postgres** (sem ambiente na sessão, como a 0004–0007). Validada nos três níveis do `valida_sql.py` junto com as migrations anteriores.
+
+**Pendente de teste ao vivo**, somando ao que já se acumula desde a Etapa 3 (ver `docs/roteiro-teste-campo.md`):
+1. aplicar a `0008` e publicar uma imagem de verdade — conferir que `bounds_norte > bounds_sul`/`bounds_leste > bounds_oeste` realmente barra um retângulo invertido chegando direto por SQL/API adulterada (o cliente já barra antes; o `check` é a segunda camada, precisa ser confirmado no banco real);
+2. o `file_size_limit` do bucket subiu para 3 MB — confirmar que um KML de 2,5 MB ainda é recusado pelo `check` da tabela mesmo passando pelo bucket (a distinção fina é por formato, não pelo bucket);
+3. publicar uma imagem, conferir no app do aluno que o retângulo aparece na posição certa (a URL do Object URL local do instrutor não prova nada sobre o download do aluno — é outro caminho, `baixarCalco()` → `construirImagemOverlay()`);
+4. mexer no slider de opacidade do aluno e confirmar que ele NÃO volta ao padrão do instrutor quando o instrutor publica outra imagem na mesma categoria (mesmo teste, adaptado, que a 7.1 já pede para `corForcada` de KML);
+5. medir quanto tempo uma imagem de ~3 MB leva para baixar/decodificar no 4G do campo — é o tipo de custo que só aparece em uso real, e pode justificar revisar o teto para baixo se 3 MB se mostrar lento demais na prática.
+
+### Decisões da Etapa 11 (deploy — HTTPS e domínio, concluída)
+
+Sem migration. Etapa antecipada em 2026-07-31: passou na frente da 8a e da 9 porque HTTPS destrava três coisas paradas havia tempo — Service Worker da 8a, teste de GPS em vários celulares (pendente desde a Etapa 3, porque `http://192.168.x.x` não conta como contexto seguro), e a pendência da 7.1 sobre o BDGEx atender em https. Ver o raciocínio completo em `docs/prompt-etapa-11.md`.
+
+- **`frontend/config.js` passou a ser COMMITADO.** Estava no `.gitignore`; saiu de lá nesta etapa. A `SUPABASE_ANON_KEY` do projeto é uma *publishable key* (prefixo `sb_publishable_`, o nome novo do Supabase para o que chamava "anon key") — pública por design: quem decide o que ela pode ler/escrever é a RLS (`backend/supabase/0002_rls.sql` e seguintes), não a chave. Sem commitar este arquivo, `frontend/auth.js` (`import { SUPABASE_URL, SUPABASE_ANON_KEY } from './config.js'`) falha e nenhuma tela abre — nem o login. As outras duas opções descartadas: gerar o arquivo no build (exigiria host com build, e sumiria pra quem clona o repo pra rodar local — o projeto continua HTML estático, sem bundler até a Etapa 9) e buscar config de um endpoint em runtime (mais partes móveis para o mesmo resultado, sem ganho de segurança nenhum, já que quem protege é a RLS de qualquer jeito). O segredo de verdade é a `service_role` key — essa nunca vai para o frontend, só para `backend/seed/criar_usuarios.mjs`, via variável de ambiente.
+- **O cadastro aberto da Etapa 2b — revisado DUAS vezes nesta etapa.** Primeira versão: fechado por completo (signup desligado no painel + contas só via Admin API). Revertido a pedido: **o cadastro volta a ser aberto, mas passa a exigir o código da turma já no momento de criar a conta** — o código funciona como "senha do exercício". Isso é seguro pelo mesmo motivo válido desde a Etapa 4.5: uma conta sem turma não enxerga ninguém e não é enxergada (partido nulo é restritivo; turma nula, idem). O signup nativo do Supabase pode continuar LIGADO no painel — quem barra agora é o código, não o toggle.
+  - **`backend/supabase/0007_codigo_turma_valido.sql` (nova)**: `fn_codigo_turma_valido(codigo)`, `security definer`, liberada para `anon` (não só `authenticated`) — precisa responder ANTES de existir sessão. Só diz sim/não, nunca devolve o UUID da turma. `frontend/login.html` chama ela antes de `signUp()`, para não gastar uma conta num código errado; a validação de verdade, que de fato grava `turma_id`, continua sendo `entrar_na_turma(codigo)` logo depois do `signUp()` — mesmo caminho de sempre, só que com o código digitado pela pessoa em vez do literal `'TESTE'` fixo.
+  - **`frontend/auth.js`: `cadastrar()` ganhou o parâmetro `codigoTurma`**, obrigatório, validado com `fn_codigo_turma_valido()` antes do `signUp()`. `frontend/login.html` recuperou a aba/formulário de cadastro, com um campo novo "Código da turma".
+  - **Lembrete operacional, não é código**: se `codigo_acesso` da turma ainda for `'TESTE'` (fácil de adivinhar), troque por algo não óbvio antes de divulgar a URL — é ele que carrega o peso da "senha do exercício" agora. O `update` está no comentário final da `0007`.
+  - **`backend/seed/criar_usuarios.mjs` não foi removido** — continua útil para pré-criar a conta do instrutor (que não passa por `login.html`, já que a tela de cadastro sempre cria papel `usuario`) ou para exercícios onde se prefere não depender de autocadastro. Deixou de ser a única porta de entrada.
+- **Hospedagem: GitHub Pages, servindo a partir da RAIZ do repositório (não `/frontend`, não `/docs`).** Grátis, HTTPS automático, sem etapa de build — o que casa com a decisão de commitar `config.js` (funcionaria também em Vercel/Netlify, mas essas exigiriam configurar variável de ambiente e um passo de build só para reconstituir um arquivo que já pode simplesmente estar no repo). `/docs` como fonte do Pages foi descartado porque já é usado para documentação de verdade (`Plano_WartoolC2.docx`, este roadmap), não para o site. GitHub Pages só serve raiz ou `/docs` — nunca uma subpasta arbitrária como `/frontend` — por isso: **`/index.html` (novo, na raiz)** só redireciona (`location.replace`, sem Leaflet/Supabase) para `frontend/login.html`; **`/.nojekyll` (novo)** evita o processador Jekyll padrão do Pages mexer no que não devia. Habilitar o Pages no repositório (Settings -> Pages -> Deploy from branch -> `main` / `/ (root)`) é passo manual, fora deste chat.
+- **`REPO_RAW` (`frontend/index.html`) parou de apontar para `raw.githubusercontent.com`.** Servia só para contornar a ausência de um site publicado; com o site publicado servindo os próprios arquivos de `data/`, virou uma dependência externa desnecessária (e frágil: exigia o repositório ficar público para sempre só por causa deste fetch). Virou caminho relativo (`../`, porque `EXTRA_LAYERS`/`GEOJSON_URL` já tinham o prefixo `data/` embutido) — funciona igual em produção (Pages serve a partir da raiz) e em desenvolvimento local, **desde que o servidor local também sirva a partir da raiz do repo**, não de dentro de `frontend/`. Isso mudou a instrução de "Rodando localmente" em `README.md`: `python3 -m http.server 8000` agora roda na RAIZ, e a URL é `http://localhost:8000/frontend/login.html` (a raiz `http://localhost:8000/` também funciona, via o novo redirect).
+- **Cache do `index.html`/módulos não foi endurecido manualmente — GitHub Pages não permite configurar headers por arquivo.** O Pages serve por trás de uma CDN (Fastly) com cache curto e validação por ETag; não há botão de "no-cache" para acionar aqui. Ficou registrado como um ponto de atenção, não resolvido: se um deploy não aparecer para alguém em campo, a saída é um hard-refresh — e é exatamente o tipo de detalhe que a Etapa 8a (Service Worker) vai precisar tratar com cuidado deliberado (estratégia de atualização do próprio SW), não decidir de brinde aqui.
+- **BDGEx em https: pendência da 7.1, ainda sem resposta própria desta etapa.** `frontend/basemaps.js` já herda `location.protocol` desde a 7.1; o que faltava era uma página https de verdade para testar contra. Isso é o item 1 do roteiro de teste em campo (`docs/roteiro-teste-campo.md`) — só fecha quando alguém abrir o site publicado e olhar o mapa.
+- **Domínio: por ora, o subdomínio do GitHub Pages** (`https://joaopaulo1008.github.io/wartoolc2/`), sem custo. Domínio próprio (~R$ 40-60/ano, como já estimado em `docs/Plano_WartoolC2.docx`) fica como decisão em aberto, não bloqueadora — trocar depois é só apontar um CNAME e adicionar um arquivo `CNAME` na raiz, o app não depende do domínio em nenhum lugar do código.
+- **`backend/seed/README.md` atualizado** com o `Como rodar` do script novo (antes dizia "a ser escrita na Etapa 2"). `.gitignore` ganhou `.env.seed` (onde a `service_role` key fica ao rodar o script, nunca commitada).
+- **`backend/scripts/aplicar_migrations.sh` (novo)**: aplica `0001`-`0007` com um comando (`psql`), em vez de colar arquivo por arquivo no SQL Editor. Não usa `supabase db push` (Opção B do `backend/README.md`) porque essa opção espera as migrations em `backend/supabase/migrations/` com nome `AAAAMMDDHHMMSS_...` e uma tabela de controle própria — como este projeto sempre aplicou pelo SQL Editor, essa tabela nunca existiu. Funciona porque toda migration do projeto é escrita para ser idempotente de propósito; documentado como "Opção C" no `backend/README.md`.
+- **Bug relatado em campo, corrigido: "o instrutor vê os dois partidos como azul".** Causa: `hostilidadeRelativa()` (`simbolos.js`) tratava QUALQUER observador sem partido como "não afirma nada, preserva o SIDC gravado" — regra pensada para o caso "banco recém-migrado, ninguém tem partido ainda" (Etapa 4.5), mas o MESMO caminho é o do instrutor, que nunca tem partido por design e enxerga os dois lados ao mesmo tempo em `frontend/situacao.js`. Como o SIDC gravado (`perfis.sidc`) tem sempre o placeholder de hostilidade AMIGO (`03`, default do schema desde a `0001`), Azul e Vermelho desenhavam IDÊNTICOS para o instrutor.
+  - **Correção**: quando o observador não tem partido mas o ELEMENTO tem um conhecido, `hostilidadeRelativa()` agora usa uma referência FIXA — o partido de menor `ordem` da turma (Azul, `ordem=1` por padrão) conta como "amigo"/azul, qualquer outro beligerante conta como "hostil"/vermelho. Não é hostilidade relativa de verdade (não existe "eu" do lado do instrutor) — é convenção de mapa, na mesma lógica de cor já usada nos calcos (Etapa 7.1: "azul e vermelho são os mesmos tons da legenda de forças").
+  - **O caso "self" continua intacto**: quando observador E elemento são AMBOS nulos (a chamada do próprio avatar em `gps.js`, via `icones.js`, que não passa nenhum dos dois), a função ainda devolve `null` (preserva o SIDC) — essa guarda tem que vir ANTES de qualquer outra, senão o próprio avatar de quem ainda não tem partido passaria a desenhar como DESCONHECIDO por engano.
+  - **`ordem` precisou entrar nos embeds de `partido:partidos(...)` em `frontend/auth.js`** (`buscarPerfil`, `buscarPerfisDaTurma`, `buscarPerfilBasico`, `buscarUsuariosDaTurma` — este último é o que `situacao.js` usa e o que de fato corrigia o bug) — sem a coluna, a função cai no fallback seguro (devolve `null`, não adivinha cor) em vez de quebrar ou mostrar algo errado.
+  - `frontend/marcacoes.js` já tinha `ordem` disponível (via `buscarPartidosDaTurma`), então marcações vistas pelo instrutor também passaram a ganhar essa distinção de cor de graça, sem mudança nenhuma nesse arquivo.
+  - `frontend/simbolos.teste.mjs` ganhou 5 casos novos (20 -> 25) provando o comportamento novo E que o caso "self" não regrediu.
+- **Outro bug relatado em campo: avatares empilhados quando duas ou mais pessoas ficam fisicamente próximas** (ex.: formados lado a lado) — o círculo de precisão do GPS (5-15m) faz as coordenadas ficarem quase idênticas, e nenhum zoom separa dois pontos que são realmente o mesmo lugar.
+  - **`frontend/dispersar-avatares.js` (novo, puro/testável)**: agrupa pontos mais próximos que `raioColisaoM` (padrão 3m, por proximidade TRANSITIVA — não só do primeiro ponto do grupo) e os redistribui num círculo de `raioDispersaoM` ao redor do centro do grupo. **Determinístico por design**: a ordem dos pontos dentro do grupo vem de ordenar por `id`, nunca da ordem de chegada dos eventos do Realtime (que não é estável) — sem isso, cada posição nova de QUALQUER um do grupo faria todo mundo "tremer" na tela. Matemática puramente geográfica (metros de lat/lng, projeção equirectangular), sem depender de zoom nem do Leaflet — por isso roda em Node. `frontend/dispersar-avatares.teste.mjs` (14 casos) prova: pontos isolados não mexem, pontos empilhados se separam, o resultado independe da ordem de entrada, e chamadas repetidas com a mesma posição CRUA não acumulam deslocamento.
+  - **Integrado em `colegas.js` e `situacao.js`** — os dois guardam a posição CRUA de cada avatar (nunca a já deslocada) e recalculam o arranjo do zero a cada mudança (upsert ou remoção), aplicando `marker.setLatLng()` no resultado. Chamar isto em toda atualização não é caro nem gera "tremor": quem não está empilhado com ninguém sempre volta pra própria posição exata.
+  - **Limitação conhecida e não resolvida aqui, documentada no cabeçalho do módulo**: o PRÓPRIO avatar (`gps.js`) não participa da dispersão — é um módulo separado, sem conhecimento das posições dos colegas. Se o próprio usuário estiver exatamente em cima de um colega, os dois avatares ainda se sobrepõem. Resolver isso exigiria um estado compartilhado entre `gps.js` e `colegas.js`, cruzando a fronteira que os dois módulos mantêm de propósito desde a Etapa 3/4 — não valeu o risco para este ajuste pontual. `debriefing.js` (replay histórico) também não foi coberto: é outra situação (várias trilhas historicas coincidindo num instante do replay), fora do escopo deste bug.
+- **Terceiro bug relatado em campo: no celular, a topbar cobria o painel de opções do mapa e ocupava boa parte da tela.** Causa raiz, achada lendo o CSS, não chutada: `#side-panel` (e o `#pl-botao` que `painel-lateral.js` insere do lado dele) usavam `position:absolute; top:58px`, um valor fixo que só fazia sentido enquanto a topbar coubesse numa linha só. Como nenhum ancestral entre `#side-panel` e `<body>` tinha `position:relative/absolute`, esse `top:58px` era medido a partir do **topo da tela**, não do fim da topbar — e no celular, com `#status-bar` tendo `flex-wrap:wrap` sobre 5 spans de status + 4 contadores + `user-bar`, a topbar real passava fácil de 58px (várias linhas quebradas), enterrando o painel e o botão que o abre por baixo dela. O pedido "as opções deveriam estar colapsadas por padrão" já estava parcialmente atendido: `iniciarPainelRecolhivel()` (Etapa 7.1) já nasce fechado abaixo de `LARGURA_PAINEL_ABERTO` (820px) — o sintoma real não era "painel aberto por padrão", era o botão de abrir ficando inacessível/escondido, mais a própria topbar (que não tinha nenhum mecanismo de colapso) comendo tela sozinha.
+  - **Correção estrutural, não um número novo**: `#side-panel` virou FILHO de `#mapa-wrap` (que já tem `position:relative` e só começa depois que a topbar, de qualquer altura, termina) em vez de irmão dele. Com isso `top:10px` vale sempre a partir do fim real da topbar, não importa quantas linhas ela quebrar — não foi preciso medir a altura da topbar em JS (`getBoundingClientRect`) nem inventar `ResizeObserver`; o próprio fluxo do flexbox já resolve. `frontend/painel-lateral.js` acompanhou: `#pl-botao` (inserido como irmão do painel, então herda o mesmo pai novo) também passou de `top:58px`/`26px` para `top:10px`/`-22px`, mantendo a mesma folga de ~32px entre fechado e aberto.
+  - **Topbar ganhou colapso próprio**: os itens de diagnóstico (contadores + os 5 status) foram agrupados em `#status-detalhes`, que nasce oculto abaixo de `LARGURA_PAINEL_ABERTO` (mesmo critério do painel, importado de `painel-lateral.js` em vez de duplicar o número) e se abre por um botão novo (`#status-toggle`, "ⓘ") — medido uma vez na montagem, mesmo princípio de não reagir a resize que `painel-lateral.js` já documenta (girar o celular não deve fechar algo que a pessoa acabou de abrir). `#user-bar` (turma/nome/Sair) ficou DE FORA do grupo colapsável de propósito: sair da turma não pode depender de mais um toque.
+  - **`frontend/basemaps.teste.mjs` (24) e os demais testes que leem `index.html` continuam verdes** — a mudança foi estrutural (onde as `<div>`s moram) mas nenhum id, rádio de mapa base ou texto que os testes verificam mudou de lugar dentro do próprio painel.
+
+### Correções de campo (2026-08-01)
+
+Quatro problemas relatados num teste com uma pessoa em outra cidade, depois do deploy da Etapa 11. Sem migration — as quatro são só frontend.
+
+1. **Amigo que perde sinal sumia do mapa em vez de ficar registrado.** `vigia-ausencia.js` (Etapa 6c) sempre teve dois limiares: `AVISO_PARADO_MS` (60s, esmaece) e `REMOVER_MS` (120s, tira do mapa). O segundo limiar fazia sentido teórico ("nesse ponto é mais provável que o app tenha fechado do que só GPS lento"), mas na prática o efeito era um colega desaparecer sem deixar rastro de onde esteve por último — pedido explícito: para elemento amigo, a última posição tem que continuar visível, com o horário dela.
+   - **`colegas.js` e `situacao.js`: `REMOVER_MS` não remove mais o marcador.** Só esmaece mais forte (`OPACIDADE_SEM_SINAL = 0.15`, contra `0.4` de `AVISO_PARADO_MS`) — o avatar fica na última posição conhecida. O horário já existia no popup (`popupColega`/`popupPosicao`, campo "Atualizado") e continua correto porque só é atualizado quando chega posição nova. O marcador só sai do mapa por um evento REAL: `DELETE` de verdade (`assinarCanal`/`esquecerPosicao`) ou a permissão `ver_posicao_outros` sendo desligada.
+   - **`colegas.js`: `carregarEstadoInicial()` parou de pular posição já "morta".** Antes, uma posição mais velha que `REMOVER_MS` nem era desenhada ao carregar a página — o colega sumia da tela de quem tivesse acabado de abrir o app. Agora sempre desenha, aplicando a opacidade correta pela idade na hora (`aplicarOpacidadePorIdade()`), sem esperar o primeiro ciclo de 15s da vigia.
+   - **`vigia-ausencia.js` (o módulo compartilhado) não mudou** — os dois limiares continuam existindo e servindo à LISTA do instrutor (`estadoDe()` em `situacao.js`, que já não dependia do marcador existir); só o que "remover" significa para o MARCADOR mudou, e mudou nos dois consumidores (decisão uniforme, não só para um dos dois).
+
+2. **Cartão do mapa offline não colapsava.** `offline-tela.js`: `tornarRecolhivel(cartao)` (Etapa 7.1) era chamado logo depois de `montarCartao()`, quando o cartão só tinha o `<h3>` — `.pl-corpo` nascia vazio, e o conteúdo de verdade (`montarInterfacePrincipal()`) era anexado DEPOIS, como irmão de `.pl-corpo`, não filho. Resultado: "recolher" escondia uma div vazia; a carta/lista/indicadores continuavam sempre visíveis.
+   - **Correção: `tornarRecolhivel(cartao)` passou para DEPOIS do conteúdo existir** (nos dois ramos — `mostrarIndisponivel()` e `montarInterfacePrincipal()`), mesmo padrão que `camadas.js` já usava desde sempre (conteúdo primeiro, `tornarRecolhivel()` por último em `montarCard()`). `painel-lateral.js` não mudou nada — o contrato dele (envolve o que já está no cartão) sempre foi esse; quem usava errado era `offline-tela.js`.
+
+3. **Clique para desenhar a área offline também abria o formulário de marcação de elemento.** Causa: `index.html` cria UM `map` (`const map = L.map('map', ...)`) e passa a MESMA instância para `iniciarMarcacoes()` e `iniciarOfflineMapa()` — os dois módulos registram o próprio `map.on('click', ...)`, e o Leaflet chama todos os listeners de `click` do mapa, sem nenhum "parar aqui" entre eles. Marcar o primeiro canto do retângulo (`iniciarDesenhoRetangulo()`, Etapa 8a) também disparava `ativarCliqueNoMapa()` (Etapa 6a) de `marcacoes.js`.
+   - **`marcacoes.js` ganhou `suspenderClique()`/`retomarClique()`** (flag de módulo `cliqueSuspenso`, consultada no início do handler de clique). **`offline-tela.js` chama `suspenderClique()`** no início de `iniciarDesenhoRetangulo()` e **`retomarClique()`** dentro de `pararDeOuvir()`, que os dois caminhos de saída (`cancelar()`/`finalizar()`) sempre atravessam — não importa a ORDEM em que os dois `map.on('click', ...)` foram registrados, porque a checagem é por flag consultada na hora do clique, não por quem chegou primeiro.
+   - Não afeta as telas do instrutor: `offline-tela.js` só roda em `index.html` (decisão da 8a — "só o app do aluno"), e `situacao.js`/`debriefing.js` têm instância de `map` própria, separada da do aluno.
+
+4. **BDGEx "sumindo" ao mudar de zoom — sem nenhuma área offline baixada.** Confirmado em campo que a causa NÃO é o Service Worker/cache da Etapa 8a (nada tinha sido baixado) — bate com um candidato que a própria Etapa 7.1 já tinha registrado e nunca confirmado: **`mapcache` não é um WMS completo**, só serve as grades de tile que já tem em cache — pedir uma resolução fora do grid não dá erro, devolve tile em branco, e isso pode acontecer ao MUDAR de zoom (o navegador passa a pedir uma grade diferente da que estava cacheada).
+   - **Conserto de verdade, ainda NÃO feito** (fica para uma etapa própria, registrada no ROADMAP): trocar `ctmmultiescalas_mercator`/mapcache pelos endpoints por escala que o Exército publica em https (`/teogc/25/`, `/50/`, `/100/`, `/250/`, nome de camada `ctm` — WMS de verdade, renderiza sob demanda, sem grade fixa). Não é uma troca pontual: exige decidir faixas de zoom↔escala (sem tabela oficial publicada) e ajustar o download offline (`carta-offline.js`/`offline-tela.js` assumem hoje uma ÚNICA camada WMS por trás de `getTileUrl()`; uma área salva entre dois zooms poderia cruzar duas escalas diferentes).
+   - **Mitigação mínima aplicada agora, a pedido explícito**: o BDGEx já pedia `transparent: true` — então o "tile em branco" do mapcache é, na prática, um PNG TRANSPARENTE, não branco sólido. Isso só não ajudava em nada porque não existia camada nenhuma por baixo do BDGEx no mapa. `BASEMAPS.bdgexFundo`/`basemaps.js` (uma instância PRÓPRIA de OpenTopoMap, separada da opção `otopo` do seletor, para os ciclos de vida não colidirem) passou a ser plantada por baixo sempre que o BDGEx está selecionado — o buraco agora mostra OpenTopoMap em vez de vazio.
+     - **`basemaps.js` ganhou `trocarBasemap(map, basemaps, chave, basemapAnterior)`**, extraído porque a sequência "remove o antigo, adiciona o novo" (mais agora o "se for bdgex, adiciona/remove o fundo também") já tinha DOIS consumidores reais (`situacao.js`, `debriefing.js`) — mesmo critério de sempre para extrair. `index.html` continua com a própria cópia da lógica (não pode importar — script clássico), com o mesmo comentário.
+     - **`basemaps.teste.mjs` ajustado**: a checagem "index.html declara as MESMAS chaves que `OPCOES_BASEMAP`" passou a excluir `bdgexFundo` de propósito — ela não é uma opção do seletor (sem rádio, fora de `OPCOES_BASEMAP`), é implementação interna da mitigação.
+     - **PENDENTE DE TESTE AO VIVO, como todo o resto do BDGEx neste projeto**: depende de o mapcache realmente devolver `alpha=0` no buraco (comportamento padrão de WMS com `transparent=true`, mas não confirmado contra o servidor real a partir daqui — uma tentativa de `GetCapabilities` em `/teogc/` durante esta sessão não trouxe resposta utilizável, sem indicar se o problema é o servidor ou o ambiente de onde a chamada partiu).
+
+Verificado com `node --check` + parsing completo via `acorn` (Node não consegue executar `import()` de verdade nestes arquivos porque `auth.js` importa o Supabase de uma URL `https://`, então o parser substitui a checagem de execução) em `colegas.js`, `situacao.js`, `debriefing.js`, `offline-tela.js`, `marcacoes.js`, `basemaps.js`, `painel-lateral.js`, e nos dois blocos `<script>` embutidos de `index.html` (extraídos evitando a armadilha do `<script>` dentro de comentário HTML). As oito suítes de teste existentes seguem 100% verdes — **385** casos ao todo (25 `simbolos`, 40 `marcacoes`, 64 `rastro`, 116 `kml`, 24 `basemaps`, 14 `dispersar-avatares`, 68 `carta-offline`, 34 `imagem-geo`).
+
+### Decisões da Etapa 9a (migração para bundler, concluída)
+
+Etapa 9 (originalmente "SPA com bundler + stanag-app6") foi dividida em duas: **9a**, mecânica — trocar CDN por `npm`, introduzir o Vite, eliminar as duas "pontes" de escopo global — e **9b**, ainda em discussão — substituir a tabela de símbolos escrita à mão pelo catálogo oficial do MD/EB (`simbologia.eb.mil.br`). Esta seção documenta só a 9a; a 9b não teve nenhuma linha de código tocada.
+
+- **Por que existiam `window.WartoolSimbolos` e `window.WartoolCamadas`.** `frontend/index.html` tinha DOIS `<script>`: um clássico (dono do `map`, `BASEMAPS`, `GRUPOS` e das camadas do painel COP legado) e um `type="module"` (sessão, permissões, os módulos das Etapas 3+). Um `<script>` clássico não pode `import`, e um module não enxerga as variáveis internas de OUTRO script sem que algo seja publicado em comum — daí as duas pontes penduradas em `window`. Elas nunca foram "arquitetura", eram um contorno para a ausência de bundler, com prazo de validade já registrado desde que foram criadas.
+- **Vite, zero-config para ESM puro.** `vite.config.js` (novo) define `root: '.'` (a raiz do repo, mesma premissa de sempre — GitHub Pages só serve raiz ou `/docs`) e multi-page (`index.html` da raiz, `frontend/login.html`, `frontend/index.html`, `frontend/instrutor.html`). **Detalhe que custaria caro esquecer**: `base: '/wartoolc2/'`, porque o site é servido em `https://joaopaulo1008.github.io/wartoolc2/` — uma SUBPASTA do domínio do Pages, não a raiz dele. Sem isso, todo asset com hash apontaria para a raiz errada em produção (site em branco, cascata de 404, sem erro óbvio) — e o erro só aparece depois do deploy, nunca em `vite dev`.
+- **`leaflet` e `milsymbol` viraram dependências `npm`, pinadas na mesma versão que já vinha do CDN** (`leaflet@^1.9.4`, `milsymbol@^2.2.0`). Formas de import diferentes por biblioteca, e o motivo é o `package.json` de cada uma: `leaflet` não tem campo `exports`/ESM (UMD puro, só exports nomeados) — `import * as L from 'leaflet'`; `milsymbol` tem `exports: "./index.js"` com `export default` (já vem com os 4 conjuntos de ícones pré-registrados, igual ao global antigo) — `import ms from 'milsymbol'`. CSS do Leaflet importado por efeito colateral (`import 'leaflet/dist/leaflet.css'`) no topo do módulo de cada tela, no lugar do `<link>` de CDN.
+- **`frontend/basemaps.js` virou impuro** (agora começa com `import * as L from 'leaflet'`), e isso quebraria `basemaps.teste.mjs` — `import * as L from 'leaflet'` executa NA HORA e lança `ReferenceError: window is not defined` fora do navegador (confirmado rodando o import isolado em Node puro), então qualquer teste que importasse `basemaps.js` diretamente pararia de rodar em `node arquivo.teste.mjs`. Solução: **`frontend/basemaps-dados.js` (novo)** — só os metadados (`OPCOES_BASEMAP`, `BASEMAP_PADRAO`, `BASEMAP_FALLBACK`), sem nenhuma dependência, re-exportado por `basemaps.js` para quem já importava dali. Mesmo padrão que o projeto já usa desde etapas anteriores para separar lógica pura de lógica dependente de DOM/Leaflet (`carta-offline.js`/`offline-tela.js`, `kml.js`/`kml-navegador.js`).
+- **O que o Vite NÃO empacota sozinho, e por quê**: `data/*.geojson` (buscado por `fetch()` em tempo de execução, string invisível para análise estática) e `frontend/sw-bdgex.js` (Service Worker, registrado por `navigator.serviceWorker.register('./sw-bdgex.js')` — também uma string, e com uma exigência a mais: nome de arquivo ESTÁVEL, sem hash, porque o navegador verifica atualização pedindo essa MESMA URL a cada visita). **`scripts/copiar-estaticos-build.mjs` (novo)** copia os dois verbatim para `dist/` depois de `vite build`, e também escreve `dist/.nojekyll` (o que existia na raiz do repo protegia a raiz; o que é PUBLICADO agora é `dist/`, então o marcador precisa estar lá dentro). `package.json`: `"build": "vite build && node scripts/copiar-estaticos-build.mjs"`.
+- **`frontend/index.html` virou um único `<script type="module">`** (os dois script antigos foram fundidos). `WartoolSimbolos.getSIDC(props)` virou `getSIDC(props)` (import direto de `simbolos.js`); `window.WartoolCamadas` virou `const camadasPermissao = (…)()` — mesma forma (objeto com `definir()`/`reaplicar()`), só que uma const de módulo comum em vez de uma propriedade de `window`; `FALLBACK_BASEMAP`/`CORES_CAMADA`/`FAIXA_PANE_REPOSITORIO`/`escTexto()`, que eram cópias locais (o script clássico não podia importar), viraram imports de `basemaps.js`/`kml.js` (`BASEMAP_FALLBACK`, `CORES_CAMADA`, `FAIXAS_PANE.repositorio`, `escaparHtml()`). Os `typeof map !== 'undefined'`/`typeof BASEMAPS !== 'undefined'` que existiam para o module checar se o script clássico já tinha rodado somem — é tudo o mesmo módulo agora, `map`/`BASEMAPS` sempre existem quando são lidos.
+- **`frontend/instrutor.html` já estava 100% modular antes da 9a** (só precisou trocar os `<link>`/`<script src=CDN>` de Leaflet/milsymbol pelos imports `npm` equivalentes) — não tinha `<script>` clássico nem ponte nenhuma para remover.
+- **`basemaps.teste.mjs` deixou de comparar index.html contra duas cópias que não existem mais.** Continua comparando o que ainda É duplicação de verdade (os `<input name=basemap>` do HTML — marcação estática, não código importável — contra `OPCOES_BASEMAP`), e ganhou uma checagem nova: que `index.html` de fato IMPORTA de `basemaps.js`/`kml.js` em vez de ter voltado a declarar `BASEMAPS`/`CORES_CAMADA` locais. Foram de 24 para 20 asserções (as 4 que comparavam a cópia agora removida saíram); total das oito suítes foi de 385 para **381**.
+- **Deploy: GitHub Pages passou de "Deploy from a branch" (raiz crua) para "GitHub Actions".** Necessário porque agora existe um passo de build (`dist/`, não mais a raiz do repo, é o que precisa ser publicado). **`.github/workflows/deploy.yml` (novo)**: `npm ci && npm run build` e publica `dist/` via `actions/upload-pages-artifact`+`actions/deploy-pages` (o padrão oficial de duas jobs, `build`+`deploy`, exigido por essas actions). **Passo manual, fora deste repositório**: trocar a origem em Settings -> Pages -> Source, de "Deploy from a branch" para "GitHub Actions" — mesma natureza do passo manual "habilitar o Pages" já registrado na Etapa 11.
+- **Verificação feita**: as oito suítes (381 casos) rodando 100% verdes; `node --check` + `acorn` em todos os `.js`/`.mjs` de `frontend/` e no próprio `vite.config.js`/`scripts/copiar-estaticos-build.mjs`; `npm run build` rodado com sucesso, `dist/` inspecionado (as 4 páginas HTML com `/wartoolc2/assets/...` corretos, `data/`, `sw-bdgex.js` e `.nojekyll` presentes). ~~**PENDENTE DE TESTE AO VIVO**: abrir o site publicado de verdade depois do deploy via Actions~~ — **fechado em 2026-08-02**: a origem do Pages foi trocada para "GitHub Actions", o workflow roda em ~35 s por push, e o site publicado foi aberto e usado em campo. Desde 2026-09-14 o rodapé carimba a data do build, que é como se confere qual versão está no navegador.
+
+### Decisões da Etapa 9b (catálogo oficial do MD/EB, autoridade do instrutor e coordenadas, concluída)
+
+Escopo AMPLIADO em relação ao que estava registrado no ROADMAP: além de trocar as tabelas manuais de `simbolos.js` pelo catálogo oficial (o que a 9b previa), a etapa cobriu também a autoridade explícita do instrutor sobre a simbologia da turma, a origem do SIDC "de fábrica" de cada usuário, e a exibição da coordenada em três formatos selecionáveis. Ampliação decidida com o usuário em 2026-08-01, fora do ROADMAP até então.
+
+Migration nova: **`0009_auditoria_edicao_e_preferencias.sql`** (duas colunas, um trigger, um `check` — nenhuma policy de RLS foi tocada).
+
+**1. Estrutura do catálogo: hierárquica, não plana.** A alternativa era manter a forma antiga (um `<select>` plano por campo, só trocando os valores) — descartada por um motivo prático e um conceitual. Prático: as 18 naturezas escritas à mão cabiam numa lista; **434 não cabem num `<select>` de celular, em campo, com luva**. Conceitual, e mais importante: a "dimensão" do formulário antigo e a categoria do catálogo **são a mesma coisa** — os dígitos 5-6 do SIDC (o *symbol set* do APP-6D). Manter os dois campos era pedir duas vezes o mesmo dado e **permitir combinações inválidas** (uma "Fragata" com dimensão "UNIDADE" produz um SIDC que a milsymbol desenha errado, e o formulário antigo aceitava isso sem reclamar). Com a hierarquia `categoria → ícone central (agrupado por entidade APP-6D em `<optgroup>`) → modificador 1 → modificador 2`, escolher a categoria já fixa o symbol set e só aparecem itens que existem nele: a combinação inválida deixa de ser digitável. Escalão e partido continuam `<select>` planos — escalão é amplificador (dígitos 9-10), vale para qualquer categoria e tem 13 opções; partido nunca foi simbologia.
+
+  **A hostilidade continua fora do catálogo e não mudou**: segue relativa, calculada em runtime por `hostilidadeRelativa()`/`aplicarHostilidade()`. O portal não publica tabela de hostilidade justamente porque, no APP-6D, ela é campo de quem observa — que é a mesma conclusão a que a Etapa 4.5 chegou sozinha.
+
+**2. Os 12 JSON: baixados uma vez e versionados — mas o EXTRATO, não os originais.** Buscar ao vivo foi descartado por três motivos, na ordem em que pesaram: (a) **campo sem rede** — depender de `simbologia.eb.mil.br` estar no ar para um aluno marcar um elemento cria exatamente o tipo de ponto de falha que o projeto vinha removendo (mapa offline da 8a; `REPO_RAW` deixando de apontar para `raw.githubusercontent.com` na Etapa 11); (b) **CORS**, que não há garantia nenhuma de existir para outra origem; (c) os arquivos não são API versionada, são **chunks de webpack de uma SPA**, com hash no nome e formato sujeito a mudar numa reconstrução do portal.
+
+  O que NÃO foi versionado: os 12 arquivos originais, que somam **~17,6 MB** — quase tudo PNG em base64 (`br_symbol`, os desenhos prontos que o portal exibe) e campos de layout da planilha de origem. Nada disso é usado aqui: quem desenha é a milsymbol, a partir do SIDC. Versionado: o **extrato normalizado** (`data/simbologia-eb/catalogo-extraido.json`, ~57 KB) e as extensões nacionais (`extensoes-br.json`, ~6 KB), com **URL, tamanho, SHA-256 e data de captura de cada um dos 12** em `data/simbologia-eb/PROCEDENCIA.md` — que traz também o trecho de JavaScript exato para recapturar do console do navegador quando o portal publicar versão nova.
+
+  De extrato para código: `scripts/gerar-catalogo-simbologia.mjs` gera `frontend/simbolos-catalogo.js`. **Módulo JS gerado, e não JSON lido por `fetch()`**, por duas razões concretas: `getSIDC()`/`decomporSidc()` são síncronas (rodam na hora de desenhar cada símbolo) e `simbolos.js` precisa continuar importável em Node puro pelas suítes de teste — `fetch()` quebraria as duas coisas; `import` não quebra nenhuma e ainda entra no bundle sem custo de rede. O gerador **falha em vez de gerar** se aparecer categoria ou grupo sem rótulo em português, para um catálogo novo parar a construção em vez de vazar inglês para o formulário.
+
+  **63 ícones ficaram de fora do formulário**: são as extensões nacionais (`ExtEntity`), com SIDC de **30** dígitos. `perfis.sidc` e `elementos_marcados.sidc` têm `check (sidc ~ '^[0-9]{20}$')` desde a `0001`, e a milsymbol desenha APP-6D de 20 dígitos (o glifo brasileiro o portal serve como PNG). Truncar para 20 seria pior que omitir — "Forças Especiais" e "Precursores Paraquedistas" colapsariam no mesmo símbolo, e o aluno veria o nome que escolheu virar outro desenho. Ficam listados em `EXTENSOES_BR_NAO_SUPORTADAS` para a etapa futura que resolver isso não precisar recapturar o portal.
+
+  **Bugs antigos revelados pelo catálogo — e este é o achado que mais justifica a etapa.** As tabelas escritas à mão não estavam só *incompletas*: estavam **erradas**. Confrontando as 18 naturezas da Etapa 5 com o catálogo oficial (symbol set 10, unidades), **só 5 batiam**:
+
+  | Código | Rótulo na tabela manual | O que o código significa de verdade |
+  |---|---|---|
+  | `121103` | Infantaria Mecanizada | **Apoio de Fogo Orgânico** |
+  | `163600` | Suprimento / Logística | **Transporte** |
+  | `163700` | Manutenção | **Suprimento Classe I** |
+  | `163800` | Saúde / Médico | **Suprimento Classe II** |
+  | `140100` | Viatura | **Defesa QBRN** |
+  | `111000` | Comunicações / Sinal | Comunicações *(diferença só de redação)* |
+  | `000000` | Desconhecido / Não identificado | **Comando Nomeado** |
+  | `121200`, `150300`, `120000`, `110000`, `110300` | Blindado, Inteligência, Posto de Comando, Instalação Militar, Depósito de Munição | **não existem** no symbol set de unidades |
+
+  Repare no padrão: `140100` ("Viatura") e `110000`/`110300` (instalações) não pertencem a *unidades* coisa nenhuma — são de **outros symbol sets** (equipamentos e instalações). A tabela manual misturava os três, que é exatamente a combinação inválida que a hierarquia agora impede. **O símbolo desenhado nunca dependeu do rótulo** (a milsymbol sempre desenhou a partir do código), então o que estava errado o tempo todo era o que o formulário dizia ao usuário — um "Infantaria Mecanizada" clicado no app vinha desenhando um símbolo de apoio de fogo. Marcações criadas antes da 9b **passam a exibir o rótulo oficial** do código que têm; e ao reabrir uma delas para edição com código que não existe no catálogo, o formulário mostra um **aviso amarelo** em vez de deixar salvar o primeiro item da lista em silêncio.
+
+  `DIMENSAO.AEREO` tinha o mesmo tipo de erro: valia `'05'`, que no APP-6D é **Space**, não Air (aeronave é `'01'`). Nunca apareceu porque nenhuma marcação aérea foi criada. O alias foi **preservado com o valor errado de propósito** — mudá-lo reescreveria o significado de qualquer dado antigo que o usasse. A chave certa (`AERONAVES: '01'`) veio do catálogo e é a que o formulário oferece; `chavePorValor(DIMENSAO, '05')` devolve `ESPACIAIS`, que também é o correto.
+
+**3. Precedência da origem do SIDC do usuário: ORBAT → seed → `perfis.sidc`.** Resolvida numa função só, `sidcDeFabrica()` em `simbolos.js`, para nenhuma tela reimplementar a regra. A ORBAT (Etapa 6.5, **não implementada aqui**) vem primeiro porque é a fonte mais autoritativa: o símbolo é consequência da unidade em que a pessoa está lotada, e quem é transferido de Pel para Cia muda de símbolo por transferência, não por edição de perfil. O **ponto de extensão da 6.5 está marcado no corpo da função** (parâmetro `sidcDaUnidade`, hoje nunca passado por ninguém) e tem teste. Seed (2c) e `perfis.sidc` são, na prática, a **mesma coluna** — o seed não é origem paralela, é quem preenche a coluna antes de o usuário existir; por isso a resolução em runtime é curta hoje, e a precedência só fica visível quando a 6.5 entrar.
+
+  **O próprio usuário NÃO é uma origem, e `login.html` continua sem pedir símbolo no cadastro.** Dois motivos: símbolo militar não é preferência pessoal, é o que a fração é — deixar o aluno escolher recriaria, no eixo do símbolo, exatamente o problema que a Etapa 4.5 resolveu tirando o partido da mão dele; e `fn_proteger_campos_do_perfil` (0002/0003) já é o lugar que decide o que o aluno mexe no próprio perfil, e `sidc` deliberadamente não está nessa lista. Corrigir o símbolo de um aluno é atribuição do instrutor, no mesmo espírito da autoridade que ele já tem sobre partido e sobre as marcações da turma.
+
+**4. Auditoria de edição: `editada_em`/`editada_por`, carimbados por TRIGGER.** A autoridade do instrutor sobre qualquer marcação da turma **já existia** desde a 0003 (`elementos_editar_instrutor`) e não foi criada nesta etapa — o que a etapa fez foi garantir que ela sobrevive ao formulário novo (mesmo caminho de código: `podeMexer` no popup → `abrirFormulario(..., { marcacaoExistente })`, agora com o catálogo por trás e o pré-preenchimento vindo dos campos novos de `decomporSidc()`) e resolver a **confusão** que ela causa. O problema nunca foi de permissão: como a marcação é publicada por Realtime, quando o instrutor troca a natureza o **símbolo muda sozinho no aparelho do aluno**, sem nada na tela dizer que foi correção. Com `editada_por`, o popup diz "Corrigido por Cap Paulo às 14:32". É também a simetria que faltava — apagar já era auditável desde a Etapa 1 (`removida_em`/`removida_por`), mudar não era.
+
+  **Trigger e não cliente**, ao contrário de `removida_por`: quem edita é eventualmente o instrutor mexendo no trabalho de outra pessoa, e um campo de auditoria que depende de o cliente lembrar de preencher é um campo que a próxima tela vai esquecer. O trigger não carimba em exclusão lógica (que já tem a própria auditoria) e aceita `auth.uid()` nulo (service_role/SQL Editor) como "alterado fora de uma sessão de usuário".
+
+**5. Formato de coordenada: por USUÁRIO, em `perfis.preferencias_visualizacao`.** A coluna existe desde a 0003 e **nunca tinha sido consumida por interface nenhuma** — esta é a primeira chave de verdade nela (`formato_coordenada`, com `check` no banco aceitando só `utm`/`decimal`/`dms`). O comentário original da coluna já dizia o que ela é: "FILTRO, não PERMISSÃO" — e em que formato eu leio a minha tela é o exemplo mais puro disso: não muda o que ninguém enxerga, não muda o que é gravado (o banco continua guardando grau decimal, sempre) e não afeta outra pessoa.
+
+  A alternativa (chave em `permissoes`, instrutor fixando para a turma) foi descartada porque o catálogo de permissões é sobre **liberar ou bloquear**, e "todo mundo lê em UTM" não é nem um nem outro — misturar os dois conceitos desfaria a separação que o projeto mantém desde a 4.5. E na prática **o padrão já resolve**: `FORMATO_PADRAO` é `utm`, que é o que está impresso na carta do BDGEx que o app serve como mapa de fundo, então a turma já começa alinhada sem ninguém decidir nada. No banco e não no `localStorage` porque a escolha precisa sobreviver a troca de aparelho no meio do exercício.
+
+  O `check` é deliberadamente **frouxo com o resto do objeto**: valida só a chave desta etapa e ignora qualquer outra — `preferencias_visualizacao` vai crescer (a interface de filtros de camadas segue pendente desde a 4.5), e um check fechado transformaria cada preferência nova numa migration. **A interface geral de filtros continua NÃO feita** — esta etapa fez a chave, não o painel.
+
+**6. UTM: matemática própria, sem dependência nova.** Com o bundler daria para acrescentar o pacote `utm` do npm; não foi feito por três motivos: o build da 9a **já emite aviso de chunk grande** e uma dependência a mais para ~60 linhas de fórmula não se paga; o projeto já tem o padrão de "matemática pura e testável no repositório" (`rastro.js`, `kml.js`), que é justamente o que dá confiança de que **a zona está certa**; e menos peças móveis em campo. `frontend/coordenadas.js` implementa a Transversa de Mercator direta de Snyder (USGS PP 1395, §8) sobre WGS84, com a busca de zona e as duas exceções que são parte da definição do UTM (sudoeste da Noruega, Svalbard).
+
+  **Errar a zona é o erro mais fácil de cometer e o mais difícil de perceber**: o par de números continua parecendo plausível, só aponta ~800 km para o lado. Por isso os valores esperados do teste **não foram inventados** — saíram do **PROJ 9.5.1** (via `pyproj`), a mesma biblioteca por trás do QGIS, e o procedimento para regerá-los está no cabeçalho de `coordenadas.teste.mjs`. Concordância medida em 13 pontos: **0,83 mm no pior caso**, cinco ordens de grandeza abaixo dos 5–15 m de precisão de um GPS de celular. Dois casos não dependem nem do PROJ: no meridiano central o easting é exatamente 500.000 e no equador o northing é exatamente 0 (ou 10.000.000 no sul) — definições do sistema, âncoras independentes de qualquer implementação.
+
+  **Correção de campo, 2026-08-02 (mesmo dia da etapa).** A primeira versão escrevia `683478E 7460686N`, a notação mais comum em GIS/MGRS. Foi lida como **hemisfério**: "está errado, estamos a oeste e ao sul, e está escrito E e N". Não estava errado — em UTM, `E` e `N` são os nomes dos dois **eixos** (*easting*/*northing*), em metros, e valem E e N em qualquer lugar do planeta; o easting é positivo no hemisfério oeste por causa do falso este (500 km), e o northing conta de 10.000.000 no equador para baixo no hemisfério sul. Mas a leitura errada é compreensível num app que mostra também GMS e grau decimal, onde S e W **são** hemisfério — um `E` colado no fim de um número puxa para o mesmo sentido. O sufixo virou **`mE`/`mN`** (a convenção impressa nas cartas, que é a referência que o instrutor tem na mão): `584770 mE` lê-se "584.770 metros no eixo E". O hemisfério continua na **letra da faixa**, e deliberadamente não se escreve "22 S" no lugar — essa convenção colide com a faixa MGRS `S`, que é do hemisfério **norte**. O cartão "Coordenada" ganhou uma nota que só aparece em UTM, e `coordenadas.teste.mjs` ganhou uma seção que trava a regra (reproduzindo o caso exato relatado) para ninguém "consertar" de volta para `mW`/`mS`, que não existe em UTM.
+
+**A formatação de coordenada é UMA só, em dois módulos com papéis distintos.** `coordenadas.js` é puro e sabe **converter**; `preferencias.js` sabe **qual formato** e é onde mora `formatarCoordenada()`. As quatro telas que mostram coordenada (`gps.js`, `colegas.js`, `marcacoes.js` e — acréscimo além do pedido — `situacao.js`, a aba do instrutor) chamam essa única função. Cada uma delas **remonta o popup quando o formato muda**, porque o popup é construído no evento (posição nova, abertura) e um colega parado pode passar minutos sem evento nenhum: sem isso, trocar o formato pareceria não funcionar.
+
+**O que esta etapa deliberadamente NÃO fez**: Etapa 6.5 (a árvore ORBAT em si — só o ponto de extensão), Etapa 2c (o seed continua adiado; a etapa só assume que, quando rodar, `perfis.sidc` vem preenchido dele), painel geral de `preferencias_visualizacao`, e qualquer mudança em `hostilidadeRelativa()`/`aplicarHostilidade()` além do necessário.
+
+**Verificação feita**: `node --check` em todos os `.js`/`.mjs` de `frontend/` e `scripts/`, mais `acorn` no `<script type="module">` de cada HTML (o `node --check` não lê script embutido); `backend/testes/valida_sql.py` na `0009` (10 comandos, corpo do plpgsql e o bloco `DO`, 0 falhas); as **nove suítes 100% verdes, 509 casos** (25 `simbolos`, **75** `marcacoes` — era 40, ver abaixo —, 64 `rastro`, 116 `kml`, 20 `basemaps`, 14 `dispersar-avatares`, 68 `carta-offline`, 34 `imagem-geo`, **93 `coordenadas`**, nova); `npm run build` com sucesso. **`marcacoes.teste.mjs` foi reescrito**: a versão da Etapa 5 fazia uma asserção por chave das tabelas manuais (5+13+18); varrer o catálogo assim daria ~450 linhas de log dizendo a mesma coisa, então as varreduras completas continuam acontecendo — cobrindo agora **o catálogo inteiro, não uma amostra** — mas reportam uma asserção por categoria, com o detalhe de qual item falhou se algum falhar. **Custo no bundle**: +44,9 kB no chunk principal (1 004 → 1 049 kB), **+13 kB gzipado** — o catálogo oficial completo, menos do que custaria o pacote `utm` mais uma fonte de dados qualquer.
+
+**PENDENTE DE TESTE AO VIVO** (acrescentado a `docs/roteiro-teste-campo.md`): conferir os três formatos contra o GPS do celular e uma referência externa — **principalmente UTM**, que é onde se erra a zona sem perceber; instrutor corrigindo a natureza de uma marcação de aluno em campo real e o aluno vendo a mudança (e o "Corrigido por") sem F5; e conferir que a precedência de origem do SIDC bate com o que o roteiro de cadastro real da Etapa 2c vai produzir, quando ela for ativada.
+
+### Correção: o que vai escrito AO LADO do símbolo (2026-08-02)
+
+Regressão da Etapa 9b, vista na primeira olhada em campo: o mapa saiu com *"Cavalaria Blindada ou Mecanizada, Carros de Combate (código específico apenas para compatibilidade com a OTAN)"* escrito ao lado do símbolo, atravessando a tela.
+
+**A causa é conceitual, não de layout.** No APP-6D, o campo que a `milsymbol` chama de `uniqueDesignation` é a **designação da unidade** — o número/nome dela ("1º/5º RCC") —, não o **tipo**. O tipo já está dito pelo desenho do símbolo; escrevê-lo ao lado é redundante mesmo quando cabe. A `0001` sempre descreveu `elementos_marcados.titulo` como "rótulo curto exibido no mapa"; a Etapa 9b o repropôs como nome do tipo, e com os nomes oficiais (longos, alguns com nota entre parênteses) o erro ficou visível.
+
+- **`titulo` volta a ser o rótulo curto** — agora a designação que o usuário digita, num campo novo e **opcional** do formulário (`maxlength=12`). Em branco, o símbolo sai limpo, que é o certo para um elemento inimigo cuja unidade não se conhece.
+- **O tipo não é mais gravado**, porque já está no SIDC: sai de lá por `descreverSidc()`. Menos um dado duplicado que poderia divergir.
+- **`designacaoDoMapa()` (nova, pura, em `simbolos.js`) conserta o dado já gravado sem migration.** Quando o `titulo` é exatamente o nome do tipo — que é como ficaram as marcações criadas entre a 9b e esta correção —, não há designação a mostrar e ela devolve `''`. A comparação olha também só a primeira linha, para pegar as linhas gravadas com a nota da planilha colada. Também trata `'Inimigo'` (o default do schema) como "sem designação", e trunca por segurança.
+- **O popup deixou de depender do `titulo`**: o cabeçalho é a designação quando existe, senão o nome do tipo derivado do SIDC. Nunca fica vazio.
+
+**Mesma causa, segundo sintoma, corrigido junto:** 10 nomes do catálogo e 32 modificadores traziam, *dentro* do `NomeBR` e separadas por quebra de linha, anotações da planilha de origem ("código específico apenas para compatibilidade com a OTAN", listas de sinônimos, código OTAN de posto). Isso não é nome, é nota de rodapé — e continuaria poluindo o `<select>` num celular e a linha "Símbolo" do popup mesmo depois de consertado o mapa. O gerador passou a separar: a **primeira linha é o nome**, o resto vira `observacao` (terceiro elemento da tupla), preservada no catálogo e usada só como `title=` da `<option>`. Nenhum código de SIDC mudou.
+
+### Vetor de observação — distância e azimute até o alvo (2026-08-02)
+
+Acréscimo pequeno e deliberadamente isolado, feito **depois** de a Etapa 9b fechar e **antes** do primeiro teste de campo, a pedido do usuário. É o primeiro pedaço do que virá a ser o painel de apoio de fogo (ver "A fazer" no ROADMAP) — escolhido justamente por ser o único pedaço daquela ideia que **não** exige tabela nova, papel novo nem migration: o dado já existe nas duas pontas (a posição de quem observa, em `gps.js`, e a da marcação, em `elementos_marcados`), e faltava só a conta entre elas.
+
+- **`frontend/visada.js` (novo, puro)** devolve distância e azimute de um ponto a outro. Consumido só pelo popup da marcação, via `formatarVisada()`.
+
+- **Inversa de Vincenty, e não o `distanciaMetros()` que `rastro.js` já exporta.** Reusar era o instinto certo, e foi descartado com medida, não por gosto: aquela função é haversine ESFÉRICA, e o comentário dela declara o regime em que vale ("dezenas de metros entre pontos consecutivos"). Contra o PROJ, nas latitudes do Brasil, o erro dela é **+7,6 m em 2 km e +75,5 m em 20 km** (até 0,38%). Para somar rastro, irrelevante. Para um vetor de tiro, 75 m é erro grande — e do pior tipo, porque o número continua plausível. Vincenty resolve distância e azimute juntos sobre o elipsoide, com precisão de milímetro. **`visada.teste.mjs` tem uma seção que executa essa comparação**, para o dia em que alguém quiser "simplificar" de volta.
+
+- **Milésimo NATO (6400 por volta)**, que é a unidade de trabalho do apoio de fogo, com o grau entre parênteses para quem confere com transferidor.
+
+- **O azimute é o de QUADRÍCULA, que é o lançamento** (sufixo `qd` na tela). A primeira versão entregava o VERDADEIRO, e foi corrigida no mesmo dia com a resposta de quem usa: *"lançamento é sempre em relação ao norte de quadrícula"*. Não é detalhe de nomenclatura — em Tibagi/PR a convergência meridiana é 0,357°, então um alvo exatamente ao norte verdadeiro tem lançamento **6 milésimos**, não 0. Na borda de uma zona UTM chega a ~1,45°, ou **26 milésimos**: mais de 25 m de desvio a 1 km.
+
+  `convergenciaMeridiana()` usa a expressão esférica exata `atan(tan Δλ · sen φ)`, com Δλ a partir do meridiano central da zona **do observador** (é ele que tem a carta com a quadrícula impressa). Conferida contra o `meridian_convergence` do PROJ em oito pontos, do meridiano central às duas bordas: concorda dentro de **0,01 mili-grau**. A forma de primeira ordem `Δλ · sen φ`, comum em manuais, erra até 0,94 mili-grau na borda — pequeno, mas o `atan` custa o mesmo e não tem resíduo.
+
+  O relacionamento `quadrícula = verdadeiro − convergência` (e o sinal) foi verificado **numericamente**, não assumido de convenção: projetando os dois pontos em UTM e comparando `atan2(ΔE, ΔN)` com o azimute geodésico. O resíduo entre os dois métodos (a correção arco-corda) é **0,02 milésimo a 20 km** — irrelevante.
+
+  `azimuteVerdadeiroGraus` continua sendo devolvido junto, para conferência contra fonte geodésica externa e como ponto de partida se um dia entrar o magnético (que exigiria um modelo IGRF/WMM que o projeto não tem).
+
+- **A distância é a do ELIPSOIDE (chão), não a da quadrícula.** É a que a peça precisa. A distância medida na quadrícula traz junto o fator de escala do UTM (até ~4 m em 10 km) e seria a resposta errada.
+
+- **Injeção por parâmetro, não import.** `marcacoes.js` não importa `gps.js`: recebe `obterMinhaPosicao` de quem o inicia, no mesmo padrão de `avaliarCriacaoExtra` (Etapa 6c) e do `map`. `index.html` (aluno) passa `minhaPosicao` de `gps.js`; `situacao.js` (instrutor) não passa nada, e lá a linha some sozinha — sem tratamento especial, porque `visada(null, …)` devolve `null` e `formatarVisada(null)` devolve `''`.
+
+- **`minhaPosicao()` lê a posição JÁ DESENHADA**, não uma variável nova. Consequência deliberada: se o instrutor desligar `ver_propria_posicao`, o vetor some junto — em vez de o app continuar publicando a própria posição por uma porta lateral que a permissão não cobre.
+
+- Calculado na **abertura do popup**, não a cada leitura de GPS: quem consulta o vetor está parado olhando a tela naquele instante.
+
+**Verificação**: `visada.teste.mjs` (novo, 49 casos) com os valores esperados vindos do **PROJ** via `pyproj.Geod` — não de estimativa; as dez suítes 100% verdes, **558 casos**; `node --check` + `acorn`; `npm run build`. Sem migration, sem mudança de RLS, sem chave de permissão nova.
+
+### Etiqueta de idade no lugar do esmaecimento (2026-09-14)
+
+Pedido de campo, na véspera de um teste: *"os avatares não devem esmaecer com o
+tempo, devem marcar a última posição conhecida do elemento"*. É a **segunda**
+correção no mesmo lugar e no mesmo sentido — vale ler as duas juntas, porque
+sozinha cada uma parece um ajuste de estilo e juntas elas são uma regra:
+
+| Quando | O que os limiares faziam | Por que mudou |
+|---|---|---|
+| Até 2026-08-01 | `REMOVER_MS` tirava o avatar do mapa | Um amigo que perdia sinal sumia sem deixar rastro de onde esteve |
+| Até 2026-09-14 | Esmaecia (0,4 e depois 0,15) | Um símbolo a 15% sobre a carta do BDGEx é quase invisível — justamente quando é a única informação que restou daquele elemento |
+
+**Tirar o esmaecimento sem pôr nada no lugar seria pior do que mantê-lo**, e
+esse foi o ponto discutido antes de executar: sem nenhum sinal, uma posição de
+40 minutos atrás fica pixel por pixel idêntica a uma de 5 segundos, e quem olha
+lê "ele está ali". É a falha silenciosa que o projeto recusa desde a Etapa 6b
+(o debriefing avisa quantas leituras cada ponto representa) e desde a Etapa 7
+(a tela diz em voz alta quando simplificou uma geometria). Num vetor de tiro,
+ler posição velha como atual é erro caro.
+
+- **A troca é opacidade 1,0 + ETIQUETA DE IDADE.** `rotuloIdade()` (novo em
+  `vigia-ausencia.js`, puro e testado) devolve `''` abaixo de
+  `AVISO_PARADO_MS` e `'12m'`/`'1h35'`/`'+24h'` acima. **Ela diz mais do que o
+  esmaecimento dizia** — "0,4" nunca respondeu "há quanto tempo". As duas
+  cores guardam a distinção que os dois patamares faziam: âmbar para atrasado,
+  vermelho para sem sinal.
+- **`REMOVER_MS` virou `SEM_SINAL_MS`.** O nome mentia desde 2026-08-01 (ele
+  não remove nada há mais de um mês) e agora mentiria mais ainda. Dois
+  consumidores, renomeados junto.
+- **A etiqueta mora no `divIcon`, não num `setIcon()` por ciclo.** Todo símbolo
+  desenhado por `criarIconeSimbolo()` nasce com um `<span>` vazio e escondido;
+  `definirEtiquetaIdade(marker, texto)` (novo em `icones.js`) escreve nele via
+  `getElement()`. A alternativa — recriar o ícone a cada mudança de idade —
+  jogaria fora e reconstruiria o SVG do milsymbol de 60 marcadores a cada 15s
+  sem nenhuma necessidade: o desenho não mudou, só o texto ao lado.
+- **`iniciarVigia()` mudou de contrato**: os dois callbacks disparados ao
+  CRUZAR um limiar (`aoEsmaecer`/`aoRemover`) viraram um `aoConferir` chamado
+  para TODO elemento a cada ciclo. Bastavam enquanto o efeito era um valor fixo
+  de opacidade; deixaram de bastar quando o efeito virou um texto que CONTA
+  ("12m" precisa virar "13m"). Ganhou também `aoFim`, para trabalho por ciclo:
+  `situacao.js` redesenhava a lista lateral de dentro do callback, ou seja até
+  uma vez por aluno atrasado — 60 redesenhos da lista inteira a cada 15s.
+- **O replay do Debriefing acompanhou, e isso não era opcional.** Ele esmaecia
+  por SIMETRIA com o ao vivo ("o instrutor que viu um avatar esmaecer em campo
+  precisa ver a mesma coisa ao reproduzir aquele momento", Etapa 6b) — manter o
+  esmaecimento só lá teria quebrado exatamente a simetria que o justificava. A
+  diferença é a origem da idade: no replay é `pos.idade` (quanto tempo fazia
+  NAQUELE instante), nunca `Date.now()`. Os limiares batem porque
+  `GAP_ESMAECER_MS`/`GAP_SEM_SINAL_MS` em `rastro.js` são, de propósito, os
+  mesmos 60s/120s.
+- **O que NÃO mudou**: a lista lateral do instrutor (`estadoDe()` em
+  `situacao.js`) continua dizendo "parado há 2m05s"/"sem sinal há Xm" — ela
+  nunca dependeu do marcador e é a leitura detalhada das duas. Os nomes
+  `GAP_ESMAECER_MS` e os estados `'esmaecido'`/`'sem_sinal'` de `rastro.js`
+  continuam como estão: são contrato testado (64 asserções), e renomeá-los
+  seria mexer em tudo isso para descrever a mesma fronteira de tempo. Leia
+  `'esmaecido'` como "passou do primeiro limiar", não como instrução de
+  opacidade — quem decide o que desenhar é `debriefing.js`.
+- **`rotuloIdade()` não reusa `duracaoCurta()`** (que existe em duas cópias, em
+  `situacao.js` e `debriefing.js`, com comportamentos ligeiramente diferentes
+  abaixo de 1min). Aquelas formatam duração para ler DENTRO de uma frase
+  ("Janela de 1h30m"); esta divide espaço com um símbolo de 26px num celular e
+  precisa de duas ou três letras. Requisitos diferentes; unificar pioraria os
+  dois lados e mudaria o rótulo da janela do debriefing, que não tem nada a ver
+  com este pedido. Há teste travando que nenhum rótulo passe de 5 caracteres.
+
+### Paleta de ícones rápidos (2026-09-14) — migration 0010
+
+Segundo pedido da mesma conversa: *"um banco de ícones rápidos para os usuários
+locarem pontos no mapa, definidos pelo instrutor"*. Três opções foram postas
+(lista fixa no código / coluna `jsonb` em `turmas` / tabela própria) e a
+escolhida foi a tabela, com partido em modo **híbrido**.
+
+**O problema.** Desde a Etapa 9b, marcar um elemento custa no mínimo oito
+toques: mapa → categoria → ícone (dentro de 434) → mod 1 → mod 2 → escalão →
+partido → designação. O catálogo hierárquico foi a decisão certa (a tabela
+manual que ele substituiu errava 13 dos 18 códigos, e a hierarquia impede
+combinação inválida), mas é uma **ferramenta de precisão** — e um contato que
+dura 20 segundos, com luva, não cabe em oito toques. A paleta é o atalho: um
+toque no botão, um toque no mapa.
+
+- **`backend/supabase/0010_icones_rapidos.sql`** — tabela por turma. Nada aqui
+  é padrão novo: RLS no molde de `calcos` (0006), exclusão lógica da Etapa 1,
+  `check (sidc ~ '^[0-9]{20}$')` da 0001, Realtime com `replica identity full`,
+  e **paleta padrão criada por trigger em toda turma nova**, no molde exato de
+  `fn_criar_partidos_padrao` (0003) — a turma nasce utilizável em vez de com
+  uma tela vazia que quase ninguém configuraria.
+- **O trigger se chama `trg_turmas_z_icones_rapidos_padrao`, e o `z_` é
+  funcional.** O Postgres dispara triggers de mesmo timing em ordem
+  ALFABÉTICA, e este precisa rodar DEPOIS de `trg_turmas_partidos_padrao`
+  (0003), porque os presets referenciam o partido 'Vermelho' que aquele acaba
+  de criar. "Arrumar" o nome faria a paleta nascer com partido nulo — **sem
+  erro nenhum**, só com todos os presets pedindo partido para sempre. Há teste
+  travando isso.
+- **Os SIDCs da paleta padrão não foram escritos à mão.** Saíram de `getSIDC()`
+  a partir dos códigos de entidade do catálogo oficial e foram conferidos de
+  volta por `descreverSidc()`; o comentário ao lado de cada um na migration é o
+  rótulo oficial que o código significa. É consequência direta do achado da
+  Etapa 9b — "Infantaria Mecanizada" vinha desenhando apoio de fogo havia
+  meses.
+- **`partido_padrao_id` NÃO é `calcos.partido_id`, e por isso não tem o mesmo
+  nome.** Em `calcos`, a coluna diz PARA QUEM o calco é visível (nulo = turma
+  inteira). Aqui ela diz que partido a MARCAÇÃO criada recebe (nulo =
+  perguntar ao aluno). Um nome igual com semântica oposta em duas tabelas
+  vizinhas é o que alguém copia de uma policy para a outra sem reler.
+- **O modo híbrido é o que decide quantos toques a marcação custa.** Preset com
+  força definida grava em um toque; preset sem força abre SÓ o seletor de
+  partido, nada mais. Quem decide preset a preset é o instrutor: "CC" é quase
+  sempre hostil e vale gravar direto; "Vtr" pode ser tráfego civil. Sem esse
+  meio-termo seria preciso escolher entre velocidade (o aluno grava partido
+  errado por reflexo) e segurança (some metade do ganho).
+- **São QUATRO policies, não um `for all` como em `calcos_escrever` — e a
+  diferença foi um bug real, apanhado pelo teste antes de ir para o ar.** Um
+  `for all` com `with check (... and criado_por = auth.uid())` aplica essa
+  exigência também ao UPDATE, e aí **o instrutor não consegue editar a paleta
+  PADRÃO**: aquelas linhas têm `criado_por` nulo, porque não foi pessoa nenhuma
+  que as criou. Falharia exatamente no caso de uso principal, só nos presets
+  padrão, só no UPDATE, sem erro que explicasse o motivo. `calcos` tem a mesma
+  forma e não sofre disso só porque lá toda linha nasce de um instrutor de
+  verdade. `criado_por` nulo passou a ter significado ("veio da paleta
+  padrão") e é imutável, garantido por trigger — mesma escolha, e pelo mesmo
+  motivo, de `fn_carimbar_edicao_do_elemento` na 0009.
+- **Teto de 12 presets, por trigger** (um `check` não conta linhas). Não é
+  zelo: 12 botões já ocupam um cartão inteiro do painel lateral, e uma paleta
+  de 40 recria, sem hierarquia para filtrar, o mesmo problema de navegação que
+  o catálogo de 434 — que é o problema que ela existe para resolver. Recusar e
+  dizer o porquê segue `LIMITE_FEICOES` (Etapa 7) e o teto de tiles (8a).
+- **Nenhuma chave nova em `catalogo_permissoes`.** A paleta é um atalho para
+  criar marcação, e criar marcação já tem dono (`criar_marcacao_inimiga`, Etapa
+  6a) — o mesmo interruptor esconde a paleta e o formulário. Dois interruptores
+  para a mesma capacidade é a forma mais fácil de deixar um aluno num estado
+  que ninguém sabe explicar em campo.
+- **A paleta NÃO registra um segundo `map.on('click')`.** `paleta-tela.js`
+  chama `armarPreset()` em `marcacoes.js`, e o handler que já existe lá desvia.
+  A razão é a correção de campo de 2026-08-01: o Leaflet chama TODOS os
+  listeners de clique do mapa, e foi assim que marcar o canto de uma área
+  offline passou a abrir também o formulário de marcação. Entrar por dentro
+  reaproveita todas as guardas (permissão, lotação da 6c, `cliqueSuspenso`, um
+  formulário por vez) em vez de duplicá-las, e não acrescenta uma terceira
+  aresta ao mesmo evento. **O `insert` em `elementos_marcados` continua sendo
+  um só**, o de `salvarMarcacao()` — a paleta nunca é um segundo caminho até o
+  banco.
+- **Toque longo (500ms) arma o preset em modo "completo"**: o próximo toque no
+  mapa abre o formulário inteiro JÁ pré-preenchido com aquele SIDC
+  (`sidcInicial`/`partidoInicial`, novos em `abrirFormulario()` — criação
+  normal, não modo edição). Sem essa saída, usar a paleta significaria desistir
+  de escalão e designação, e a pessoa acabaria não usando a paleta.
+- **`frontend/catalogo-form.js` (novo)** é a extração das quatro construtoras
+  de `<option>` do catálogo, que moravam em `marcacoes.js` e agora têm o
+  segundo consumidor (o painel do instrutor monta o SIDC de um preset pelos
+  MESMOS seletores hierárquicos). Critério de sempre — `icones.js` na Etapa 5,
+  `vigia-ausencia.js` na 6c, `basemaps.js` na 7.1. Aqui a divergência seria
+  cara e invisível: um painel que montasse a lista por conta própria poderia
+  oferecer categoria + entidade que não existem juntas, e a paleta inteira da
+  turma passaria a marcar o elemento errado.
+- **`svgDoSimbolo()` (novo em `icones.js`)** desenha o símbolo FORA do mapa —
+  o botão da paleta e a prévia do painel do instrutor. Os dois mostram
+  exatamente o desenho que vai aparecer no mapa, pelo mesmo renderizador; um
+  ícone "parecido" desenhado à parte seria a porta de entrada para o botão e o
+  mapa discordarem.
+- **Cinco arquivos novos no frontend**, na separação de sempre: `paleta.js`
+  (regra pura e testável), `icones-rapidos.js` (banco e Realtime, compartilhado
+  pelas duas telas, no padrão de `calcos.js`), `paleta-tela.js` (cartão
+  "Marcação rápida" no app do aluno), `instrutor-paleta.js` (a aba de
+  montagem) e `catalogo-form.js`.
+
+**Verificação — e desta vez as migrations foram EXECUTADAS.** Ao contrário das
+0004–0009 ("não foi executada contra um Postgres" em todas), esta sessão teve
+Postgres 16 + PostGIS disponível: **0001–0010 aplicadas em ordem, em banco
+limpo, sem erro**, e `01_teste_partidos.sql` (o teste de RLS da Etapa 4.5)
+continua **43/43 verde com as dez migrations aplicadas** — ou seja, a 0010 não
+regride a visibilidade. **`backend/testes/02_teste_icones_rapidos.sql` (novo,
+26 casos, 26/26)** cobre a paleta padrão e a ordem dos triggers, o teto, os
+checks de formato e a RLS inteira. Ele traz documentada uma armadilha que ele
+mesmo caiu: **a RLS bloqueia INSERT e UPDATE de formas diferentes** — insert
+que viola o `with check` levanta exceção, update cuja linha não passa no
+`using` não levanta nada, só afeta 0 linhas. Quem só olha a exceção conclui que
+o update passou.
+
+Mais: `backend/testes/valida_sql.py` nas 0001–0010 sem falhas; `node --check` +
+`acorn` em todos os `.js`/`.mjs` e no `<script type="module">` de cada HTML;
+uma checagem nova que resolve TODO import nomeado contra os exports reais do
+arquivo alvo (útil depois de mover as construtoras do catálogo); `npm run
+build` com sucesso (+10,5 kB no chunk principal); e as **onze suítes 100%
+verdes, 654 casos** (20 `basemaps`, 68 `carta-offline`, 93 `coordenadas`, 14
+`dispersar-avatares`, 34 `imagem-geo`, 116 `kml`, 92 `marcacoes`, **58
+`paleta`** — nova, 64 `rastro`, 25 `simbolos`, 70 `visada`).
+
+#### Correção no primeiro uso real (2026-09-14) — e um bug antigo que veio junto
+
+Primeiro clique em "Acrescentar à paleta" em produção:
+`invalid input syntax for type uuid: "{"id":"48d1...","nome":"Turma de Teste",...}"`.
+
+**Causa: `observarTurma()` (instrutor-permissoes.js) entrega a LINHA INTEIRA de
+`turmas`, não o uuid.** `definirTurmaPaleta` recebeu o parâmetro chamando-o de
+`turmaId`, usou-o direto em `.eq('turma_id', ...)`, o PostgREST serializou o
+objeto na query e o Postgres reclamou — a 200 linhas de distância de onde o
+engano foi cometido.
+
+**O mesmo engano existia em `definirTurmaCalcos` desde a Etapa 7**, e foi
+corrigido junto: **publicar calco pelo painel do instrutor nunca funcionou**.
+Nunca apareceu porque o item 9 do roteiro de campo (calcos) continua pendente
+de teste ao vivo — foi encontrado ao procurar a causa do erro da paleta, não
+por acaso.
+
+`debriefing.js` e `situacao.js` sempre estiveram certos: lá o parâmetro se
+chama `turma` e o código lê `turma?.id`. **A diferença era só de NOME** — e é
+precisamente isso que torna esse tipo de erro invisível numa revisão de código.
+Três defesas entraram:
+
+1. O contrato de `observarTurma()` está escrito em caixa alta no próprio
+   `export`, dizendo que entrega a linha inteira e que se lê `turma?.id`.
+2. Os dois consumidores errados passaram a nomear o parâmetro `turma` e a
+   extrair o id — a nomenclatura agora é uniforme nos quatro.
+3. `icones-rapidos.js` ganhou `exigirUuid()`: manda para o console qual função
+   recebeu o quê, e devolve erro legível em vez de deixar o objeto chegar ao
+   PostgREST. Não conserta o chamador — faz o erro dizer o que é, na primeira
+   vez.
+
+**Um segundo defeito meu, encontrado na mesma passada:** `definirTurmaPaleta`
+consultava `partidos` com uma query própria em vez de `buscarPartidosDaTurma()`
+(auth.js), e a cópia esquecia o filtro `ativo = true` — o instrutor veria um
+partido desativado como opção de preset. Passou a usar a função compartilhada,
+que é o critério que moveu essa consulta para `auth.js` na Etapa 6a.
+
+#### Segunda correção do primeiro uso: os botões saíam todos amarelos
+
+Com a 0010 aplicada e a paleta funcionando, **todos os símbolos saíam no
+losango amarelo de "desconhecido" do APP-6D** — na paleta do aluno e na lista
+do instrutor.
+
+**Causa: `svgDoSimbolo()` desenhava o SIDC CRU.** O dígito de hostilidade
+gravado é sempre um placeholder (`01`, pendente) — a hostilidade é RELATIVA
+desde a Etapa 4.5 e é derivada na renderização por `sidcParaObservador()`. Todo
+o resto do app passa por lá (via `criarIconeSimbolo`); a função nova, escrita
+para desenhar FORA do mapa, não passava. O resultado é a própria coisa que o
+comentário dela dizia impedir: **o botão discordando do mapa** — preset gravado
+como Vermelho aparecia neutro no botão e vermelho na marcação.
+
+A lição que vale além deste bug: **não existe "desenho neutro do SIDC" que seja
+correto neste projeto.** Qualquer lugar que desenhe um símbolo precisa do par
+(quem olha, o que é olhado), inclusive fora do mapa. `svgDoSimbolo()` passou a
+aceitar os mesmos `partidoObservador`/`partidoElemento` de
+`criarIconeSimbolo()`:
+
+- **Aluno**: observador é ele (`perfil.partido`, novo parâmetro de
+  `iniciarPaleta`), elemento é o partido do preset. O mesmo botão desenha
+  vermelho para o Azul e azul para o Vermelho — como vai desenhar no mapa.
+- **Instrutor**: observador nulo, então vale a referência fixa da Etapa 11
+  (menor `ordem` = amigo). Azul azul, Vermelho vermelho.
+- **Preset "Perguntar ao aluno"**: continua amarelo, e isso é a resposta
+  CERTA — naquele preset quem decide a cor é o aluno, no momento da marcação.
+
+`paleta.teste.mjs` ganhou 7 casos que travam isso, incluindo a asserção de que
+o SIDC gravado tem hostilidade placeholder e **não serve para desenhar**, e a
+de que o mesmo preset desenha diferente para os dois lados.
+
+**Correção junto, de posição:** o cartão "Marcação rápida" era anexado ao FIM
+do painel lateral (depois de Mapa Base, Forças, Camadas e Mapa offline), ou
+seja fora da área visível sem rolar — provável motivo de "para o usuário ficou
+igual". Passou a ser o PRIMEIRO cartão (`prepend`): num contato de 20 segundos,
+com luva, é a coisa mais usada da tela.
+
+#### Terceira correção: a paleta mudou de LUGAR — vive dentro do formulário
+
+*"Na verdade, o banco de presets deve estar no menu do clique na tela."* É a
+correção mais importante das três, porque não é conserto de bug: é o desenho
+certo, e o que eu tinha feito estava errado na raiz.
+
+A primeira versão era um cartão "Marcação rápida" no painel lateral: tocar no
+botão ARMAVA o preset, e o toque seguinte no mapa gravava. Agora a fileira de
+botões é desenhada **dentro do próprio formulário de marcação**, no topo, logo
+abaixo da coordenada. Três razões, e só a primeira eu tinha visto:
+
+1. **O toque no mapa já disse ONDE.** O que falta é o QUÊ, e ele tem que estar
+   onde a pessoa já está olhando — não do outro lado da tela.
+2. **Sumiu o estado "armado".** Era a parte mais frágil do que eu tinha feito:
+   um modo invisível que mudava o significado do próximo toque no mapa, com
+   botão para cancelar, linha de status para explicar, e mais uma forma de
+   gravar sem querer. **Nada disso existe agora** — quando os botões aparecem,
+   o ponto já é conhecido. Saíram de `marcacoes.js`: `armarPreset`,
+   `desarmarPreset`, `temPresetArmado`, `gravarPeloPreset`, `consumirPreset`,
+   `abrirEscolhaDePartido` e o desvio no handler de clique.
+3. **Não depende do painel lateral estar aberto** (ele nasce fechado no celular
+   desde a 7.1) nem de rolar até o fim dele — que era, quase certamente, o
+   motivo de "para o usuário ficou igual".
+
+E a permissão deixou de precisar de tratamento próprio: o formulário só abre
+quando `criar_marcacao_inimiga` permite, então a fileira herda a mesma porta, em
+vez de um segundo observador que pudesse discordar dela.
+
+- **Os dois modos ficaram melhores no lugar novo.** Preset COM força grava ali
+  mesmo e fecha (duas ações no total: tocar o mapa, tocar o botão). Preset SEM
+  força **preenche o formulário** com o símbolo e leva o foco para o seletor de
+  força — o preset já poupou os cinco campos de simbologia, e o único que falta
+  é justamente o que o instrutor marcou como "pergunte". O painel separado de
+  escolha de partido, que a versão anterior precisava, deixou de existir.
+- **O toque longo ficou auto-explicativo.** Ele preenche o formulário sem
+  gravar — e agora o resultado aparece na hora, nos campos logo abaixo, em vez
+  de armar um modo invisível. O pré-preenchimento reusa `decomporSidc()`, o
+  MESMO caminho que abre uma edição: não existe um segundo jeito de "abrir um
+  SIDC no formulário" neste arquivo, que é o que impede os dois divergirem.
+- **A fileira NÃO aparece na edição.** Numa edição o elemento já tem símbolo, e
+  oferecer atalhos que o sobrescrevem em silêncio seria o oposto do que a
+  edição serve (corrigir um campo sem refazer o resto).
+- **A aba "Situação atual" do instrutor ganhou a paleta de graça.** Como ela já
+  reusa `marcacoes.js` desde a 6c, bastou carregar os presets da turma
+  (`iniciarPaleta`/`pararPaleta` ao lado de `iniciarMarcacoes`/
+  `pararMarcacoes`). Nenhuma cópia, nenhuma tela nova.
+- **`paleta-tela.js` deixou de montar cartão**: `iniciarPaleta()` só carrega os
+  presets e assina o Realtime; `montarPaleta(container, { aoEscolher })` desenha
+  a fileira onde mandarem. Se o instrutor mexer na paleta com o formulário
+  aberto na mão do aluno, a fileira se redesenha sozinha.
+
+**ESTADO EM 2026-09-15:** a `0010` está aplicada em produção desde 2026-09-14 e
+a paleta está em uso — a marcação pelos dois modos grava o símbolo do botão, que
+era o defeito relatado três vezes. **Continua em aberto o item que nunca foi
+exercitado:** `15r`–`15t`, publicar um calco pelo painel. Era um bug de `uuid`
+desde a Etapa 7 — **publicar calco nunca funcionou**, e ninguém tinha percebido
+porque o item 9 deste roteiro jamais foi rodado. A correção saiu junto com a
+0010 e segue sem confirmação. Também em aberto: o **toque longo** num celular
+específico (`15j`), que é o gesto mais frágil desta entrega.
+
+### "Um objeto marcado está saindo como genérico" (2026-09-14)
+
+Relatado no mesmo teste de campo, com foto: um losango vermelho liso no mapa,
+sem nada dentro. **Não era defeito de renderização — e é por isso que a
+correção não é no desenho.**
+
+- **Varredura, antes de teorizar.** Os 434 itens do catálogo oficial foram
+  renderizados um a um contra a `milsymbol` em Node. **Exatamente um** sai só
+  com a moldura: `000000` do symbol set 10, **"Comando Nomeado (sigla do
+  Comando no setor central)"**. O nome oficial já diz o que ele é: o conteúdo
+  daquele símbolo é a **sigla da unidade**, não um ícone. Com
+  `uniqueDesignation` preenchido, a `milsymbol` escreve a sigla no meio e o
+  símbolo passa a significar alguma coisa; sem, fica a moldura nua — que é
+  exatamente o que apareceu na foto.
+- **`120000` entra pelo mesmo efeito, por outro motivo:** é um código das
+  tabelas escritas à mão da Etapa 5 ("Posto de Comando"), que o catálogo
+  oficial não tem. Marcações anteriores à 9b podem carregá-lo.
+- **A correção é AVISAR, não impedir.** `ENTIDADES_SEM_DESENHO` +
+  `exigeDesignacao(symbolSet, codigo)` em `simbolos.js`; o formulário de
+  `marcacoes.js` mostra `#mc-aviso-sigla` (âmbar) quando o item escolhido está
+  na lista e "Designação da unidade" está vazia. Mesma postura do aviso de
+  código legado ao editar: **o problema não é o app não conseguir desenhar, é o
+  usuário não saber por que saiu vazio.** Quem quiser gravar assim, grava — há
+  motivo legítimo para marcar um comando cuja sigla ainda não se conhece.
+- **Lista curta e explícita de propósito** (dois casos em 434). Calcular isso em
+  runtime exigiria renderizar o símbolo só para contar elementos do SVG — caro
+  e frágil. **Quem garante que a lista continua certa é o teste**, que refaz a
+  varredura contra a `milsymbol` de verdade a cada rodada
+  (`simbolos.teste.mjs`, 35/35 — a primeira suíte do projeto a importar uma
+  dependência de runtime; sem `node_modules` ela PULA essa parte dizendo o
+  porquê, em vez de falhar por engano ou passar em silêncio).
+
+#### O aviso não bastava — na PALETA, a resposta certa é recusar
+
+Correção do mesmo dia, a partir da resposta de quem usa: *"o sentido de ter um
+banco de símbolos rápidos é justamente ele aparecer daquela forma no mapa. Não
+faz sentido eu escolher um símbolo rápido e aparecer um símbolo genérico no
+mapa."* Está certo, e o diagnóstico acima estava pela metade.
+
+**A causa concreta, que a primeira passagem não procurou:** `000000` é o
+**primeiro item da categoria "Unidades"**, sozinho num grupo de um item só
+("Comando e Controle não especificado"). Ou seja: quem abre aquela categoria na
+aba de montagem da paleta e não mexe no `<select>` **monta um preset de Comando
+Nomeado sem querer** — e a partir daí cada toque naquele botão grava um losango
+vazio no mapa. Os 8 presets da paleta padrão da 0010 não têm esse problema (há
+teste varrendo os oito), então o preset defeituoso só pode ter nascido assim.
+
+**A regra que faltava escrever: um preset não tem campo de designação.** O
+formulário de marcação tem, e por isso lá o certo continua sendo AVISAR e deixar
+a pessoa decidir. Na paleta não existe o que preencher — e a promessa dela é *o
+que está no botão é o que vai para o mapa*. Um botão que não consegue mostrar o
+que grava quebra exatamente aquilo por que a paleta existe. **Onde há campo,
+avisa; onde não há, recusa.**
+
+- **`sidcExigeDesignacao(sidc)` (novo em `simbolos.js`)** faz a mesma pergunta de
+  `exigeDesignacao()` a um SIDC inteiro, porque os três chamadores novos têm o
+  SIDC na mão e não a decomposição. SIDC malformado devolve `false` — "não sei
+  dizer" não é "exige sigla", e quem recusa SIDC inválido é a validação de
+  formato, que vem antes; chutar `true` ali daria a mensagem errada.
+- **`validarPreset()` (paleta.js) RECUSA**, com a frase dizendo o motivo E a
+  saída (marcar pelo formulário completo, que tem o campo). É a postura de
+  `cabeMaisUm()` recusando o 13º preset e de `LIMITE_FEICOES` na Etapa 7.
+  `paleta.js` ganhou a sua primeira importação — `simbolos.js`, que também é
+  puro; duplicar ali a lista de símbolos sem desenho seria a segunda cópia de
+  sempre.
+- **`opcoesItem()` (catalogo-form.js) ganhou `{ somenteComDesenho }`**, ligado
+  **só** na aba de montagem da paleta. Recusar depois de oferecer é interface
+  que arma armadilha: a opção simplesmente não aparece lá, e a recusa fica como
+  barreira para um SIDC que chegue por outro caminho. O `<optgroup>` que fica
+  vazio é omitido junto, senão sobraria o título de uma seção sem nada embaixo.
+  No formulário de marcação a opção continua na lista, porque lá ela funciona.
+- **Efeito colateral bom na EDIÇÃO:** abrir um preset antigo defeituoso na aba
+  do instrutor monta o `<select>` já filtrado, então ele cai no primeiro item
+  válido — salvar conserta o preset em vez de reescrever o defeito.
+- **Preset antigo já gravado: sinalizado para quem pode consertar, oculto para
+  quem não pode.** A linha dele na aba do instrutor fica marcada em âmbar,
+  dizendo por que sai vazio e que está oculto na tela dos alunos; `paleta-tela.js`
+  não desenha o botão. **Não é esconder o problema** — é mostrá-lo ao dono da
+  paleta, e não ao aluno no meio do exercício, que não pode fazer nada a
+  respeito. Âmbar e não vermelho porque nada está errado *agora*: é uma correção
+  a fazer, não uma falha em curso.
+- `paleta.teste.mjs` (58 → **85**) trava a recusa, a mensagem, o filtro da lista
+  (incluindo o `<optgroup>` vazio e o fato de o filtro não vazar para outras
+  categorias) e **os oito presets da paleta padrão, um a um** — se alguém trocar
+  um código na migration por um que não desenha, aparece aqui.
+
+### Fim da herança de junho de 2026 (2026-09-14)
+
+*"Quero eliminar essas heranças de junho"* — o mapa do aluno ainda mostrava, em
+toda turma, os símbolos do exercício de junho de 2026 (União da Vitória /
+Canoinhas: "MMT", "Roubo Explosivos", "Manifestação"). Saiu tudo.
+
+- **O que era:** dois GeoJSON commitados no repositório, gerados no QGIS a
+  partir de uma planilha do Sheets e publicados a mão (`legacy-qgis/`) —
+  `data/cop_tatico.geojson`, relido por `fetch()` a cada 2 minutos (os grupos
+  `GRUPOS` F/I/N/D, `criarIcone()`, `criarPopup()`, `contadores()`, o cartão
+  "Forças"), e `data/man5bdacbld.geojson` ("Limites e Eixos", `EXTRA_LAYERS`,
+  com painel próprio de cor e opacidade).
+- **Por que sai agora, e não "quando der":** *tudo* o que eles faziam já é
+  feito por outro caminho, melhor, e **a coexistência das duas gerações na
+  mesma tela já era o defeito**. Os elementos do exercício são
+  `elementos_marcados` desde a Etapa 5 (qualquer aluno marca no toque, todo
+  mundo vê pelo Realtime, e a **hostilidade é relativa a quem olha** — o COP
+  antigo trazia hostilidade absoluta gravada no arquivo, que é justamente a
+  decisão que a 4.5 tomou ao contrário). O calco de limites e eixos é publicado
+  pelo instrutor desde a Etapa 7, por upload, sem um commit e um build por
+  exercício. E **os símbolos de junho ficavam no mapa de toda turma, para
+  sempre, sem pertencer a turma nenhuma**: não havia como apagá-los pela
+  interface, porque não vinham do banco.
+- **O cartão "Forças" saiu junto, e ele era pior do que inútil:** as quatro
+  caixas F/I/N/D ligavam e desligavam os grupos do COP estático — nada do que
+  hoje aparece no mapa. Colegas, marcações e calcos têm cada um o seu próprio
+  controle. Eram quatro caixas que não faziam efeito nenhum na tela do aluno.
+- **As chaves de permissão NÃO ficaram órfãs.** `camada_manobra` e
+  `camada_inimigo` continuam valendo — agora **só** no caminho de `camadas.js`
+  (os calcos publicados). O que acabou foi o *segundo* caminho, o das camadas
+  fixas escritas em `index.html`, e com ele a única razão de uma chave de
+  camada ter efeito em dois lugares diferentes. `camadasPermissao` ficou só com
+  mapa base e a cobertura de `ver_mapa`.
+- **A primeira vista do mapa mudou, para melhor.** Era o enquadramento dos
+  elementos de junho (`fitBounds`): o app abria em União da Vitória mesmo para
+  uma turma do outro lado do país, e só saía de lá quando o GPS pegava. Agora a
+  primeira vista é a posição do próprio aluno (`gps.js`, `setView(..., 16)` no
+  primeiro fix).
+- **Efeito colateral bom:** `data/` deixou de ser copiada no build
+  (`copiar-estaticos-build.mjs` fazia três coisas, agora faz duas) — o único
+  diretório que restou lá é `data/simbologia-eb/`, que é FONTE e nunca foi
+  publicada. `milsymbol`, `getSIDC`, `CORES_CAMADA`/`FAIXAS_PANE`/`escaparHtml`
+  saíram dos imports de `index.html`: eram do COP. Continuam vivos e usados em
+  `icones.js` e `camadas.js`.
+- **`FAIXAS_PANE.repositorio` (410) ficou VAGA, de propósito, e não foi
+  apagada.** Apagá-la renumeraria as duas faixas de cima, e são elas que
+  garantem que um calco nunca tapa um símbolo militar (`kml.teste.mjs` trava as
+  invariantes). Se um dia voltar a existir camada de fundo vinda do
+  repositório, é ali que ela entra sem mexer em mais nada.
+- **`legacy-qgis/` ficou onde estava** — preservado desde a Etapa 0 como
+  importador opcional. Não é código de aplicação: não é empacotado, não é
+  baixado por ninguém em campo e não desenha nada em tela. **Se a ordem for
+  "some com tudo de junho, inclusive o gerador", é um `git rm -r legacy-qgis/`
+  e três comentários de proveniência em `simbolos.js`/`CLAUDE.md`/`ROADMAP.md`
+  a ajustar.**
+- Build limpo, e conferido de verdade: `dist/` não tem mais nenhuma referência
+  a `data/*.geojson` nem aos ids removidos, e a página construída foi carregada
+  num Chromium headless sob o caminho de publicação (`/wartoolc2/`) até o
+  redirecionamento para `login.html` — sem erro de JavaScript.
+
+### Três ajustes do segundo relato (2026-09-14)
+
+*"Pra mim continua igual o problema. Outro problema é que em todo F5 os cards
+de configuração abrem. Quero que eles abram somente se o usuário clicar."*
+
+**1. Os cartões do painel nascem todos recolhidos.** Até aqui só "Mapa Base"
+nascia fechado, com o argumento de que os outros eram "os que a pessoa liga e
+desliga o tempo todo". O uso real desmentiu isso: **o que a pessoa faz o tempo
+todo é olhar o mapa**, e cada recarga devolvia quatro cartões abertos por cima
+dele. O que mudou foi o **padrão de `tornarRecolhivel()`** (`recolhido = true`),
+não uma opção passada em cada chamada — assim a regra vale também para o cartão
+que alguém acrescentar amanhã, e quem quiser um cartão aberto de saída precisa
+pedir e justificar. "Coordenada", que era escrito à mão no HTML e nunca passava
+por `tornarRecolhivel()`, entrou junto: era o único sem título clicável.
+Continua sem estado persistido (decisão da 7.1) — a diferença é que agora o
+padrão é o que a pessoa quase sempre quer.
+
+**2. A marcação JÁ GRAVADA sem desenho passou a se explicar no mapa.** Aqui
+estava o furo das duas correções anteriores: o aviso no formulário e a recusa
+na paleta valem **daqui para a frente**. O que já estava em
+`elementos_marcados` com um símbolo cujo desenho é a sigla, e sem sigla,
+continuava um losango vazio — para sempre, sem nada na tela dizendo por quê. É
+o mesmo defeito do relato original, na cópia que ninguém tinha corrigido. O
+popup ganhou uma linha âmbar dizendo que o símbolo é desenhado com a sigla no
+centro e que editar e preencher "Designação da unidade" resolve — e o botão
+Editar está logo abaixo. A linha só aparece quando as duas coisas são verdade
+(o símbolo exige sigla **e** a designação está vazia).
+
+**3. Carimbo de build no rodapé das duas telas.** Três relatos seguidos de
+"continua igual", e nos dois primeiros a causa foi o navegador servindo a
+versão anterior — não o código. **Cada um custou uma sessão reconferindo o que
+já estava certo**, porque de fora não há como saber que versão está na mão de
+quem está em campo. Consertar o cache não está ao nosso alcance (GitHub Pages
+não deixa configurar header por arquivo — ponto de atenção registrado desde a
+Etapa 11, e o `index.html`, que aponta para os assets com hash, fica atrás da
+CDN do Pages com validação por ETag). O que dá para fazer é **tornar o cache
+visível**: `vite.config.js` injeta `__VERSAO_BUILD__` (data/hora UTC do build,
+mais os 7 primeiros do `GITHUB_SHA` quando o build roda no Actions) e
+`frontend/versao.js` escreve isso no rodapé. A pergunta "você está vendo a
+versão nova?" vira um fato conferível em um olhar, e o `title` do rodapé já diz
+o que fazer quando o número não muda (recarregar com Shift, ou aba anônima).
+
+**Verificação**: as onze suítes verdes (`basemaps.teste.mjs` 20 → 25, travando
+o `<span id="versao-build">` nas duas telas e o padrão recolhido — os dois são
+do tipo que alguém desfaz sem querer e ninguém percebe); `npm run build`; e
+duas checagens em Chromium headless contra o `dist/` servido sob `/wartoolc2/`
+— o carimbo aparecendo no rodapé do app e do painel (`—` e depois a data), e um
+harness provando que um cartão nasce recolhido, que `{ recolhido: false }`
+continua abrindo, e que o clique no título abre.
+
+**Sobre "continua igual":** o deploy foi conferido nesta sessão e **estava
+atualizado** — o site publicado serve exatamente o build de `b71a21c`, com a
+herança de junho já fora. Então o relato aponta para o item 2 acima (a marcação
+antiga ainda no mapa) ou para cache — que é precisamente a ambiguidade que o
+item 3 existe para eliminar da próxima vez.
+
+### App em segundo plano: o que dá e o que não dá (2026-09-14)
+
+*"Tem como o app ficar ativo em segundo plano? Ou sempre que apagar a tela do
+celular perderei a atualização da posição? A ideia era ficar on até o logoff."*
+
+**Perde, e não há como não perder na web.** Isto ficou registrado aqui porque
+é o tipo de pergunta que volta, e responder de novo custa uma sessão:
+
+- **Com a tela apagada ou o app em segundo plano, o sistema CONGELA a página.**
+  Ciclo de vida de página: `hidden` → `frozen` → `discarded`. No estado
+  congelado os temporizadores param, os callbacks de `fetch` não executam e o
+  `watchPosition` deixa de entregar leitura. O iOS congela quase
+  imediatamente; no Android é mais lento, mas chega lá.
+- **Não existe API web de geolocalização em segundo plano.** Foi proposta ao
+  Chromium em 2016, exatamente para este caso de uso, e **nunca foi
+  implementada** — a discussão no W3C segue aberta. Não há o que ligar.
+- **Wake Lock foi avaliado e RECUSADO por quem usa.** Ele manteria a tela
+  acesa enquanto o app está visível, o que evitaria o bloqueio automático —
+  mas o preço é bateria, o maior consumidor do aparelho, num exercício de
+  várias horas sem carregador. E ele cobre só metade: é liberado assim que o
+  documento deixa de estar visível, então o celular no bolso continua fora.
+  **Não implementar foi decisão de campo, não esquecimento.**
+- **O único caminho real é embrulhar em nativo** (Capacitor/Cordova, serviço de
+  primeiro plano no Android, `allowsBackgroundLocationUpdates` no iOS). Vira
+  app instalável, com assinatura e distribuição — etapa própria, se um dia o
+  uso justificar.
+
+**O que foi feito, então: não fingir que o buraco não existiu.** Ao despertar
+(`visibilitychange` para visível, ou `pageshow` com `persisted`), `gps.js`:
+
+1. **Grava na hora**, furando as três regras de throttling — é o único lugar
+   que as fura, e o motivo é que elas existem para conter EXCESSO de gravação,
+   enquanto aqui o problema é o oposto. Sem isso, o mapa de quem acompanha
+   ficaria errado por até mais 30s depois de o aparelho voltar.
+2. **Diz quanto tempo ficou sem enviar**, com o MESMO rótulo e o MESMO limiar
+   que o instrutor viu no avatar — `rotuloIdade()` de `vigia-ausencia.js`, não
+   um formatador próprio. Isso amarra as duas pontas por construção: o aluno só
+   é avisado de uma lacuna que alguém do outro lado teve chance de ver, e nas
+   mesmas palavras. Abaixo do limiar a função devolve `''` e não há relato,
+   porque não houve nada a relatar.
+
+Dois detalhes que não são zelo:
+
+- **A retomada só fecha quando a posição É ENVIADA, não quando a tela acende.**
+  Entre uma coisa e outra há segundos de GPS reprocurando sinal, e durante eles
+  a linha de status continua dizendo que está retomando — que é a verdade.
+- **O vigia de sinal é zerado ao despertar.** Ele mede "há quanto tempo não
+  chega leitura"; congelado, ele parou junto, e sem zerar acusaria "sem sinal
+  há 600s" no primeiro ciclo. Seria verdade sobre o relógio e mentira sobre o
+  GPS: não houve perda de sinal, houve um aparelho dormindo. A lacuna real é
+  dita pela linha de retomada, com o nome certo.
+
+É a postura de sempre: a Etapa 6b avisa quantas leituras cada ponto do replay
+representa, a Etapa 7 avisa quando simplificou uma geometria, e desde a
+etiqueta de idade o avatar parado não some. **Uma lacuna declarada é
+informação; uma lacuna silenciosa é uma afirmação errada.**
+
+### A CAUSA DE VERDADE do símbolo genérico (2026-09-14) — e três diagnósticos errados antes dela
+
+*"Continua o problema de clicar no símbolo e entrar um símbolo genérico."*
+
+Terceiro relato do mesmo defeito. As duas correções anteriores desta seção
+trataram sintomas **que não eram a causa**. Vale ler o erro inteiro, porque a
+classe dele é comum e o custo foi alto.
+
+**A causa.** `salvarMarcacao()` (marcacoes.js) SEMPRE remontava o SIDC a partir
+de cinco campos — categoria, entidade, escalão, mod1, mod2 —, porque era assim
+que o formulário entregava os dados. **A paleta não tem esses cinco campos:**
+ela tem o SIDC pronto do preset, e `valoresDaMarcacao()` (paleta.js) devolve
+`{ sidc, partidoId, designacao }`. Os cinco chegavam `undefined`, `getSIDC()`
+caía em todos os defaults, e o default de `getSIDC()` é:
+
+```
+getSIDC({}) === '10011000000000000000'   // symbol set 10, entidade 000000
+descreverSidc(...)  ->  "Comando Nomeado (sigla do Comando no setor central)"
+```
+
+**Ninguém nunca escolheu "Comando Nomeado". Ele é o que sobra quando não se
+escolhe nada.** Toda marcação gravada pela paleta em modo "gravar" saiu assim,
+desde o primeiro dia.
+
+**Por que os três diagnósticos anteriores erraram, e o que aprender:**
+
+1. Varri os 434 itens do catálogo e achei que `10:000000` desenha só a moldura.
+   **Verdadeiro, e irrelevante como causa** — eu tinha achado a assinatura do
+   sintoma e parei ali, tratando-a como origem.
+2. Concluí que o instrutor havia criado um preset de Comando Nomeado sem
+   querer, porque ele é o primeiro item de "Unidades". **Plausível e falso.**
+   Nunca verifiquei o que de fato ia ao banco — teria bastado ler
+   `salvarMarcacao()` uma vez.
+3. Concluí que eram marcações antigas ainda no mapa. **Também falso**, pelo
+   mesmo motivo: eu estava explicando o dado observado sem rastrear o caminho
+   que o produziu.
+
+O erro comum às três: **eu expliquei o sintoma em vez de seguir o dado.** O
+botão da paleta desenha `preset.sidc` e sempre esteve certo; o mapa mostrava
+outra coisa. Bastava perguntar "o que exatamente é gravado?" e ler as quinze
+linhas entre a paleta e o `insert`.
+
+**A correção, e a regra em uma frase.** `sidcDaMarcacao(valores)` (novo em
+`simbolos.js`, puro e testado): **se já existe um SIDC, ele É o SIDC; só se
+monta um quando não há.** Remontar um SIDC que já existe nunca é necessário e é
+sempre uma chance de divergir.
+
+- **É uma função com NOME, e não o atalho `props.sidc` que `getSIDC()` já tinha
+  por dentro.** Aquele atalho existia, estava correto, e ninguém o alimentava —
+  é justamente por ser escondido que passou despercebido. Um nome é o que dá
+  para o teste segurar.
+- **O teste que faltava** (`paleta.teste.mjs`, 90 → **108**): para cada um dos 8
+  presets padrão, `sidcDaMarcacao(valoresDaMarcacao(preset)) === preset.sidc`.
+  Uma linha. **Conferido que ele FALHA (9 asserções) com o código antigo** — não
+  é um teste que passa por acaso. Trava também o caso nominal
+  (`getSIDC({})` cai em Comando Nomeado) para a regressão ter nome se voltar, e
+  o caminho do formulário (sem `sidc`, monta dos cinco campos).
+
+**O aviso do popup foi REESCRITO, porque orientava errado.** Ele dizia "edite e
+preencha a sigla" — o que consertaria o desenho **mantendo o elemento errado**,
+já que o símbolo não é o que a pessoa escolheu. Agora diz, na ordem provável:
+que a marcação está gravada como Comando Nomeado, que marcações feitas pela
+paleta antes desta correção caíram nele por engano, que **se não era isso, edite
+e escolha o símbolo certo**, e só então que, se era mesmo, falta a sigla.
+
+**O que fica das correções anteriores** (elas não foram revertidas, e continuam
+certas pelo mérito próprio): o aviso de sigla no formulário, a recusa de
+`Comando Nomeado` como preset — um preset segue sem campo de designação — e a
+ocultação de um preset assim na tela do aluno. **O que muda é o peso**: eram
+melhorias, não o conserto. O conserto é esta linha.
+
+**As marcações já gravadas não têm conserto automático.** O SIDC que a pessoa
+queria nunca chegou a ser gravado em lugar nenhum — perdeu-se no caminho. Só dá
+para corrigi-las à mão, pelo botão Editar, e é isso que o popup agora diz.
+
+### Vetor de observação nas duas telas + dados de tiro (2026-09-14) — migration 0011
+
+*"Não está aparecendo mais o lançamento em graus e milésimos em relação ao
+observador."* Foi investigado no navegador antes de mexer em qualquer coisa: os
+três commits estavam publicados e **a string `"Do meu posto"` estava no bundle
+no ar**. O código não sumiu. O que havia eram duas coisas diferentes, uma em
+cada tela.
+
+**1. No app do aluno, a linha sumia em SILÊNCIO — e esse era o defeito.**
+Quando não há posição própria (GPS ainda sem fixo, ou `ver_propria_posicao`
+desligada), ela simplesmente não era renderizada. Some é indistinguível de "a
+função foi removida": quem está com o app na mão não tem como saber qual dos
+três é. **Custou uma sessão inteira de investigação para responder "está
+esperando o GPS".** Agora a linha aparece em cinza itálico dizendo o motivo —
+mesma regra que vale no resto do projeto desde a Etapa 6b, só que desta vez a
+afirmação errada era sobre o próprio app.
+
+**2. Na aba "Situação atual" do instrutor, a linha NUNCA existiu** — e não era
+regressão: `situacao.js` nunca passou o hook. A decisão de 2026-08-02 dizia que
+"o vetor do MEU posto até o alvo não significa nada para quem olha o exercício
+de fora". Estava certa sobre o instrutor não ter posto, e **errada em concluir
+que a linha não cabia**: quem supervisiona apoio de fogo quer justamente
+conferir o lançamento que o observador teria calculado.
+
+- **A origem certa não é o instrutor: é o posto de QUEM MARCOU.** Reproduz o
+  vetor do próprio observador, não exige interface nova, e é o que responde a
+  pergunta que o instrutor tem.
+- **O hook foi generalizado** de `obterMinhaPosicao()` (sem argumento) para
+  `obterPostoObservacao(row)`, que recebe a marcação — porque "quem marcou" só
+  se sabe olhando a linha. Devolve `{lat, lon, rotulo}`, ou `{rotulo, motivo}`
+  quando não há posto. **O motivo mora em quem injeta**, não em `marcacoes.js`:
+  no aluno é "aguardando o GPS" / "posição oculta pelo instrutor", no painel é
+  "ainda sem posição reportada". Centralizar isso faria o módulo saber coisas
+  das duas telas — o oposto do que a injeção serve.
+- **A posição do autor é a ATUAL, não a de quando ele marcou** (o banco não
+  guarda essa). Por isso o rótulo carrega a idade quando ela passa do limiar —
+  a mesma `rotuloIdade()` que já etiqueta o avatar dele: *"Do posto de Cap Silva
+  (posição de 20m atrás)"*. Um vetor a partir de posição velha é utilizável,
+  desde que ninguém o leia como se fosse de agora.
+
+**3. Altitude e dimensão do alvo — migration `0011_alvo_altitude_dimensoes.sql`.**
+Pedido da artilharia. Quatro colunas nuláveis em `elementos_marcados`, nenhuma
+policy tocada (a RLS de 0003 decide quem lê e escreve a linha; coluna nova não
+muda isso — mesma postura da 0009).
+
+- **`altitude_m` NUNCA existe sem `altitude_fonte`**, garantido por `check`. É a
+  decisão central desta migration: uma cota derivada de modelo de elevação e uma
+  cota lida na carta pelo observador não valem a mesma coisa, e **cota anônima
+  apresentada como medida é o pior modo de falha aqui**. O popup mostra sempre
+  a origem — "820 m (lida na carta)".
+- **`'mde'` é aceito pelo banco e não tem produtor no frontend**, de propósito.
+  A coluna já aceita o valor para a consulta entrar depois sem migration, mas a
+  fonte ficou em aberto por uma razão que não é técnica: **consultar um serviço
+  público de elevação envia a coordenada do alvo para um terceiro.** Para
+  instrução talvez não importe; para uso real, importa muito. O caminho certo é
+  um serviço do próprio Exército — o BDGEx publica serviços OGC, mas não deu
+  para confirmar daqui se algum entrega elevação por ponto, e essa confirmação
+  precisa ser feita de dentro da rede. Até lá o app grava só `'manual'`, e
+  `camposDeAlvo()` (marcacoes.js) é o lugar único onde essa escolha passará a
+  ser feita.
+- **`frente_m` e `profundidade_m` são independentes** — um alvo linear tem
+  frente e profundidade desprezível, e faz sentido gravar só uma. Formato
+  escolhido com quem usa (dois números em metros, como entra no pedido de fogo);
+  descartados na mesma conversa o `tipo` pontual/linear/área com campos
+  variáveis e o desenho da geometria no mapa (esse exigiria guardar geometria,
+  não dois números — etapa própria).
+- **Zero é recusado junto com o negativo.** "Alvo de 0 m de frente" não descreve
+  nada: quem não sabe deixa em branco, que é o estado honesto. `numeroOuNulo()`
+  no cliente converte campo vazio em `null`, nunca em 0.
+- **Os três campos ficam atrás de um `<details>` fechado** ("Dados de tiro"). Um
+  contato de 20 segundos não pode ganhar três campos no caminho — e a paleta
+  (0010) continua gravando em dois toques sem passar por eles.
+
+**Verificação — migrations EXECUTADAS de novo.** `0001`–`0011` aplicadas em
+ordem num Postgres 16 limpo, sem erro; a `0011` rodada **duas vezes** para
+provar a idempotência. **`backend/testes/03_teste_alvo_campos.sql` (novo, 11
+casos, 11/11)** exercita cada `check` contra o banco de verdade, nas duas
+direções (aceitou o que não devia / recusou o que devia aceitar) — inclusive o
+caso que mais importa: altitude gravada sem fonte é recusada. Mais:
+`valida_sql.py` nas 0001–0011 sem falhas; as onze suítes de frontend verdes;
+`npm run build`.
+
+**Fechamento da sessão de 2026-09-14 — o que ficou PROVADO e o que só ficou
+PUBLICADO.** Depois de quem conduz a instrução aplicar a 0010 e a 0011 no
+Supabase de produção e empurrar o commit `a65fb5e`, a bateria inteira foi
+rodada de novo sobre exatamente esse commit:
+
+- **719 casos de frontend** em onze suítes, verdes;
+- **80 asserções de SQL** contra Postgres 16 + PostGIS **em bancos limpos**:
+  `01_teste_partidos` 43/43, `02_teste_icones_rapidos` 26/26,
+  `03_teste_alvo_campos` 11/11;
+- `valida_sql.py` nas 0001–0011 sem falhas e `npm run build` limpo;
+- **o site publicado foi conferido pelo navegador**, percorrendo o grafo de
+  assets de `index.html` e de `instrutor.html` e procurando as marcas desta
+  entrega no bundle servido: `"Do meu posto"`, `"Do posto de"`,
+  `"aguardando o GPS fixar"`, `"ainda sem posição reportada"`,
+  `"lida na carta"`, `"Dados de tiro"`, `altitude_fonte`, `"Comando Nomeado"`,
+  `versao-build`, `paleta-quebrado`, `"sigla da unidade no centro"`, `OCULTO`.
+  Todas presentes.
+
+**Essa última linha diz que o código CERTO está no ar — não diz que ele
+funciona em campo.** Nenhum item do roteiro foi exercitado com celular, GPS,
+Realtime e duas contas reais nesta sessão; conferir string em bundle é prova de
+deploy, não de comportamento. O que decide se a entrega prestou são os itens
+**15aq–15aw** de `docs/roteiro-teste-campo.md` (vetor nas duas telas e dados de
+tiro) e os **15ak–15ap** (a gravação pela paleta — o defeito relatado três
+vezes). **Distinguir as duas coisas é o ponto**: foi tratando o sintoma como
+causa que o "símbolo genérico" sobreviveu a três diagnósticos meus.
+
+Duas dependências continuam FORA do código, e nenhum teste daqui as resolve:
+a **declinação magnética** (o app mostra lançamento de quadrícula; se o
+observador usa bússola, a diferença é real — decide-se em campo, item 14c) e a
+**fonte de MDE** para altitude automática (ver a seção 1 da 0011: mandar
+coordenada de alvo para serviço público de terceiro é decisão de emprego, não
+detalhe de implementação — precisa de confirmação de dentro da rede do EB).
+
+### Símbolo do aluno e saída da turma, pelo painel (2026-09-14) — migration 0012
+
+Pedido de quem conduz a instrução, em duas partes: *"como eu posso agora, como
+instrutor, editar o símbolo dos usuários?"* e *"quero poder excluir alunos
+também"*. As duas viraram controles na linha do aluno selecionado, vizinhos do
+seletor de força — que é o lugar certo porque são a mesma natureza de coisa:
+colunas de `perfis`, não permissões.
+
+**1. Editor de símbolo — autoridade que existia e não tinha tela.** A policy
+`perfis_editar_instrutor` (0002) já liberava, e `fn_proteger_campos_do_perfil`
+nunca protegeu `sidc` — o comentário de `sidcDeFabrica()` em `simbolos.js` diz,
+desde a 9b, que "corrigir o símbolo de um aluno é atribuição do instrutor". O
+único caminho era o SQL Editor. Agora é `blocoSimbolo()` em
+`instrutor-permissoes.js`, usando os MESMOS seletores de `catalogo-form.js` que
+o aluno usa para marcar e o instrutor usa para montar a paleta — nenhuma lista
+montada à mão, pelo critério de sempre.
+
+- **`somenteComDesenho` fica DESLIGADO aqui, ao contrário da paleta**, e isso
+  não é incoerência: é a regra "onde há campo de sigla, avisa; onde não há,
+  recusa" aplicada a um lugar onde a sigla SEMPRE existe. `colegas.js` e
+  `gps.js` passam o **nome de guerra** como `uniqueDesignation`, então
+  "Comando Nomeado" (`10:000000`) no avatar é justamente o caso em que aquele
+  símbolo funciona. `validarSidcDePerfil()` (novo, em `simbolos.js`) aceita-o
+  de propósito, e há teste travando isso — se alguém "uniformizar" as duas
+  validações copiando a recusa da paleta, quebra ali.
+- **Descoberta desconfortável, registrada em vez de escondida:** pela API, com
+  o token dele, **um aluno CONSEGUE trocar o próprio `sidc`**. A decisão da 9b
+  ("símbolo é atribuição, não preferência") e o item 13b do roteiro valem para
+  a INTERFACE, que não oferece o caminho — não para o banco. Fechar é uma linha
+  em `fn_proteger_campos_do_perfil`; ficou de fora porque é decisão de escopo,
+  não consequência do pedido. O grupo B da `04` afirma o comportamento de hoje,
+  com a explicação do lado e a instrução de como invertê-lo.
+
+**2. "Remover da turma" — e a migration que não deveria precisar existir.**
+Das três leituras possíveis de "excluir aluno", a escolhida foi a que não apaga
+nada: `turma_id = null`. As outras duas foram descartadas com os números na
+mão: apagar a conta exige `service_role` (nunca no navegador) e, pelos
+`on delete cascade` de `elementos_marcados.autor_id`,
+`posicoes_historico.usuario_id` e `calcos.autor_id`, levaria o debriefing
+daquele aluno junto; `perfis.ativo = false` não BARRA nada hoje (nenhuma policy
+olha a coluna) e fazê-la valer exigiria mexer em `fn_usuarios_visiveis()`, que
+a Etapa 6.5 já vai reescrever.
+
+**Isso parecia não precisar de migration, e o Postgres disse que sim.** O
+UPDATE direto é recusado com `42501 / new row violates row-level security
+policy`, mesmo com o instrutor lotado na turma. A causa NÃO é a policy de
+UPDATE: trocar o `with check` dela por `true` não muda nada. **A barreira é
+`perfis_ler`, a policy de SELECT** — com `turma_id` indo a nulo, a linha deixa
+de casar com qualquer termo dela para aquele instrutor, e o banco recusa a
+escrita em vez de deixar alguém empurrar a linha para fora do próprio campo de
+visão. Medido com dois experimentos isolados (`perfis_ler using(true)` →
+passa; `with check (true)` na policy de UPDATE → continua recusando), não
+deduzido — a primeira hipótese, que era sobre lotação do instrutor, estava
+errada e foi o teste contra Postgres de verdade que derrubou.
+
+A saída é `fn_remover_da_turma()` (`0012`), `security definer`, mesmo padrão e
+mesmo motivo de `entrar_na_turma()` (0002): a operação atravessa a fronteira do
+que o chamador enxerga, então quem confere é a função. Quatro guardas
+(autenticado, instrutor DAQUELA turma, ninguém se remove, instrutor não é
+removido pelo painel) e idempotente — dois cliques em campo não podem virar
+exceção. **Afrouxar `perfis_ler` foi recusado**: alargar leitura para viabilizar
+escrita troca uma garantia real por conveniência de interface.
+
+- **A posição ATUAL sai junto, e só ela.** Sem isso o removido continuaria
+  desenhado no mapa do INSTRUTOR (a linha de `posicoes_atuais` guarda o
+  `turma_id` de quando foi gravada, e `posicoes_ler` libera tudo da turma para
+  ele), enquanto sumiria para os colegas — some para uns e fica para outros,
+  com quem clicou no botão sendo justamente quem veria o fantasma.
+  `posicoes_historico` fica intocado: é o que sustenta a frase do botão.
+- **Quem zera o partido é o banco**, não o cliente: `fn_normalizar_partido_do_perfil`
+  (0003) só dispara quando o partido chega INALTERADO junto com a troca de
+  turma, então mandar `partido_id: null` desarmaria o caminho já testado.
+
+**3. Propagação — o defeito que teria voltado.** Três telas desenhavam avatar a
+partir de `perfis` e nenhuma reagia a mudança: `colegas.js` povoa `perfisCache`
+uma vez, `perfil-ao-vivo.js` só olhava `partido_id`, e `situacao.js` carrega a
+turma uma vez só. Corrigido nos três, com respostas diferentes de propósito:
+
+- **`colegas.js`** ganhou um segundo listener no canal que já existe (em
+  `perfis`, publicada no Realtime desde a 0004 — nada novo no banco) e troca o
+  ícone. Só `sidc` e `nome_guerra` importam: `partido_id` continua sendo
+  assunto do `perfil-ao-vivo.js`.
+- **`perfil-ao-vivo.js`** ganhou `sidcAtual`/`aoMudarSimbolo` e **não
+  recarrega**: o símbolo não entra em `fn_usuarios_visiveis()` nem na
+  hostilidade relativa: recarregar a página de alguém em campo para trocar um
+  ícone seria perder rastreamento por nada. Quem redesenha é
+  `atualizarMeuSimbolo()` (novo, em `gps.js`).
+- **`situacao.js`** passou a reler a turma a CADA abertura da aba, não só na
+  primeira. Valia igual para a troca de força, que tinha a mesma janela de
+  defasagem e ninguém tinha notado.
+- Nos dois lugares onde o ícone é trocado, **a etiqueta de idade é reescrita
+  logo depois**: `setIcon()` recria o elemento do marcador e levaria a etiqueta
+  junto, fazendo alguém sem sinal há 10 minutos voltar a parecer recente só
+  porque o instrutor corrigiu o símbolo dele.
+
+**Verificação.** `backend/testes/04_teste_perfil_instrutor.sql` (novo, 28 casos,
+28/28) contra Postgres 16 + PostGIS em banco limpo, com `0001`–`0012` aplicadas
+e a `0012` rodada duas vezes (idempotência). **A primeira versão desse teste
+tinha três falhas próprias, e as três valem como lição**: o helper registrava só
+"passou/bloqueado" e não distinguia **exceção** de **zero linhas** — que é como
+a cláusula `USING` de uma policy recusa (ela FILTRA, não reclama), e ler isso
+como "passou" daria aprovação falsa num teste de segurança; duas asserções
+liam `perfis` ainda como o instrutor, depois da remoção, e recebiam NULO pela
+mesma mecânica que a 0012 existe para contornar; e o caso "instrutor não remove
+instrutor" apontava para um instrutor sem turma, parando no atalho de
+idempotência antes de exercitar a guarda. Mais: as outras três suítes de SQL
+verdes em bancos limpos (43+26+11), `valida_sql.py` nas 0001–0012,
+**732 casos de frontend** em onze suítes (`simbolos.teste.mjs` 35 → 48) e
+`npm run build`.
+
+**ESTADO EM 2026-09-15:** a `0012` está aplicada em produção e quem conduz a
+instrução confirmou os dois controles funcionando no uso normal.
+**Continua em aberto** o que exige mais de um aparelho: conferir que o colega
+também vê a troca de símbolo sem F5, e que o aluno removido some **dos dois
+mapas** (o dos colegas e o do instrutor) enquanto o rastro dele permanece no
+debriefing — itens `15ba`–`15bl` do roteiro.
+
+### Texto no mapa: rótulo de calco e anotações (2026-09-14) — migration 0013
+
+Pedido: *"quero que o instrutor possa inserir caixas de texto no mapa"*.
+Entregue em duas metades que não competem — uma barata que reusa o que existe,
+outra completa — porque a barata pode revelar que a completa não era
+necessária.
+
+**O achado que decidiu o desenho.** A tentação era gravar a anotação em
+`elementos_marcados`, que já tem `titulo` e `descricao`. **Não funciona, e o
+sintoma só apareceria em campo:** `elementos_ler` (0003) é
+`autor_id in (select fn_usuarios_visiveis())`, e um ALUNO só enxerga colegas do
+MESMO partido. O instrutor não tem partido — uma caixa de texto criada por ele
+ali nasceria invisível para todos os alunos, o oposto exato do que ela serve.
+Quem já resolve "o instrutor publica e a força enxerga" é `calcos` (0006), e é
+dela que a tabela nova é modelada. Uma anotação é um calco minúsculo cujo
+conteúdo é uma frase em vez de um arquivo.
+
+**Metade 1 — rótulo permanente nos calcos (sem migration).** O `name` do
+placemark KML só aparecia no popup, ao clicar; num celular em campo isso é o
+mesmo que não existir. Agora é desenhado no mapa com `bindTooltip permanent`.
+- **Há um teto, e ele não é sobre estética:** cada rótulo é um nó de DOM
+  reposicionado a cada pan/zoom. Um calco de manobra tem dezenas de feições e
+  fica ótimo; uma base cartográfica convertida para KML tem dezenas de milhares
+  e trava o celular. `LIMITE_ROTULOS_AUTOMATICOS = 60` (kml.js) decide só o
+  PADRÃO — acima dele a camada nasce sem rótulo e **a linha do painel diz o
+  número e o porquê**, em vez de deixar a pessoa achar que a função quebrou.
+  Ligar continua sendo escolha dela, e a escolha sobrevive ao F5.
+- Feição sem título não conta para o teto: uma camada de 500 polígonos anônimos
+  não custa rótulo nenhum e não deve nascer desligada à toa.
+
+**Metade 2 — tabela `anotacoes` (migration `0013`).** Trio no padrão do
+projeto: `anotacoes.js` (puro), `anotacoes-banco.js` (Supabase + Realtime),
+`anotacoes-tela.js` (Leaflet + interface). O mesmo módulo de tela serve as duas
+telas com `podeEditar` por parâmetro — que **não é a barreira**: quem recusa a
+escrita é `anotacoes_escrever` (0013); o parâmetro só evita desenhar um botão
+que o banco recusaria.
+- **`divIcon`, não tooltip.** No calco o texto é acessório de uma feição que já
+  existe; aqui a caixa É o objeto — precisa ser arrastável e clicável, e um
+  tooltip do Leaflet é filho de outra camada e não recebe eventos.
+- **Pane 620:** acima dos calcos, abaixo dos símbolos. Texto não tapa símbolo —
+  mesma regra que `FAIXAS_PANE` já aplica, pelo mesmo motivo.
+- **NÃO existe estado "armado", e a segunda razão é técnica.** O desenho óbvio
+  ("clique em Nova anotação, depois toque no mapa") morreu por duas coisas: (a)
+  estado armado invisível já foi recusado neste projeto uma vez, quando a
+  paleta (0010) foi redesenhada depois do primeiro uso; (b) **o clique no mapa
+  daquela aba já tem dono** — `marcacoes.js` escuta o mesmo evento, e o Leaflet
+  entrega o clique a todos os ouvintes de forma síncrona: `DomEvent.stop()` num
+  deles não impede os outros. O instrutor levaria dois formulários abertos com
+  um toque. A anotação nasce no **centro da vista** e é arrastada para o ponto
+  exato, reusando o arrastar que já precisava existir.
+- **`partido_id` nulo significa TODOS aqui, e "não identificado" em
+  `elementos_marcados`** — a mesma coluna com sentidos opostos em duas tabelas.
+  `descreverAlcance()` diz "todos da turma" de propósito, e há teste travando
+  isso; um partido desconhecido na lista vira "só uma força (removida)", nunca
+  "todos" (o erro seguro é o que restringe).
+- **A remoção é lógica, então chega pelo Realtime como UPDATE**, não DELETE.
+  Uma tela que só tratasse DELETE deixaria a anotação removida no mapa de todo
+  mundo até o F5 — está comentado nos dois módulos.
+- **LACUNA DECLARADA:** o aluno não tem como esconder as anotações. Uma chave
+  `camada_anotacoes` foi considerada e recusada pela mesma razão que a 0011
+  recusou uma chave para os dados de tiro — o controle que importa já existe por
+  anotação. Se em campo o texto atrapalhar a leitura da carta, o passo seguinte
+  é um interruptor local (preferência, não permissão).
+
+**Verificação.** `backend/testes/05_teste_anotacoes.sql` (novo, 23 casos,
+23/23) contra Postgres 16 + PostGIS em banco limpo, `0001`–`0013`, com a `0013`
+rodada duas vezes. A asserção que justifica a migration inteira: **o aluno do
+Vermelho vê só a anotação geral — a do Azul não vaza**. Mais: o aluno lê e não
+escreve (com a distinção `erro` × `zero linhas`, porque a cláusula `USING`
+filtra em silêncio); as outras quatro suítes SQL verdes (43+26+11+28);
+`valida_sql.py` nas 0001–0013; **789 casos de frontend** em doze suítes
+(`anotacoes.teste.mjs` novo com 44, `kml.teste.mjs` 116 → 129); `npm run build`.
+
+**ESTADO EM 2026-09-15:** a `0013` está aplicada em produção e as anotações e
+os rótulos estão funcionando no uso normal. **Continuam em aberto os dois itens
+que só o campo responde:** `15bt` — escrever uma anotação para UMA força e
+confirmar, com um celular do outro lado, que ela não vaza (um vazamento aqui
+não parece defeito, parece informação); e `15bp` — ligar os rótulos num calco
+grande de verdade, que é o único jeito de saber se o teto de 60 está no lugar
+certo.
+
+### Situação do usuário e pedido de apoio (2026-09-15) — migration 0014
+
+Pedido: *"o usuário podia ter algum tipo de botão de emergência, e poder
+escrever uma mensagem de situação que aparecesse no card popup dele"*.
+
+**A decisão que organiza tudo: são DUAS coisas, e elas não se tocam.** Um
+recado de situação é do JOGO ("sem munição", "viatura em pane"); um pedido de
+apoio é sobre gente de verdade num terreno de verdade. Se fossem o mesmo botão,
+no dia do acidente alguém aperta e quem olha pensa que é simulação. Por isso:
+duas tabelas, duas cores, duas palavras, dois caminhos — e **não existe um
+estado `'emergencia'` na lista do jogo**, travado por teste.
+
+**O que o app diz de si mesmo, escrito embaixo do botão:** *"Só funciona com o
+app aberto e a tela ligada — não substitui o rádio."* O navegador congela a
+página com a tela apagada (estabelecido em 2026-09-14), e quem está numa
+emergência real não vai desbloquear o celular para abrir um app. Uma ferramenta
+que cria confiança que não sustenta é pior do que não existir.
+
+**Onde o dado mora — e a primeira ideia que não servia.** O instinto foi uma
+coluna em `perfis`: o aluno já pode editar a própria linha. **A policy de
+leitura impede** — `perfis_ler` entrega a turma INTEIRA, os dois partidos, então
+um "sem munição" ali seria legível pelo outro lado por uma chamada de API. A
+forma certa é a de `posicoes_ler`:
+`usuario_id in (select fn_usuarios_visiveis()) or fn_sou_instrutor_da_turma(turma_id)`
+— exatamente "a minha força e o instrutor", que foi a escolha de quem conduz a
+instrução. As duas tabelas copiam essa forma, e copiam a FUNÇÃO (não a regra):
+quando a Etapa 6.5 trocar o corpo de `fn_usuarios_visiveis()` pela árvore ORBAT,
+elas acompanham sem ninguém lembrar de mexer aqui.
+
+**E por que não pendurar em `posicoes_atuais`, que já tem essa RLS e já é
+assinada pelas duas telas.** Seria de graça. Mas **quem não tem linha lá é
+justamente quem mais precisa falar**: um aluno cujo GPS nunca fixou não teria
+como dizer "estou parado, sem sinal" nem como pedir apoio. Acoplar "quero
+avisar" a "meu GPS funciona" é a dependência que só aparece no pior momento.
+
+Decisões do pedido de apoio, cada uma contra um modo de falha concreto:
+
+- **Segurar 2 s para acionar**, com a barra enchendo. O celular fica no bolso;
+  um `click` sairia sozinho. O gesto deliberado é o que separa "pedi apoio" de
+  "encostei na tela".
+- **A posição é NULÁVEL, e isso é o contrário de descuido.** Sem GPS o pedido
+  **sai mesmo assim**. Exigir coordenada significaria que a pessoa sem sinal é
+  a única que não consegue pedir ajuda. Quem recebe lê "sem posição conhecida".
+- **`posicao_em` carrega quando a coordenada foi MEDIDA**, e a faixa mostra a
+  idade em destaque quando é velha. Uma posição de oito minutos apresentada
+  como atual manda gente procurar pessoa no lugar errado — é o pior desfecho
+  possível deste recurso, e `descreverPosicaoDoPedido()` existe só para
+  impedi-lo (nunca devolve silêncio: ou diz que é do momento, ou diz a idade,
+  ou diz que não há posição).
+- **Reconhecer NÃO encerra.** "Estou vendo" ≠ "está resolvido"; juntar as duas
+  faria o pedido sumir do mapa no instante em que alguém clicasse para dizer
+  que viu.
+- **O próprio autor pode encerrar.** Um acionamento sem querer que só o
+  instrutor pudesse fechar viraria alarme tocando até alguém no notebook notar.
+  Um colega da força VÊ (e vai socorrer) mas não encerra: dar por encerrado o
+  pedido de outro, sem saber se foi atendido, é pior do que deixar aberto.
+- **NÃO há chave de permissão para o botão, e isso não é esquecimento.** Toda
+  outra função pode ser desligada pelo instrutor; esta não. Um botão de pedir
+  apoio desligado sem querer produz o pior caso imaginável: a pessoa aciona, vê
+  a confirmação na tela, e ninguém recebe.
+
+**Etapa 13 (KIA/WIA) ficou de fora de propósito.** Baixa é **arbitrada pelo
+instrutor**; situação é **autodeclarada pelo aluno**. São vizinhas e não são a
+mesma coluna — juntá-las faria o aluno declarar a própria baixa ou o instrutor
+falar pela boca dele. A policy de escrita de `situacoes` é só do dono, nem o
+instrutor escreve, e há teste travando isso.
+
+**Silêncio é regra:** "sem novidade" sem texto **não escreve nada** no popup. Um
+campo que aparece sempre ensina a ser ignorado — e aí o dia em que disser algo
+importante ninguém lê.
+
+**Verificação.** `backend/testes/06_teste_situacao_apoio.sql` (novo, 22 casos,
+22/22) contra Postgres 16 + PostGIS em banco limpo, `0001`–`0014`, com a `0014`
+rodada duas vezes. As asserções que justificam a migration: **o Vermelho não lê
+a situação nem vê o pedido do Azul**; **o pedido sai sem posição**; reconhecer
+não encerra; nem o instrutor escreve a situação do aluno. Mais: as outras cinco
+suítes SQL verdes (43+26+11+28+23), `valida_sql.py` nas 0001–0014, **847 casos
+de frontend** em treze suítes (`situacao-usuario.teste.mjs` novo com 58) e
+`npm run build`.
+
+**O cartão recolhe, e isso custou dois cuidados** (2026-09-15). Relatado em
+campo: *"o card de pedido de ajuda não colapsa; no celular isso ocupa muito da
+tela"*. Ele é o mais alto do painel (select, campo, botão grande e o aviso), e
+aberto por padrão tapava boa parte do mapa. Agora usa `tornarRecolhivel()` como
+todos os outros e **nasce fechado**.
+
+Mas colapsar um cartão de pedido de apoio tem um preço que precisa ser pago, e
+não ignorado: **a resposta do instrutor chega DENTRO dele**. Um cartão fechado
+esconderia "apoio a caminho" de quem está esperando exatamente isso. Então:
+
+- **Ponto no título** enquanto há pedido vigente — vermelho enquanto ninguém
+  respondeu, verde quando há resposta ainda não confirmada. Sem ele, "não ocupa
+  a tela" viraria "não dá para saber o que está acontecendo".
+- **O cartão se abre sozinho quando chega resposta nova**, e só nisso. Acionar
+  não abre (quem acabou de segurar o botão sabe que acionou). A comparação é
+  pelo TEXTO da resposta, não por "tem resposta": o instrutor pode corrigir o
+  recado, e a correção merece a mesma atenção que a primeira mensagem. O
+  `respostaJaMostrada` existe para o cartão não se reabrir a cada evento de
+  Realtime — quem o fechou de propósito consegue mantê-lo fechado.
+
+O cartão "Anotações no mapa" também passou a recolher, sem essas ressalvas:
+nada urgente chega por dentro dele. A faixa de alerta do instrutor **não** é
+cartão — é sobreposição no mapa, e continua aparecendo sem ninguém clicar.
+
+**ESTADO EM 2026-09-15:** a `0014` está aplicada em produção e o recado de
+situação e o pedido de apoio estão funcionando no uso normal. **Os dois itens
+que mais importam continuam em aberto**, e nenhum deles se testa sozinho numa
+mesa: `15ce`/`15cs` — com um celular do Vermelho na mão, confirmar que ele não
+vê recado nem pedido do Azul; e `15cl` — acionar **com o GPS desligado** (modo
+avião), que é exatamente o caso que a coluna nulável existe para permitir.
+Junto, `15cj`: cronometrar quanto tempo o alerta leva para aparecer na tela do
+instrutor — é o número que diz se o recurso presta.
+
+### A resposta do instrutor ao pedido de apoio (2026-09-15) — migration 0015
+
+Pergunta de quem conduz a instrução, no dia seguinte à 0014: *"o instrutor pode
+informar o usuário que está ciente e mandando ajuda?"* **Não podia** — a 0014
+entregou só `reconhecido_em`, e o cartão do aluno dizia "Seu pedido de apoio foi
+RECONHECIDO". Para quem está em campo isso é quase nada: não diz quem viu, se
+alguém saiu, por onde nem em quanto tempo.
+
+Três colunas e um trigger. **Nenhuma policy nova, e isso não é sorte:**
+`pedidos_apoio_atualizar` (0014) já libera "o próprio autor OU o instrutor da
+turma", que é exatamente quem escreve aqui — o instrutor responde, o autor
+carimba que leu.
+
+- **Respostas prontas + campo livre.** Digitar leva tempo justamente quando há
+  menos. Três frases de um toque ("Ciente, apoio a caminho", "…aguarde no
+  local", "…desloque para o PC") cobrem o comum, e o campo livre fica para quem
+  puder detalhar. A lista é curta de propósito: uma lista longa obriga a LER
+  antes de escolher, que é o custo que ela existia para evitar. **Não são
+  doutrina** — são rascunho a corrigir depois do primeiro uso em campo.
+- **`resposta_vista_em` fecha o laço do outro lado.** O aluno toca em "Vi" e o
+  instrutor passa a ver "lido às 14:32". Sem isso ele manda "apoio a caminho" e
+  nunca sabe se chegou a alguém — e a limitação que a 0014 já declara (o
+  navegador congela com a tela apagada) torna isso provável, não teórico.
+  **"respondido" e "SEM confirmação de leitura" são frases diferentes de
+  propósito**, com teste garantindo que a palavra "lido" não aparece numa
+  resposta não confirmada: é essa diferença que decide se ele insiste pelo rádio.
+- **Responder já reconhece.** Obrigar a dois cliques criaria o estado absurdo
+  "respondido mas não reconhecido".
+
+**O trigger nasceu de uma falha do teste, e vale registrar como se chegou nele.**
+O `check` garante que o trio texto+autoria+hora existe junto, mas o primeiro
+caso do grupo E passou quando devia falhar: numa linha que JÁ tinha resposta,
+trocar só o texto mantém a linha coerente para o `check` — e deixa
+`respondido_em` com a hora antiga. Pior, herdaria o `resposta_vista_em` da
+mensagem anterior, e o instrutor veria "lido" para uma correção que a pessoa
+nunca viu. `fn_carimbar_resposta_apoio()` reescreve a hora e zera a confirmação
+sempre que o texto muda. O cliente já fazia as duas coisas certas; o trigger
+existe porque *"o cliente faz certo"* vale para o app de hoje, não para o SQL
+Editor nem para o app de amanhã.
+
+**O que NÃO virou:** conversa. Uma coluna guarda UMA resposta, a vigente.
+Um chat exigiria tabela de mensagens, ordenação, não-lidas e tela própria — e
+transformaria o recurso em algo para se ficar olhando, quando o que se quer é o
+contrário: resolver e voltar para o terreno.
+
+**Verificação.** `06_teste_situacao_apoio.sql` passou de 22 para **37 casos,
+37/37**, contra Postgres 16 + PostGIS em banco limpo, `0001`–`0015`, com a
+`0015` rodada duas vezes. **Duas das três falhas iniciais eram do próprio
+teste** e as duas dizem a mesma coisa — um alvo mal escolhido aprova por
+engano: um `update` mirou uma linha que já tinha resposta (e por isso passava no
+`check` sem exercitar nada), e outro mirou "qualquer pedido aberto" quando o
+colega já tinha um PRÓPRIO, que a policy legitimamente deixa ele editar. A
+terceira falha era real e virou o trigger. Mais: as outras cinco suítes SQL
+(43+26+11+28+23), `valida_sql.py` nas 0001–0015, **866 casos de frontend** em
+treze suítes (`situacao-usuario.teste.mjs` 58 → 77) e `npm run build`.
+
+**ESTADO EM 2026-09-15:** a `0015` está aplicada em produção e a resposta com
+o "Vi" está funcionando no uso normal. **Continua em aberto** o caso do trigger
+(`15cx`): corrigir a resposta DEPOIS de ela ter sido lida e confirmar que a
+confirmação **volta a zero** — e, com o cartão recolhido (mesma data), `15dn`:
+o cartão fechado tem que **abrir sozinho** quando a resposta chega, senão ela
+fica escondida de quem está esperando por ela.
+
+### O mapa abre onde as pessoas estão (2026-09-15) — sem migration
+
+Pedido: *"ao abrir o mapa, apareça na posição dos usuários. Hoje está abrindo
+numa área aleatória no centro do mapa."*
+
+A "área aleatória" era `center: [-22, -47]` — um ponto perto de Campinas,
+escrito **à mão em quatro arquivos** (`index.html`, `situacao.js`,
+`debriefing.js` e o mapinha de imagem georreferenciada em
+`instrutor-calcos.js`). Para uma turma em Ponta Grossa, o app abria a 400 km de
+onde a instrução acontece.
+
+**Três defeitos diferentes, e só o primeiro era o óbvio:**
+
+1. **O padrão morava em quatro lugares.** Virou `CENTRO_PADRAO`/`ZOOM_PADRAO`
+   em `enquadrar-mapa.js` (novo, puro). Ele continua existindo — é o que fica
+   na tela nos segundos antes de se saber onde alguém está.
+2. **No painel do instrutor, o enquadramento só rodava na CARGA.** Se o
+   instrutor abrisse a aba antes de a turma começar a mandar posição — o caso
+   normal —, não havia nada a enquadrar e o mapa ficava no ponto padrão para
+   sempre, mesmo com a turma inteira aparecendo depois. Agora a primeira
+   posição que chega **pelo Realtime** também enquadra.
+3. **No app do aluno, o mapa só se movia com fix do GPS próprio.** Sem fix
+   (galpão, mata fechada) ou com `ver_propria_posicao` desligada, ninguém
+   centralizava nada — e o aluno tinha que procurar os próprios colegas
+   arrastando o mapa. Agora `colegas.js` enquadra a força nesse caso, e só
+   nesse: quando o GPS fixa, `gps.js` centraliza na pessoa e isso prevalece
+   (`jaCentralizouNoProprio()`, novo em gps.js, é como um sabe da vez do outro).
+
+**O caso que justifica um módulo puro em vez de um `fitBounds` direto:**
+`fitBounds` com todos os pontos no mesmo lugar produz uma caixa de área zero, e
+o Leaflet responde com **zoom máximo** — a tela vira um quadrado de 20 metros.
+E esse não é um caso raro: é a **formatura no início do exercício**, a turma
+inteira parada no mesmo pátio, dentro do erro do GPS.
+`planejarEnquadramento()` separa "todos praticamente no mesmo ponto" (→
+`setView` com zoom 15) de "pontos espalhados" (→ `fitBounds`), com tolerância
+de 0,0005° ≈ 55 m — maior que o erro típico de um GPS de celular e menor que
+qualquer dispersão tática real.
+
+**Dois cuidados que não se veem funcionando, só quebrados:**
+
+- **O automático acontece UMA vez.** Depois disso quem manda na câmera é quem
+  está olhando. `dragstart`/`zoomstart` do usuário também desarmam — puxar a
+  tela de alguém que está examinando uma região é pior do que abrir no ponto
+  errado, que se corrige com um gesto. O botão de enquadrar manual continua
+  enquadrando sempre: se foi pedido, é porque se quer.
+- **O enquadramento lê a posição CRUA, não a do marcador.**
+  `dispersarPosicoes()` desloca avatares empilhados alguns metros para eles não
+  se taparem; enquadrar pelo deslocado enquadraria a correção visual em vez de
+  onde as pessoas estão.
+
+**Verificação.** `enquadrar-mapa.teste.mjs` (novo, 29 casos, 29/29), com o caso
+degenerado travado nos dois sentidos (metade da tolerância ainda é ponto; o
+dobro já é área) e com ponto inválido no meio da lista provando que não
+contamina a caixa. **895 casos de frontend** em catorze suítes; `npm run build`.
+Sem migration e sem mudança de banco.

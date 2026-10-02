@@ -138,11 +138,24 @@ export function bandaUtm(lat) {
 //   { zona, banda, hemisferio: 'N'|'S', este, norte }
 // com `este`/`norte` em METROS (número, não string), ou `null` se a
 // coordenada for inválida ou estiver fora da faixa do UTM.
-export function paraUtm(lat, lon) {
+//
+// `zonaForcada` (2026-10-02, opcional): converte NA ZONA PEDIDA em vez de na
+// zona natural da longitude. Sem isto não existe grade UTM quando a tela
+// cruza uma fronteira de fuso: as linhas da zona 21 precisam continuar a
+// leste de 54° W para fechar o desenho, e `zonaUtm()` devolveria 22 para
+// esses pontos — a grade quebraria no meio da tela, com um salto de 500 km
+// no valor do este. Isso se chama "extensão de zona" e é prática normal em
+// carta militar: a quadrícula da folha continua além do fuso.
+//
+// Fora da zona natural a distorção cresce (o UTM é projetado para ±3° do
+// meridiano central), e por isso NÃO é o padrão: só quem desenha grade pede.
+export function paraUtm(lat, lon, zonaForcada) {
   if (!coordenadaValida(lat, lon)) return null;
   if (lat < LAT_MIN_UTM || lat > LAT_MAX_UTM) return null;
 
-  const zona = zonaUtm(lat, lon);
+  const zona = (Number.isInteger(zonaForcada) && zonaForcada >= 1 && zonaForcada <= 60)
+    ? zonaForcada
+    : zonaUtm(lat, lon);
   const meridianoCentral = (zona - 1) * 6 - 180 + 3;
 
   const phi = lat * GRAU;
@@ -186,6 +199,78 @@ export function paraUtm(lat, lon) {
   if (hemisferio === 'S') norte += FALSO_NORTE_SUL;
 
   return { zona, banda: bandaUtm(lat), hemisferio, este, norte };
+}
+
+// ── UTM inverso ─────────────────────────────────────────────────────────────
+// O caminho de volta: (zona, hemisfério, este, norte) -> (lat, lon).
+//
+// Por que ele passou a existir (2026-10-02)
+// -----------------------------------------
+// Até aqui só havia o caminho de ida, e bastava: as três telas recebiam
+// lat/lon do GPS e precisavam ESCREVER a posição. A grade de quadrículas
+// inverte o problema — uma linha de grade é definida por um valor REDONDO de
+// este ou de norte (E = 584 000 m), e para desenhá-la no Leaflet, que só
+// conhece lat/lon, é preciso voltar. Sem isto, não há grade UTM: haveria uma
+// grade geográfica fingindo ser UTM, que é pior que não ter nenhuma.
+//
+// É a Transversa de Mercator INVERSA de Snyder (§8, eqs. 8-17 a 8-25), no
+// mesmo elipsoide e com as MESMAS constantes do caminho de ida logo acima —
+// de propósito, porque duas tabelas de constantes é como ida e volta deixam
+// de fechar. `phi1` é a "latitude de pé" (footpoint latitude), e `mu`, `E1`,
+// `C1`, `T1`, `N1`, `R1` e `D` são as abreviações do próprio Snyder,
+// mantidas para o código poder ser conferido linha a linha contra o manual.
+//
+// Os valores esperados do teste saíram do PROJ 9.5.1 (via pyproj), a mesma
+// referência do caminho de ida — e incluem interseções de grade com este e
+// norte redondos, que é o uso real deste código, não só pontos reconvertidos.
+export function deUtm({ zona, hemisferio, este, norte } = {}) {
+  if (!Number.isInteger(zona) || zona < 1 || zona > 60) return null;
+  if (!numeroValido(este) || !numeroValido(norte)) return null;
+
+  // Qualquer coisa diferente de 'N' é tratada como sul. É o hemisfério do
+  // Brasil inteiro menos a borda norte, e um valor estranho vindo de dado
+  // gravado não pode devolver uma coordenada no hemisfério errado — devolve a
+  // do hemisfério provável.
+  const hemisferioNorte = hemisferio === 'N';
+
+  const meridianoCentral = (zona - 1) * 6 - 180 + 3;
+  const x = este - FALSO_ESTE;
+  const y = hemisferioNorte ? norte : norte - FALSO_NORTE_SUL;
+
+  const E1 = (1 - Math.sqrt(1 - E2)) / (1 + Math.sqrt(1 - E2));
+  const M = y / K0;
+  const mu = M / (A * (1 - E2 / 4 - 3 * E2 * E2 / 64 - 5 * E2 * E2 * E2 / 256));
+
+  const phi1 = mu
+    + (3 * E1 / 2 - 27 * E1 ** 3 / 32) * Math.sin(2 * mu)
+    + (21 * E1 * E1 / 16 - 55 * E1 ** 4 / 32) * Math.sin(4 * mu)
+    + (151 * E1 ** 3 / 96) * Math.sin(6 * mu)
+    + (1097 * E1 ** 4 / 512) * Math.sin(8 * mu);
+
+  const senoPhi1 = Math.sin(phi1);
+  const cossenoPhi1 = Math.cos(phi1);
+  const tangentePhi1 = Math.tan(phi1);
+
+  const C1 = EP2 * cossenoPhi1 * cossenoPhi1;
+  const T1 = tangentePhi1 * tangentePhi1;
+  const N1 = A / Math.sqrt(1 - E2 * senoPhi1 * senoPhi1);
+  const R1 = A * (1 - E2) / (1 - E2 * senoPhi1 * senoPhi1) ** 1.5;
+  const D = x / (N1 * K0);
+
+  const lat = (phi1 - (N1 * tangentePhi1 / R1) * (
+    D * D / 2
+    - (5 + 3 * T1 + 10 * C1 - 4 * C1 * C1 - 9 * EP2) * D ** 4 / 24
+    + (61 + 90 * T1 + 298 * C1 + 45 * T1 * T1 - 252 * EP2 - 3 * C1 * C1) * D ** 6 / 720
+  )) / GRAU;
+
+  const lon = meridianoCentral + ((
+    D
+    - (1 + 2 * T1 + C1) * D ** 3 / 6
+    + (5 - 2 * C1 + 28 * T1 - 3 * C1 * C1 + 8 * EP2 + 24 * T1 * T1) * D ** 5 / 120
+  ) / cossenoPhi1) / GRAU;
+
+  if (!coordenadaValida(lat, lon)) return null;
+  return { lat, lon };
 }
 
 // ── Grau, minuto, segundo ───────────────────────────────────────────────────

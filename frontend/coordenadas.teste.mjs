@@ -41,7 +41,7 @@
 // ordens de grandeza abaixo dos 5–15 m de precisão de um GPS de celular.
 
 import {
-  zonaUtm, bandaUtm, paraUtm, paraGms,
+  zonaUtm, bandaUtm, paraUtm, deUtm, paraGms,
   formatar, formatarUtm, formatarDecimal, formatarGms,
   formatoValido, FORMATOS, FORMATO_PADRAO, ROTULO_FORMATO,
 } from './coordenadas.js';
@@ -276,6 +276,96 @@ const deslocamentoLon = Math.abs(paraUtm(-22.951916, -43.209487).este - paraUtm(
 ok('0,001° de longitude no Rio dá entre 100 e 105 m de easting — menos que os 111 m ' +
    'da latitude, por causa do cosseno de 23°',
   deslocamentoLon > 100 && deslocamentoLon < 105, true);
+
+// ── UTM INVERSO (deUtm) ─────────────────────────────────────────────────────
+//
+// DE ONDE VÊM OS VALORES ESPERADOS
+// --------------------------------
+// Do PROJ 9.5.1 (via pyproj), a MESMA referência do caminho de ida. Gerados
+// em 2026-10-02 com o script abaixo, transformando de EPSG:327xx (UTM sul) /
+// EPSG:326xx (UTM norte) para EPSG:4326. Para regerá-los:
+//
+//     pip install pyproj
+//     python3 - <<'PY'
+//     from pyproj import CRS, Transformer
+//     def inverso(zona, hemi, e, n):
+//         epsg = 32600 + zona if hemi == 'N' else 32700 + zona
+//         t = Transformer.from_crs(CRS.from_epsg(epsg), CRS.from_epsg(4326), always_xy=True)
+//         lon, lat = t.transform(e, n)
+//         return lat, lon
+//     print(inverso(22, 'S', 584000.0, 7224000.0))
+//     PY
+//
+// METADE DA TABELA É DE INTERSEÇÕES DE GRADE, de propósito. Testar apenas
+// pontos que foram para UTM e voltaram verifica o fechamento ida-e-volta, que
+// é mais fraco: um erro presente nos DOIS sentidos se cancela e o teste passa.
+// Linhas de grade têm este e norte REDONDOS, nunca passaram pelo caminho de
+// ida, e são o uso real deste código — é com elas que grade.js trabalha.
+const TOL_GRAU_INV = 1e-8;   // ~1 mm de latitude; o erro medido ficou em 5e-10
+function okGrau(descricao, obtido, esperado) {
+  const bom = Number.isFinite(obtido) && Math.abs(obtido - esperado) <= TOL_GRAU_INV;
+  bom ? passou++ : falhou++;
+  console.log(`  ${(bom ? 'PASSOU' : '** FALHOU **').padEnd(14)} ${descricao}`);
+  if (!bom) console.log(`                 esperado ${esperado}°, obtido ${obtido}° ` +
+                        `(diferença ${Math.abs(obtido - esperado).toExponential(2)}°)`);
+}
+
+// [rótulo, zona, hemisfério, este, norte, lat PROJ, lon PROJ]
+const REFERENCIA_INVERSA = [
+  ['Ponta Grossa / PR', 22, 'S', 584368.395095, 7224327.060022, -25.094500000000, -50.163300000000],
+  ['Rosário do Sul / RS', 21, 'S', 700709.601248, 6651360.439263, -30.252800000000, -54.913900000000],
+  ['Tibagi / PR (o ponto de visada.js)', 22, 'S', 584769.951963, 7223614.046200, -25.100916000000, -50.159274000000],
+  ['Alegrete / RS', 21, 'S', 616775.414805, 6704636.950288, -29.783100000000, -55.791900000000],
+  ['Santa Maria / RS (zona 22, vizinha de Rosário)', 22, 'S', 228372.195761, 6712910.407099, -29.684200000000, -53.806900000000],
+  ['Rio de Janeiro / RJ', 23, 'S', 683477.820675, 7460685.520180, -22.951916000000, -43.210487000000],
+  ['Boa Vista / RR — HEMISFÉRIO NORTE', 20, 'N', 758384.404168, 312342.381126, 2.823500000000, -60.675800000000],
+  ['Macapá / AP — quase no equador', 22, 'N', 492277.517090, 3857.501463, 0.034900000000, -51.069400000000],
+  ['interseção de grade 22S E=584000 N=7224000', 22, 'S', 584000.0, 7224000.0, -25.097473916976, -50.166933147832],
+  ['interseção de grade 22S E=585000 N=7225000', 22, 'S', 585000.0, 7225000.0, -25.088387894314, -50.157078402820],
+  ['interseção de grade 21S E=700000 N=6651000', 21, 'S', 700000.0, 6651000.0, -30.256167782052, -54.921202775454],
+  ['interseção de grade 21S E=650000 N=6700000', 21, 'S', 650000.0, 6700000.0, -29.821345968514, -55.447622654230],
+  ['grade 22S sobre o meridiano central', 22, 'S', 500000.0, 7200000.0, -25.316553372662, -51.000000000000],
+  ['grade 22S na borda OESTE da zona', 22, 'S', 200000.0, 7200000.0, -25.286450824488, -53.979042064694],
+  ['grade 22S na borda LESTE da zona', 22, 'S', 800000.0, 7200000.0, -25.286450824488, -48.020957935306],
+  ['grade 20N no hemisfério norte', 20, 'N', 540000.0, 310000.0, 2.804589149868, -62.640104272044],
+];
+
+console.log('\nUTM inverso contra o PROJ 9.5.1');
+for (const [rot, zona, hemisferio, este, norte, latPROJ, lonPROJ] of REFERENCIA_INVERSA) {
+  const r = deUtm({ zona, hemisferio, este, norte });
+  okGrau(`${rot} — latitude`, r && r.lat, latPROJ);
+  okGrau(`${rot} — longitude`, r && r.lon, lonPROJ);
+}
+
+console.log('\nIda e volta fecha');
+for (const [lat, lon] of [[-25.0945, -50.1633], [-30.2528, -54.9139], [2.8235, -60.6758], [0.0349, -51.0694]]) {
+  const u = paraUtm(lat, lon);
+  const v = deUtm(u);
+  okGrau(`${lat}, ${lon} — volta na latitude`, v && v.lat, lat);
+  okGrau(`${lat}, ${lon} — volta na longitude`, v && v.lon, lon);
+}
+
+console.log('\nSimetria em torno do meridiano central: o que o teste de ida não vê');
+// Dois pontos a 300 km de cada lado do meridiano central, no mesmo norte, têm
+// que dar a MESMA latitude e longitudes simétricas. É verificação interna da
+// fórmula: não depende do PROJ, e pega troca de sinal que a tabela acima
+// poderia deixar passar se eu tivesse gerado os dois lados com o mesmo erro.
+{
+  const oeste = deUtm({ zona: 22, hemisferio: 'S', este: 200000, norte: 7200000 });
+  const leste = deUtm({ zona: 22, hemisferio: 'S', este: 800000, norte: 7200000 });
+  okGrau('mesma latitude nos dois lados', leste.lat, oeste.lat);
+  okGrau('longitudes simétricas em torno de -51°', (oeste.lon + leste.lon) / 2, -51);
+}
+
+console.log('\nEntrada inválida devolve null, nunca uma coordenada inventada');
+ok('zona fora de 1..60', deUtm({ zona: 0, hemisferio: 'S', este: 500000, norte: 7200000 }), null);
+ok('zona 61', deUtm({ zona: 61, hemisferio: 'S', este: 500000, norte: 7200000 }), null);
+ok('zona não inteira', deUtm({ zona: 22.5, hemisferio: 'S', este: 500000, norte: 7200000 }), null);
+ok('este NaN', deUtm({ zona: 22, hemisferio: 'S', este: NaN, norte: 7200000 }), null);
+ok('norte ausente', deUtm({ zona: 22, hemisferio: 'S', este: 500000 }), null);
+ok('sem argumento nenhum', deUtm(), null);
+ok('hemisfério estranho cai no sul (não inventa hemisfério)',
+  Math.sign(deUtm({ zona: 22, hemisferio: 'X', este: 500000, norte: 7200000 }).lat), -1);
 
 console.log(`\n${passou} passou, ${falhou} falhou, ${passou + falhou} total\n`);
 process.exit(falhou === 0 ? 0 : 1);

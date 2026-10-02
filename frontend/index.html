@@ -298,6 +298,28 @@
          Relatado em campo em 2026-08-02: "estamos a W e S, e está escrito E e
          N". Não estava errado — mas se confundiu uma vez, confunde de novo. -->
     <div id="coordenada-nota" style="font-size:10px;color:#4a6a8a;margin-top:5px;line-height:1.4"></div>
+
+    <!-- ── Grade de quadrículas (2026-10-02) ──────────────────────────────
+         Mora NESTE cartão, e não num cartão próprio, porque é a mesma
+         pergunta: "em que referência eu quero ler este mapa". Separar em dois
+         cartões faria a pessoa procurar em dois lugares a mesma decisão.
+         É PREFERÊNCIA, não permissão: o instrutor não tem razão para proibir
+         alguém de ver a quadrícula (ver o cabeçalho de preferencias.js). -->
+    <hr style="border:0;border-top:1px solid #23405e;margin:12px 0 8px">
+    <div style="font-size:11px;color:#7a9ab8;margin-bottom:6px">Grade de quadrículas</div>
+    <label class="layer-row">
+      <input type="radio" name="modo-grade" value="off" checked>
+      Sem grade
+    </label>
+    <label class="layer-row">
+      <input type="radio" name="modo-grade" value="utm">
+      Quadrícula UTM
+    </label>
+    <label class="layer-row">
+      <input type="radio" name="modo-grade" value="geo">
+      Grade geográfica
+    </label>
+    <div id="grade-nota" style="font-size:10px;color:#4a6a8a;margin-top:5px;line-height:1.4"></div>
   </div>
 
   <!-- Etapa 11: aqui moravam dois cartões do exercício de junho de 2026, que
@@ -321,7 +343,11 @@
   <!-- "Atualização automática a cada 2 minutos" saiu na Etapa 11: era o
        setInterval do COP de junho. O que há hoje no mapa chega por Realtime,
        na hora — dizer "a cada 2 minutos" passou a ser mentira. -->
-  Simbologia APP-6D / MD33-C-01
+  <!-- A coordenada do ponto olhado vem PRIMEIRO: é a única coisa aqui que
+       muda a cada instante e que alguém lê durante o exercício. O resto do
+       rodapé é identificação, lida uma vez. -->
+  <span id="barra-coordenada"></span>
+  &nbsp;|&nbsp; Simbologia APP-6D / MD33-C-01
   &nbsp;|&nbsp; <span id="versao-build" title="Data do build que está no ar. Se este número não mudou depois de uma correção, o navegador está servindo a versão antiga — recarregue segurando Shift, ou abra numa aba anônima.">—</span>
 </div>
 
@@ -351,7 +377,15 @@ import { iniciarPermissoes, observarPermissao, pode } from './permissoes.js';
 import {
   iniciarPreferencias, definirFormatoCoordenada,
   observarFormatoCoordenada, formatarCoordenada,
+  definirModoGrade, observarModoGrade,
 } from './preferencias.js';
+// Grade de quadrículas (2026-10-02). A aritmética é grade.js (puro, testado
+// em Node); este import é só do desenho. Ver o cabeçalho de grade.js para por
+// que a grade UTM precisou do UTM inverso em coordenadas.js.
+import { ligarGrade } from './grade-tela.js';
+// A coordenada do ponto olhado, no rodapé. Em monitor segue o cursor; em tela
+// de toque é a cruz do centro — ver o cabeçalho do módulo.
+import { ligarBarraCoordenada } from './barra-coordenada.js';
 import { iniciarPerfilAoVivo } from './perfil-ao-vivo.js';
 // `minhaPosicao` (Etapa 9b+) é passada adiante para marcacoes.js, que a usa
 // para calcular distância e azimute daqui até cada elemento marcado — o vetor
@@ -601,6 +635,39 @@ function ligarSeletorDeCoordenada() {
   atualizarExemplo();
 }
 
+// Espelha ligarSeletorDeCoordenada() de propósito: mesma forma, mesmo
+// observador, mesma razão para ser observador e não atribuição direta (o
+// valor pode mudar por outro caminho que não este seletor — a carga do
+// perfil, hoje; outra tela, amanhã).
+function ligarSeletorDeGrade() {
+  const radios = [...document.querySelectorAll('input[name="modo-grade"]')];
+  const nota = document.getElementById('grade-nota');
+  if (!radios.length) return;
+
+  // A nota existe por causa de uma pergunta que vai aparecer em campo: por
+  // que a quadrícula não fica menor que isso. A resposta é decisão de quem
+  // usa (piso de 1 km), não limitação — e dizer isso evita o relato
+  // "a grade não acompanha o zoom".
+  const NOTA = {
+    utm: 'O passo acompanha o zoom (1, 2, 5, 10 km…) e nunca fica menor que 1 km. ' +
+         'Os dois dígitos na margem são os dígitos principais, como na carta; ' +
+         'a zona e o passo estão na legenda do canto.',
+    geo: 'Linhas de latitude e longitude, com o passo em minutos acompanhando o zoom.',
+    off: '',
+  };
+
+  radios.forEach((radio) => {
+    radio.addEventListener('change', () => {
+      if (radio.checked) definirModoGrade(radio.value);
+    });
+  });
+
+  observarModoGrade((modo) => {
+    radios.forEach((r) => { r.checked = (r.value === modo); });
+    if (nota) nota.textContent = NOTA[modo] || '';
+  });
+}
+
 // ── Sessão e roteamento por papel (Etapa 2b) ─────────────────────────────
 // Fica escondido (body com visibility:hidden) até confirmar que há sessão
 // válida e papel = usuario; senão redireciona para login.html. Ver
@@ -670,6 +737,14 @@ if (resultado) {
     // round-trip de `buscarPerfil()`, desde a Etapa 4.5.
     iniciarPreferencias({ userId: session.user.id, perfil });
     ligarSeletorDeCoordenada();
+    ligarSeletorDeGrade();
+
+    // Grade e barra de coordenada (2026-10-02). As duas só leem preferência,
+    // nunca permissão — então entram aqui, junto dos seletores, e não no
+    // bloco de permissões abaixo. A grade nasce no modo gravado no perfil
+    // (incluindo 'off', que é o padrão): ela não aparece sem alguém pedir.
+    ligarGrade({ map });
+    ligarBarraCoordenada({ map });
 
     // Etapa 6a: as permissões entram ANTES dos três módulos e são AGUARDADAS.
     // Sem o await, o primeiro observarPermissao() de cada módulo receberia o

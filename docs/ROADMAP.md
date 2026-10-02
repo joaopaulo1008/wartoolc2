@@ -517,6 +517,78 @@ aluno primeiro. Ver o bloco **16** do roteiro de teste de campo.
    "sem rotação") e `enquadrar-mapa.js`. Reabrir só depois do teste de campo
    da bússola, e como **course-up travado**, não rotação livre.
 
+### 2026-10-02 — grade de quadrículas e barra de coordenada (UX)
+
+Segunda e terceira das melhorias de UX discutidas em 2026-09-19. **Sem
+migration, sem chave nova em `catalogo_permissoes`, sem dependência nova.**
+
+**O UTM INVERSO passou a existir** (`deUtm`, em `coordenadas.js`). Até aqui só
+havia o caminho de ida, e bastava: as telas recebiam lat/lon do GPS e
+precisavam ESCREVER a posição. A grade inverte o problema — uma linha de grade
+é definida por um valor redondo de ESTE, e o Leaflet só entende lat/lon. É a
+Transversa de Mercator inversa de Snyder (§8), com as mesmas constantes do
+caminho de ida, e os valores esperados do teste vieram do PROJ 9.5.1 (pyproj),
+como os do direto. Erro medido contra o PROJ: **5e-10 grau, cerca de 0,06 mm**.
+
+`paraUtm()` ganhou **zona forçada** (extensão de zona). Sem isso não há grade
+quando a tela cruza um fuso: as linhas da zona 21 precisam continuar a leste
+de 54° W, e `zonaUtm()` devolveria 22 para esses pontos — a quadrícula
+quebraria no meio da tela com um salto de 500 km no valor do este.
+
+**`frontend/grade.js` (novo, PURO)**: limites + largura em pixels → quais
+linhas existem, por onde passam e que rótulo levam, nos dois modos. Suíte
+própria com 56 casos. Três decisões moram aqui:
+
+- **Piso de 1 km, pedido por quem usa.** É estrutural: a lista de passos
+  começa em 1000 m e `passoUtm()` só escolhe de dentro dela. Não há caminho no
+  código que produza 500 m.
+- **Teto de linhas**: o passo SOBE até caber, em vez de a grade ser cortada —
+  meia grade é uma grade errada; uma grade de 10 km onde se pediu 1 km é uma
+  grade de 10 km, e a legenda diz qual é.
+- **Linha UTM tem 5 vértices, linha geográfica tem 2.** No EPSG:3857 as linhas
+  de lat/lon são retas; as de este/norte se inclinam pela convergência
+  meridiana (~0,4° no Paraná), que em tela de 1000 px é deslocamento de vários
+  pixels entre o topo e a base.
+
+**`frontend/grade-tela.js` (novo)**: pane própria em `zIndex 350` — acima dos
+tiles, **abaixo** dos calcos e dos símbolos, porque a quadrícula é parte da
+CARTA e não da situação tática. Rótulos nas margens de cima e da esquerda, em
+**dígitos principais** (584 000 m vira `84`, como na margem da carta), e
+legenda de canto com zona, banda e passo. Redesenho em `moveend`/`zoomend`,
+nunca por quadro.
+
+**`frontend/barra-coordenada.js` (novo)**: a coordenada do ponto olhado no
+rodapé. **No monitor segue o cursor; em tela de toque é uma cruz no centro** —
+decidido por quem usa, e detectado por `(hover: hover) and (pointer: fine)`,
+nunca por string de navegador. A zona UTM aparece como etiqueta só nos
+formatos que não a trazem, o que deixou de ser detalhe agora que o exercício
+muda de estado (Ponta Grossa é 22J, Rosário do Sul é 21J).
+
+**`preferencias.js` deixou de ser de chave única.** A 9b escreveu lá que o
+encanamento existia "para a próxima chave ser barata"; não existia — estava
+cravado em `formato_coordenada`. A grade é a segunda chave, então entrou um
+registro de chaves com padrão, validador e observadores próprios. As cinco
+exportações que os seis consumidores usam continuam idênticas.
+
+**Dois defeitos achados em navegador, que a suíte em Node não pegaria:**
+
+1. `L.layerGroup([], { pane })` **não propaga a pane para as camadas filhas**.
+   As linhas caíam na `overlayPane` — acima dos calcos, o contrário exato da
+   decisão documentada no cabeçalho do próprio arquivo. O comentário estava
+   certo e o código não o cumpria, e a grade aparecia bonita do mesmo jeito.
+2. A legenda montava sobre a atribuição do Leaflet, e o rótulo mais alto da
+   margem esquerda ficava atrás do controle de zoom. Visto em captura de tela,
+   não deduzido.
+
+**Medido:** 1027 casos de frontend em 16 suítes para esta entrega (o total da
+árvore é 1056 em 17, contando a suíte da exportação KMZ, que veio de outra
+máquina); `npm run build` verde, com os módulos novos conferidos no bundle;
+verificação em Chromium real nos três cenários (monitor, celular, tela
+cruzando o fuso 21/22). SQL não rodado de novo — a entrega não toca em SQL.
+
+**Em aberto, por decisão:** `situacao.js` (aba do instrutor) não recebeu nem a
+grade nem a barra. Ver o bloco **17** do roteiro de teste de campo.
+
 ## A fazer, em ordem
 
 - [ ] **Etapa 2 — Autenticação e papéis** *(em andamento — dividida em 2a e 2b)*

@@ -856,4 +856,60 @@ de este bloco existir.
 - [ ] 16q. Aparelho de tela pequena e **com luva**: as linhas do menu são
   alcançáveis?
 
+## 17. Grade de quadrículas e barra de coordenada (2026-10-02)
+
+Duas melhorias de UX, fora da numeração de etapas. **Nenhuma migration.** A
+grade é preferência do usuário (fica gravada no perfil), não permissão — o
+instrutor não a controla.
+
+O item que mais importa aqui é o **17f**: o app nunca rodou fora da zona 22J,
+e o próximo exercício é em Rosário do Sul, que é **21J**.
+
+### A grade
+
+- [ ] 17a. Painel → cartão **Coordenada** → **Quadrícula UTM**. Linhas e
+  rótulos aparecem na hora, sem F5.
+- [ ] 17b. **O piso de 1 km.** Aproxime o zoom ao máximo. A legenda do canto
+  nunca pode dizer menos que `1 km` — foi pedido assim de propósito.
+- [ ] 17c. Afaste o zoom: o passo sobe (2, 5, 10, 25 km…) e a legenda
+  acompanha. A grade nunca vira um borrão de linhas.
+- [ ] 17d. **A grade some durante o arrasto e volta ao soltar.** É decisão de
+  desempenho, não defeito (recalcular por quadro travaria o celular).
+  **Confirme se isso incomoda na prática** — se incomodar, há conserto.
+- [ ] 17e. Os dois dígitos da margem batem com a coordenada do rodapé: pare o
+  cursor sobre uma interseção e confira que o `mE` termina nos dígitos da
+  margem de cima e o `mN` nos da esquerda.
+- [ ] 17f. **EM ROSÁRIO DO SUL**: a legenda tem que dizer **zona 21J**, não
+  22J. Nunca foi exercitado fora do Paraná — este é o item de consequência.
+- [ ] 17g. Afaste até a tela cruzar 54° W (Rosário do Sul até Santa Maria): a
+  legenda ganha a linha âmbar *"a tela cruza para o fuso vizinho"*. Sem ela,
+  alguém leria na metade direita um valor de este da zona da esquerda, e o
+  número continuaria plausível.
+- [ ] 17h. **Confira contra a carta de papel.** A linha rotulada `84` na tela
+  é a mesma linha `84` da carta, no mesmo lugar do terreno. É o teste que o
+  cálculo não substitui.
+- [ ] 17i. **Grade geográfica**: linhas retas, rótulos em grau e minuto com a
+  letra do hemisfério (`25°30'S`).
+- [ ] 17j. **A grade fica ABAIXO do calco.** Publique um calco com polígono
+  preenchido: a grade some embaixo dele. É o comportamento certo (a carta
+  está sob a situação tática), mas confirme que é o que você espera.
+- [ ] 17k. A escolha sobrevive ao F5 e aparece no outro aparelho com o mesmo
+  login — está gravada em `perfis.preferencias_visualizacao`.
+
+### A barra de coordenada
+
+- [ ] 17l. **No monitor:** a coordenada do rodapé segue o cursor. Tirando o
+  cursor do mapa, ela diz *"passe o cursor sobre o mapa"* em vez de ficar em
+  branco.
+- [ ] 17m. **No celular:** uma cruz fina no centro da tela, e a coordenada do
+  rodapé é a dela, acompanhando o arrasto.
+- [ ] 17n. Troque o formato no painel: a barra muda **na hora**, sem F5.
+- [ ] 17o. Em grau decimal e em GMS aparece a etiqueta da zona (`21J ·`); em
+  UTM ela **não** se repete, porque já está no próprio texto.
+- [ ] 17p. **Desempenho, com tudo ligado:** grade UTM + calco grande + turma
+  inteira no mapa. Arrastar e dar zoom num celular continua fluido?
+- [ ] 17q. Aparelho com tela de toque **e** mouse (notebook conversível): a
+  detecção é por `(hover: hover) and (pointer: fine)`. Qual dos dois
+  comportamentos ele escolheu, e foi o certo?
+
 Qualquer item marcado como falha vira a prioridade do próximo chat — cole este checklist preenchido para retomar com contexto completo.
