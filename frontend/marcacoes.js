@@ -155,9 +155,23 @@ let cliqueHandler = null;
 // de avisar "não é para mim" sem os dois módulos precisarem se conhecer além
 // disso — o handler consulta a flag na hora do clique, então não importa a
 // ordem de registro dos listeners.
-let cliqueSuspenso = false;
-export function suspenderClique() { cliqueSuspenso = true; }
-export function retomarClique() { cliqueSuspenso = false; }
+//
+// 2026-09-19: virou CONTADOR, não booleano. Passou a haver um segundo
+// consumidor (menu-contexto.js suspende o clique enquanto o menu de toque
+// longo está aberto), e com um booleano o segundo a soltar desligava a
+// suspensão do primeiro: abrir o menu no meio de um desenho de área offline
+// devolvia o clique para cá, e o toque seguinte abria marcação por cima do
+// retângulo em construção. Exatamente o bug de 2026-08-01, de novo, por outra
+// porta. Os dois chamadores de hoje são pares equilibrados, então contar é
+// suficiente; o piso em zero é cinto de segurança para um `retomarClique()`
+// solto não deixar o contador negativo e travar a suspensão seguinte.
+let suspensoes = 0;
+export function suspenderClique() { suspensoes += 1; }
+export function retomarClique() { suspensoes = Math.max(0, suspensoes - 1); }
+// Lido por menu-contexto.js: com outra interação de clique ativa no mapa, o
+// menu de toque longo nem abre — seria um terceiro significado para o mesmo
+// toque, no meio de um gesto que já tem dois.
+export function cliqueEstaSuspenso() { return suspensoes > 0; }
 
 // Funções de cancelamento dos observarPermissao() registrados em
 // iniciarMarcacoes(), para pararMarcacoes() poder desligá-los (Etapa 6c). O
@@ -1158,24 +1172,68 @@ async function removerMarcacao(id) {
 // várias vezes durante o exercício.
 function ativarCliqueNoMapa(map) {
   cliqueHandler = (ev) => {
-    if (cliqueSuspenso) return; // outra interação de clique está ativa no mesmo mapa (ex.: desenhar área offline)
-    if (painelAberto) return; // um formulário por vez
-    if (!podeCriar()) {
-      status('criar marcação está desabilitado pelo instrutor', '#f5c842');
+    if (cliqueEstaSuspenso()) return; // outra interação de clique está ativa no mesmo mapa (ex.: desenhar área offline)
+    const r = avaliarAbertura();
+    if (!r.permitido) {
+      if (r.motivo) status(r.motivo, '#f5c842');
       return;
-    }
-    // Etapa 6c: a guarda EXTRA (lotação) só existe quando quem chamou
-    // iniciarMarcacoes() passou avaliarCriacaoExtra — hoje só situacao.js.
-    if (avaliarCriacaoExtra) {
-      const extra = avaliarCriacaoExtra();
-      if (!extra.permitido) {
-        status(extra.motivo || 'criar marcação não é permitido nesta turma', '#f5c842');
-        return;
-      }
     }
     abrirFormulario(ev.latlng);
   };
   map.on('click', cliqueHandler);
+}
+
+// A porta de entrada de "criar marcação NESTE ponto", em um lugar só.
+//
+// Existem dois caminhos até ela desde 2026-09-19 — o toque curto no mapa e a
+// entrada "Marcar elemento aqui" do menu de toque longo — e a regra do projeto
+// é FONTE ÚNICA: uma segunda cópia destas guardas é como uma delas acabaria
+// divergindo da outra, e a que divergisse seria a que deixa criar quando o
+// instrutor já desabilitou. Devolve o motivo em vez de escrevê-lo na linha de
+// status porque os dois caminhos mostram a recusa em lugares diferentes.
+//
+// Note o que NÃO está aqui: `cliqueEstaSuspenso()`. Ele é sobre a AMBIGUIDADE
+// de um toque no mapa (qual dos módulos ele era?), e uma escolha explícita num
+// menu não é ambígua.
+function avaliarAbertura() {
+  if (painelAberto) return { permitido: false }; // um formulário por vez, e sem recusa a explicar
+  if (!podeCriar()) {
+    return { permitido: false, motivo: 'criar marcação está desabilitado pelo instrutor' };
+  }
+  // Etapa 6c: a guarda EXTRA (lotação) só existe quando quem chamou
+  // iniciarMarcacoes() passou avaliarCriacaoExtra — hoje só situacao.js.
+  if (avaliarCriacaoExtra) {
+    const extra = avaliarCriacaoExtra();
+    if (!extra.permitido) {
+      return { permitido: false, motivo: extra.motivo || 'criar marcação não é permitido nesta turma' };
+    }
+  }
+  return { permitido: true };
+}
+
+// Consultado por menu-contexto.js para decidir se a entrada "Marcar elemento
+// aqui" aparece habilitada, e com que explicação quando não aparece. É o
+// MESMO `avaliarAbertura()` que o toque curto usa — nenhuma segunda regra.
+export function podeMarcarAqui() {
+  return avaliarAbertura();
+}
+
+// O ponto de entrada de fora deste módulo. Abre o formulário de criação no
+// ponto dado, com as mesmas guardas do toque no mapa.
+//
+// Ele abre o formulário COMPLETO, que é o único que existe: a fileira de
+// presets fica no topo dele e o catálogo inteiro logo abaixo (ver o cabeçalho
+// de paleta-tela.js). Ou seja, esta função faz o mesmo que um toque curto no
+// mapa — de propósito. No menu de toque longo ela é a saída de quem abriu o
+// menu sem querer, não uma segunda forma de marcar.
+export function abrirMarcacaoEm(latlng) {
+  const r = avaliarAbertura();
+  if (!r.permitido) {
+    if (r.motivo) status(r.motivo, '#f5c842');
+    return false;
+  }
+  abrirFormulario(latlng);
+  return true;
 }
 
 // ── Ponto de entrada ──────────────────────────────────────────────────────

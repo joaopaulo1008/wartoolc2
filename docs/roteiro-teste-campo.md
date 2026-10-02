@@ -421,9 +421,14 @@ novo (SQL Editor, ou `backend/scripts/aplicar_migrations.sh`), é idempotente.
   força). O formulário NÃO fecha: ele se preenche com o símbolo e o foco vai
   para "Partido do elemento observado". Escolha e salve.
 - [ ] 15j. **Toque longo** (~0,5s) num botão: preenche o formulário sem gravar,
-  e dá para pôr escalão e designação antes de salvar. **É o gesto mais frágil
+  e dá para pôr escalão e designação antes de salvar. **Era o gesto mais frágil
   da entrega** — se num celular específico não disparar (ou disparar sozinho ao
   rolar o formulário), anote qual aparelho e navegador.
+  **Refazer (2026-09-19):** o gesto saiu para `frontend/toque-longo.js` e ganhou
+  uma **tolerância de movimento de 10 px** que não tinha. A metade "disparar
+  sozinho ao rolar" deste item deveria ter deixado de acontecer — é o que se
+  quer confirmar aqui. Role o formulário **de propósito** com o dedo em cima de
+  um botão: não pode preencher nada.
 - [ ] 15k. Abra uma marcação existente para EDITAR: a fileira de botões **não**
   aparece (só na criação).
 - [ ] 15l. Desenhar área offline continua funcionando sem abrir marcação (o bug
@@ -796,5 +801,59 @@ escrito no próprio cartão. O item 15cn existe para conferir que a frase está 
 - [ ] 15dr. A **faixa vermelha** de alerta do instrutor continua aparecendo
   sozinha, sem depender de cartão nenhum — ela não é cartão, é sobreposição no
   mapa.
+
+## 16. Toque longo no mapa — o menu de contexto (2026-09-19)
+
+Entrega de UX, fora da numeração de etapas. O toque CURTO no mapa continua
+exatamente como era (abre o formulário de marcação); o toque LONGO passou a
+abrir um menu no ponto tocado, com a coordenada e a visada já **lidas na
+tela**.
+
+Os dois primeiros itens são os que nenhum teste de mesa alcança, e são a razão
+de este bloco existir.
+
+- [ ] 16a. **Toque longo (~0,5s) num ponto vazio do mapa.** O menu abre no
+  ponto, com três linhas: "Marcar elemento aqui", "Coordenada" e "Do meu posto
+  até aqui".
+- [ ] 16b. **A pinça lenta — o caso que mais preocupa.** Aproxime o zoom
+  **devagar**, encostando o segundo dedo mais de meio segundo depois do
+  primeiro. O menu **não pode** abrir. (Há teste em Node para a regra; o que
+  falta medir é se o aparelho entrega os eventos na ordem que a regra espera.)
+- [ ] 16c. **Arrastar o mapa não abre menu.** Comece a arrastar devagar, sem
+  soltar: passado meio segundo, nada pode aparecer.
+- [ ] 16d. O menu **fecha** ao tocar fora, ao arrastar o mapa, ao dar zoom e no
+  `Esc` (se houver teclado).
+- [ ] 16e. **O toque que fecha o menu não pode criar marcação.** Toque fora
+  para fechar: fecha e pronto — nenhum formulário abre por baixo.
+- [ ] 16f. Idem para o toque que ABRE: depois que o menu aparece, tire o dedo.
+  Nenhum formulário pode abrir atrás dele.
+- [ ] 16g. **"Marcar elemento aqui"** abre o mesmo formulário do toque curto, no
+  mesmo ponto. (É sinônimo do toque curto de propósito — é a saída de quem
+  abriu o menu sem querer.)
+- [ ] 16h. Com `criar_marcacao_inimiga` **desligada** pelo instrutor, a linha
+  aparece **esmaecida e com o motivo escrito**, não sumida.
+- [ ] 16i. **Coordenada**: confira que o formato é o que você escolheu no painel
+  (UTM/MGRS/grau decimal). Troque o formato e abra o menu de novo: acompanha.
+- [ ] 16j. Tocar na coordenada copia (aparece "✓ copiado"). Cole em qualquer
+  campo de texto e confira. Se o aparelho recusar a área de transferência, a
+  linha tem que dizer "(copie à mão)" — e o valor continua legível.
+- [ ] 16k. **Visada**: compare a linha "Do meu posto até aqui" com a que aparece
+  no popup de uma marcação feita **no mesmo ponto**. Têm que ser iguais,
+  inclusive o `qd` do fim.
+- [ ] 16l. **Sem GPS fixado** (ou com `ver_propria_posicao` desligada), a linha
+  da visada continua aparecendo, dizendo o motivo — igual ao popup.
+- [ ] 16m. Toque longo **em cima de um avatar, de uma marcação, de um popup ou
+  de um controle do mapa**: o menu **não** abre (aquele toque já tem dono).
+- [ ] 16n. **Ponto de atenção conhecido:** toque longo sobre um **polígono de
+  calco** abre o menu (polígonos não entram na lista de exclusão, senão o menu
+  ficaria inalcançável em área coberta por calco). Confira se o popup do calco
+  também abre por baixo, e se isso incomoda.
+- [ ] 16o. **Menu perto da borda** (canto inferior direito da tela): ele tem que
+  virar para dentro, nunca sair pela borda.
+- [ ] 16p. **Com o desenho de área offline ativo**, o toque longo **não** abre o
+  menu — e o desenho do retângulo continua funcionando normalmente (é o bug de
+  2026-08-01 visto pela terceira porta).
+- [ ] 16q. Aparelho de tela pequena e **com luva**: as linhas do menu são
+  alcançáveis?
 
 Qualquer item marcado como falha vira a prioridade do próximo chat — cole este checklist preenchido para retomar com contexto completo.

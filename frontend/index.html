@@ -360,6 +360,7 @@ import { iniciarPerfilAoVivo } from './perfil-ao-vivo.js';
 import { iniciarRastreamentoProprio, minhaPosicao, atualizarMeuSimbolo } from './gps.js';
 import { iniciarColegas } from './colegas.js';
 import { iniciarMarcacoes } from './marcacoes.js';
+import { ligarMenuDoMapa } from './menu-contexto.js';
 import { iniciarCamadas } from './camadas.js';
 import { iniciarAnotacoes } from './anotacoes-tela.js';
 import { iniciarSituacaoUsuario } from './situacao-tela.js';
@@ -730,29 +731,44 @@ if (resultado) {
     // e mesma checagem de turma feita dentro do próprio módulo. `perfil` traz
     // papel (para saber se pode editar/remover qualquer marcação da turma) e
     // partido (metade do par que decide a hostilidade de cada marcação).
+    // Só o app do ALUNO tem isto: é ele que tem GPS próprio rodando. O painel
+    // do instrutor (situacao.js) não passa, e lá a linha "Do meu posto"
+    // simplesmente não aparece.
+    // O posto de observação do aluno é ele mesmo. Quando ainda não há
+    // posição, devolvemos o MOTIVO em vez de nada — foi o relato de campo
+    // "não há mais informações sobre o lançamento", com o código intacto: a
+    // linha sumia sem dizer que estava esperando o GPS.
+    //
+    // 2026-09-19: virou `const` porque passou a ter DOIS consumidores — o
+    // popup da marcação (marcacoes.js) e o menu de toque longo
+    // (menu-contexto.js). É a mesma função nos dois de propósito: duas cópias
+    // seriam duas chances de a visada do menu discordar da visada do popup,
+    // inclusive no motivo mostrado quando não há posição.
+    const postoDeObservacao = () => {
+      const p = minhaPosicao();
+      if (p) return { lat: p.lat, lon: p.lon, rotulo: 'Do meu posto' };
+      return {
+        rotulo: 'Do meu posto',
+        motivo: pode('ver_propria_posicao')
+          ? 'aguardando o GPS fixar a sua posição'
+          : 'sua posição está oculta pelo instrutor',
+      };
+    };
+
     iniciarMarcacoes({
       map,
       userId: session.user.id,
       turmaId: perfil.turma_id,
       perfil,
-      // Só o app do ALUNO passa isto: é ele que tem GPS próprio rodando.
-      // O painel do instrutor (situacao.js) não passa, e lá a linha "Do meu
-      // posto" simplesmente não aparece.
-      // O posto de observação do aluno é ele mesmo. Quando ainda não há
-      // posição, devolvemos o MOTIVO em vez de nada — foi o relato de campo
-      // "não há mais informações sobre o lançamento", com o código intacto: a
-      // linha sumia sem dizer que estava esperando o GPS.
-      obterPostoObservacao: () => {
-        const p = minhaPosicao();
-        if (p) return { lat: p.lat, lon: p.lon, rotulo: 'Do meu posto' };
-        return {
-          rotulo: 'Do meu posto',
-          motivo: pode('ver_propria_posicao')
-            ? 'aguardando o GPS fixar a sua posição'
-            : 'sua posição está oculta pelo instrutor',
-        };
-      },
+      obterPostoObservacao: postoDeObservacao,
     });
+
+    // Toque longo no mapa (2026-09-19): menu com "marcar aqui", a coordenada
+    // do ponto e a visada do posto até ele. O gesto em si é toque-longo.js,
+    // módulo puro e testado em Node; este módulo só desenha o menu. A ordem
+    // importa pouco (o menu não depende do estado de marcacoes.js na
+    // montagem), mas vem depois por ser leitura do que aquele módulo decide.
+    ligarMenuDoMapa({ map, obterPosto: postoDeObservacao });
 
     // Etapa 6a: o instrutor também move o aluno de força pelo painel. Isso
     // muda a hostilidade de TUDO que já está desenhado e o que a RLS deixa

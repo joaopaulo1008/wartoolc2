@@ -36,15 +36,21 @@ import { buscarPartidosDaTurma } from './auth.js';
 import { buscarPaletaDaTurma, assinarPaleta, desassinarPaleta } from './icones-rapidos.js';
 import { ordenarPaleta, modoDoPreset } from './paleta.js';
 import { sidcExigeDesignacao } from './simbolos.js';
+// O gesto saiu daqui para um módulo puro e testável (2026-09-19). Ver o
+// cabeçalho de toque-longo.js: ele nasceu neste arquivo, e a segunda
+// necessidade (o menu de contexto do mapa) foi o gatilho da extração —
+// "extrair na SEGUNDA vez", como catalogo-form.js e basemaps.js.
+import { ligarToqueLongo } from './toque-longo.js';
 
 const TAMANHO_SIMBOLO = 30;
 
-// Toque longo: preenche o formulário com o preset em vez de gravar. 500ms é o
-// intervalo que o próprio navegador usa para o menu de contexto em toque —
-// usar o mesmo número faz o gesto parecer nativo em vez de inventado. Agora
-// ele é muito mais legível que na versão anterior: o resultado aparece na
+// Toque longo: preenche o formulário com o preset em vez de gravar. Ele é
+// muito mais legível que na versão anterior da paleta: o resultado aparece na
 // hora, nos campos logo abaixo, em vez de armar um modo invisível.
-const TOQUE_LONGO_MS = 500;
+//
+// O intervalo (500 ms) e a tolerância de movimento moram em toque-longo.js,
+// que é a fonte única do gesto desde 2026-09-19 — este arquivo não repete
+// nenhum dos dois números.
 
 let presets = [];
 let partidosDaTurma = [];
@@ -234,34 +240,21 @@ function desenhar(container) {
   return true;
 }
 
-// Clique curto escolhe; toque longo escolhe em modo "completo". Implementado à
-// mão com pointer events, sem plugin nem biblioteca de gestos — mesmo espírito
-// de marcacoes.js resolver "tocar no mapa" e de offline-tela.js desenhar um
-// retângulo sem leaflet-draw.
+// Clique curto escolhe; toque longo escolhe em modo "completo".
+//
+// O gesto inteiro — cronômetro, tolerância de movimento, supressão do menu
+// nativo e o clique que vem no rabo do toque longo — está em toque-longo.js.
+// O que era vinte e poucas linhas à mão aqui virou a amarração abaixo, e de
+// quebra este arquivo ganhou a TOLERÂNCIA DE MOVIMENTO que ele não tinha:
+// rolar o formulário com o dedo em cima de um botão disparava o toque longo,
+// que é a suspeita registrada no item 15j do roteiro de campo.
 function ligarGestos(btn, preset, container) {
-  let timer = null;
-  let longo = false;
   const escolher = (completo) => {
     const cb = container.__aoEscolher;
     if (cb) cb(preset, { completo });
   };
-
-  const comecar = () => {
-    longo = false;
-    timer = setTimeout(() => { longo = true; escolher(true); }, TOQUE_LONGO_MS);
-  };
-  const soltar = () => { if (timer) { clearTimeout(timer); timer = null; } };
-
-  btn.addEventListener('pointerdown', comecar);
-  btn.addEventListener('pointerup', soltar);
-  btn.addEventListener('pointerleave', soltar);
-  btn.addEventListener('pointercancel', soltar);
-  // `contextmenu` no celular dispara junto com o toque longo e abriria o menu
-  // do navegador por cima do formulário.
-  btn.addEventListener('contextmenu', (ev) => ev.preventDefault());
-
-  btn.addEventListener('click', () => {
-    if (longo) { longo = false; return; } // já tratado pelo toque longo
-    escolher(false);
+  ligarToqueLongo(btn, {
+    aoDisparar: () => escolher(true),
+    aoClicarCurto: () => escolher(false),
   });
 }

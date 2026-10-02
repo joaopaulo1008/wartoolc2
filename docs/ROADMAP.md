@@ -449,6 +449,74 @@ barreira era a policy de **leitura** e não a de escrita.
   também abrir, e uma vez só, para quem fechou de propósito conseguir manter
   fechado. O cartão "Anotações no mapa" também recolhe, sem essas ressalvas.
 
+### 2026-09-19 — toque longo no mapa (melhoria de UX, fora da numeração)
+
+Primeira de três melhorias de UX discutidas em conjunto (as outras duas:
+bússola e pinch-to-rotate — ver o fim desta seção). **Sem migration, sem chave
+nova em `catalogo_permissoes`, sem dependência nova.**
+
+**O gesto virou módulo.** `frontend/toque-longo.js` — máquina de estado pura
+(cronômetro, tolerância de movimento de 10 px, o clique que vem no rabo do
+toque longo, e a regra que impede a **pinça lenta** de virar toque longo) mais
+uma casca fina que a amarra aos pointer events. Suíte própria,
+`toque-longo.teste.mjs`, 37 casos. O gesto nasceu em `paleta-tela.js` em
+2026-09-14 e saiu de lá quando ganhou o segundo consumidor — "extrair na
+SEGUNDA vez", como `catalogo-form.js` e `basemaps.js`.
+
+**A extração fechou um defeito conhecido.** A versão de `paleta-tela.js` não
+tinha tolerância de movimento: rolar o formulário com o dedo em cima de um
+botão disparava o toque longo. Era metade do item `15j` do roteiro de campo,
+descrito lá como *"o gesto mais frágil da entrega"*. Os dois consumidores
+ganharam a tolerância de uma vez.
+
+**O menu.** `frontend/menu-contexto.js` desenha, no ponto tocado, três linhas:
+"Marcar elemento aqui" (o mesmo que o toque curto — é a saída de quem abriu o
+menu sem querer, e não existe outro modo a oferecer: o formulário do toque
+curto **já** é o completo), a **coordenada** no formato escolhido pela pessoa,
+e a **visada** do posto dela até ali. As duas últimas já vêm lidas na linha e
+copiam ao toque — o que parecia ser "duas telas novas" é uma linha de texto
+cada, porque as contas já existiam (`visada.js`, `preferencias.js`). Não é um
+`L.popup` de propósito: o popup é único por mapa e brigaria com o da marcação.
+
+**`suspenderClique()`/`retomarClique()` viraram contador.** Com booleano, o
+segundo consumidor a soltar desligava a suspensão do primeiro — abrir o menu
+durante um desenho de área offline devolvia o clique para `marcacoes.js` e
+reproduzia o bug de 2026-08-01 por outra porta.
+
+**A guarda de "pode criar marcação aqui" ficou em um lugar só**
+(`avaliarAbertura()` em `marcacoes.js`), consumida pelo toque curto e pelo
+menu. Uma segunda cópia seria a chance de uma delas divergir — e a que
+divergisse seria a que deixa criar depois de o instrutor ter desabilitado.
+
+**O que a bateria pegou e um celular não pegaria.** A primeira versão da
+máquina CONTAVA dedos na tela. Quando o navegador não entrega o `pointerup` (o
+dedo sai durante uma rolagem), o contador travava em 1 e todo toque seguinte
+era lido como "segundo dedo": o gesto morria **para sempre**, em silêncio.
+Passou a guardar o identificador de cada dedo.
+
+**Em aberto, por decisão:** `situacao.js` (aba "Situação atual" do instrutor)
+**não** recebeu o menu nesta entrega — é uma linha, mas o campo exercita o
+aluno primeiro. Ver o bloco **16** do roteiro de teste de campo.
+
+**As outras duas melhorias de UX discutidas junto:**
+
+1. **Bússola** — separada em duas entregas diferentes de propósito: (a) um
+   indicador de **norte de quadrícula**, estático, sem sensor e sem permissão,
+   que é a peça que falta para o item `14c` ser testável sem ambiguidade; e
+   (b) a **bússola do aparelho**, que depende de `DeviceOrientationEvent` (com
+   pedido de permissão no iOS) e entrega norte **magnético** — o que colide
+   com o `qd` que o app mostra e com a pendência da declinação. `(b)` não sai
+   antes de `14c` estar decidido, ou sai com o rótulo da referência explícito.
+   Note que `coords.heading`, que já é gravado como `posicoes.rumo_graus`, **não
+   serve**: é rumo sobre o solo, e vem `NaN` com o observador parado.
+2. **Pinch-to-rotate** — **adiado**, sem medir. O Leaflet 1.9 não tem rotação;
+   os plugins remendam o núcleo, e o custo escondido é tudo que assume "norte
+   para cima": os símbolos APP-6D (que teriam de ser contra-rotacionados),
+   os rótulos de calco e anotações, o retângulo da área offline (que deixa de
+   ser um bounding box em lat/lon), `imagem-geo.js` (cujo ROADMAP já decidiu
+   "sem rotação") e `enquadrar-mapa.js`. Reabrir só depois do teste de campo
+   da bússola, e como **course-up travado**, não rotação livre.
+
 ## A fazer, em ordem
 
 - [ ] **Etapa 2 — Autenticação e papéis** *(em andamento — dividida em 2a e 2b)*
