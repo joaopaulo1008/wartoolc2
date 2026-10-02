@@ -82,6 +82,9 @@ import {
 // telas. Nada de segundo caminho de desenho.
 import { iniciarCamadas, definirTurmaCamadas } from './camadas.js';
 import { iniciarAnotacoes, definirTurmaAnotacoes } from './anotacoes-tela.js';
+// Baixar as marcações da turma como KMZ (2026-10-02). Não depende do mapa: lê do
+// banco no clique.
+import { iniciarExportacaoKmz } from './exportar-kmz-tela.js';
 import {
   iniciarSituacaoUsuario, definirTurmaSituacaoUsuario, linhaSituacaoDe, observarSituacoes,
 } from './situacao-tela.js';
@@ -756,6 +759,7 @@ export function iniciarSituacao({ userId, perfil, aoPedirRastro: callback } = {}
   minhaTurmaId = perfil?.turma_id || null;
   aoPedirRastro = callback || null;
 
+  iniciarExportacaoKmz({ obterTurma: () => turmaAtual });
   window.addEventListener('beforeunload', pararTudo);
 }
 

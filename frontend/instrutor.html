@@ -487,6 +487,17 @@
         <div id="situacao-mapa"></div>
         <div style="display:flex; gap:16px; padding:4px 12px; font-size:11px; color:#7a9ab8;">
           <span id="marcacoes-status"></span>
+          <!-- Exportação do KMZ (exportar-kmz-tela.js). Só existe nesta página,
+               que só o instrutor abre. -->
+          <span style="margin-left:auto; display:flex; gap:6px; align-items:center;">
+            <span id="exportar-kmz-status"></span>
+            <select id="exportar-kmz-formato"
+                    title="O Google Earth não desenha SVG como ícone; o SVG é para o QGIS.">
+              <option value="png">Ícones PNG (Google Earth)</option>
+              <option value="svg">Ícones SVG (QGIS)</option>
+            </select>
+            <button type="button" id="exportar-kmz-botao" class="btn-mini">Baixar KMZ das marcações</button>
+          </span>
           <!-- Etapa 7: escrito por frontend/camadas.js, mesmo elemento que
                existe na topbar de index.html. -->
           <span id="camadas-status"></span>
