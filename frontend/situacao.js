@@ -68,6 +68,11 @@ import * as L from 'leaflet';
 import { supabase, traduzirErro, buscarUsuariosDaTurma } from './auth.js';
 import { criarIconeSimbolo, definirEtiquetaIdade } from './icones.js';
 import { iniciarMarcacoes, pararMarcacoes } from './marcacoes.js';
+// Menu de toque longo (2026-10-02). Entrou AQUI porque o toque curto deixou
+// de criar marcação (ver o comentário de `ativarCliqueNoMapa` em
+// marcacoes.js): sem este menu, o instrutor ficaria sem nenhum caminho para
+// marcar nesta aba. Não é escopo extra, é a consequência daquela mudança.
+import { ligarMenuDoMapa } from './menu-contexto.js';
 // Paleta de marcação rápida (2026-09-14). Desde que ela passou a morar DENTRO
 // do formulário de marcacoes.js, esta aba ganha os mesmos atalhos de graça —
 // só precisa carregar os presets da turma. É o mesmo tipo de reuso que a 6c já
@@ -216,6 +221,13 @@ function garantirMapa() {
   preencherSeletorBasemap(el('situacao-basemap'));
   basemapAtual = trocarBasemap(map, basemaps, BASEMAP_PADRAO, null);
   camadaPosicoes = L.layerGroup().addTo(map);
+
+  // Sem `obterPosto`, de propósito: o instrutor não tem posto de observação
+  // próprio, e a linha de visada do menu simplesmente não aparece. É a mesma
+  // regra do popup da marcação — ali ela não faltou, ela não se aplica. (O
+  // vetor que ESTA aba mostra é o do posto de quem MARCOU, por marcação, e
+  // continua vindo por `obterPostoObservacao` em iniciarMarcacoesDaTurma.)
+  ligarMenuDoMapa({ map });
 
   const seletor = el('situacao-basemap');
   if (seletor) {

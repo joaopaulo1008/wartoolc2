@@ -414,12 +414,14 @@ novo (SQL Editor, ou `backend/scripts/aplicar_migrations.sh`), é idempotente.
 - [ ] 15g. A turma já existente ganhou a paleta padrão de 8 botões (o backfill
   da 0010 semeia turmas antigas). Confira que os símbolos desenhados nos botões
   são os esperados — CC, VBTP, Inf, Inf Mec, Rec, Art Cmp, Mrt, Vtr.
-- [ ] 15h. **Modo rápido**: toque no mapa. O formulário abre com a fileira de
-  botões NO TOPO, acima de "Categoria". Toque em "CC": grava e fecha, sem mais
-  nada. O símbolo no mapa é o mesmo do botão.
-- [ ] 15i. **Modo perguntar**: toque no mapa e depois em "Vtr" (nasce sem
-  força). O formulário NÃO fecha: ele se preenche com o símbolo e o foco vai
-  para "Partido do elemento observado". Escolha e salve.
+- [ ] 15h. **Modo rápido**: ~~toque no mapa~~ **toque LONGO no mapa → "Marcar
+  elemento aqui"** (mudou em 2026-10-02, ver o bloco 18). O formulário abre com
+  a fileira de botões NO TOPO, acima de "Categoria". Toque em "CC": grava e
+  fecha, sem mais nada. O símbolo no mapa é o mesmo do botão.
+- [ ] 15i. **Modo perguntar**: abra o formulário (toque longo → "Marcar
+  elemento aqui") e depois toque em "Vtr" (nasce sem força). O formulário NÃO
+  fecha: ele se preenche com o símbolo e o foco vai para "Partido do elemento
+  observado". Escolha e salve.
 - [ ] 15j. **Toque longo** (~0,5s) num botão: preenche o formulário sem gravar,
   e dá para pôr escalão e designação antes de salvar. **Era o gesto mais frágil
   da entrega** — se num celular específico não disparar (ou disparar sozinho ao
@@ -433,8 +435,9 @@ novo (SQL Editor, ou `backend/scripts/aplicar_migrations.sh`), é idempotente.
   aparece (só na criação).
 - [ ] 15l. Desenhar área offline continua funcionando sem abrir marcação (o bug
   de 2026-08-01 não voltou).
-- [ ] 15l2. Na aba "Situação atual" do instrutor, tocar no mapa também abre o
-  formulário com a fileira.
+- [ ] 15l2. Na aba "Situação atual" do instrutor, o **toque longo** também
+  abre o menu, e dele o formulário com a fileira (mudou em 2026-10-02 — ver o
+  bloco 18; antes era o toque curto).
 - [ ] 15m. Instrutor: acrescente um preset pela aba "Marcação rápida" com o
   aluno com o app aberto. O botão **aparece no aparelho dele na hora**, sem F5.
   Remova um: some na hora.
@@ -890,6 +893,13 @@ e o próximo exercício é em Rosário do Sul, que é **21J**.
   cálculo não substitui.
 - [ ] 17i. **Grade geográfica**: linhas retas, rótulos em grau e minuto com a
   letra do hemisfério (`25°30'S`).
+- [ ] 17i2. **Os números aparecem nas QUATRO margens** — cima, baixo, esquerda
+  e direita (2026-10-02), e em corpo 50% maior que o original. Confira a
+  legibilidade **com sol na tela**, que é o caso que motivou o aumento.
+- [ ] 17i3. Alguns rótulos faltam de propósito onde cairiam atrás do controle
+  de zoom (canto superior esquerdo) ou da legenda e da atribuição do Leaflet
+  (canto inferior direito). A mesma linha sempre tem rótulo na margem oposta —
+  confira que nenhuma linha ficou sem nenhum número.
 - [ ] 17j. **A grade fica ABAIXO do calco.** Publique um calco com polígono
   preenchido: a grade some embaixo dele. É o comportamento certo (a carta
   está sob a situação tática), mas confirme que é o que você espera.
@@ -911,5 +921,35 @@ e o próximo exercício é em Rosário do Sul, que é **21J**.
 - [ ] 17q. Aparelho com tela de toque **e** mouse (notebook conversível): a
   detecção é por `(hover: hover) and (pointer: fine)`. Qual dos dois
   comportamentos ele escolheu, e foi o certo?
+
+## 18. O toque curto deixou de criar marcação (2026-10-02)
+
+Pedido de quem usa: *"quando a pessoa toca na tela por acidente, para mostrar
+alguma coisa ou pra arrastar o mapa, que o menu não abra"*. Criar marcação
+passou a ser **só pelo menu do toque longo**. É a convenção do Google Maps e
+do ATAK — toque curto inspeciona, toque longo age.
+
+**Isso muda os itens `15h`, `15i` e `15l2` acima**, e obrigou ligar o menu na
+aba do instrutor, que marcava pelo mesmo clique.
+
+- [ ] 18a. **Toque curto num ponto vazio do mapa: NADA acontece.** Nenhum
+  formulário, nenhum marcador fantasma. É o item inteiro desta entrega.
+- [ ] 18b. Aponte algo na tela para outra pessoa, com o dedo encostando no
+  mapa. Arraste o mapa várias vezes. **Em nenhum momento abre formulário.**
+- [ ] 18c. Toque longo → "Marcar elemento aqui" → o formulário abre, com a
+  fileira de presets no topo, como sempre.
+- [ ] 18d. **Na aba "Situação atual" do instrutor**: o toque longo abre o menu
+  e dá para marcar. **Se isto falhar, o instrutor ficou sem como marcar** — é
+  a consequência direta desta entrega e o item a conferir primeiro.
+- [ ] 18e. No menu do instrutor, a linha **"Do meu posto até aqui" não
+  aparece** (ele não tem posto próprio). A coordenada aparece normalmente.
+- [ ] 18f. Com `criar_marcacao_inimiga` desligada, a linha "Marcar elemento
+  aqui" aparece esmaecida **com o motivo escrito** — e agora não há segundo
+  caminho que contorne isso.
+- [ ] 18g. Desenhar área offline continua funcionando, e durante o desenho o
+  toque longo **não** abre o menu.
+- [ ] 18h. **A pergunta que só o campo responde:** marcar ficou mais lento a
+  ponto de atrapalhar? O ganho é não marcar sem querer; o custo é meio segundo
+  a mais por marcação. Se o custo não compensar, dá para voltar.
 
 Qualquer item marcado como falha vira a prioridade do próximo chat — cole este checklist preenchido para retomar com contexto completo.

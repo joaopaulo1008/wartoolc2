@@ -1170,27 +1170,50 @@ async function removerMarcacao(id) {
 // clique, em vez de ser ligado/desligado a cada mudança: assim não há risco
 // de sobrar um listener duplicado depois de o instrutor alternar a chave
 // várias vezes durante o exercício.
-function ativarCliqueNoMapa(map) {
-  cliqueHandler = (ev) => {
-    if (cliqueEstaSuspenso()) return; // outra interação de clique está ativa no mesmo mapa (ex.: desenhar área offline)
-    const r = avaliarAbertura();
-    if (!r.permitido) {
-      if (r.motivo) status(r.motivo, '#f5c842');
-      return;
-    }
-    abrirFormulario(ev.latlng);
-  };
-  map.on('click', cliqueHandler);
+// ── O TOQUE CURTO DEIXOU DE CRIAR MARCAÇÃO (2026-10-02) ───────────────────
+//
+// Esta função registrava `map.on('click', ...)`: um toque no mapa abria o
+// formulário de marcação. Não registra mais nada, e é de propósito.
+//
+// POR QUÊ. O relato de quem usa: *"quando a pessoa toca na tela por acidente,
+// para mostrar alguma coisa ou pra arrastar o mapa, o menu não pode abrir"*.
+// Apontar para a tela e começar um arrasto são gestos que acontecem o tempo
+// todo num exercício, e os dois terminavam num formulário aberto. Não é
+// incômodo de interface: é o aluno gravando elemento inimigo sem querer, e
+// depois tendo que achar e remover a marcação fantasma.
+//
+// Criar marcação passou a ser SÓ pelo menu do toque longo ("Marcar elemento
+// aqui"). É a convenção do Google Maps e do ATAK — toque curto inspeciona,
+// toque longo age — e o toque longo tem tolerância de movimento e morre na
+// pinça (ver `toque-longo.js`), ou seja, ele é justamente o gesto que NÃO
+// dispara por acidente.
+//
+// O QUE ISSO OBRIGOU: `situacao.js` (aba "Situação atual" do instrutor)
+// marcava pelo mesmo `map.on('click')`. Sem o menu ligado lá, o instrutor
+// ficaria sem nenhum caminho para marcar — então o menu foi ligado naquela
+// tela no mesmo commit. Não é escopo extra; é a consequência.
+//
+// O que NÃO saiu: `suspenderClique()`/`retomarClique()`/`cliqueEstaSuspenso()`.
+// Elas continuam valendo, agora para o MENU — `menu-contexto.js` consulta a
+// suspensão para não abrir no meio de um desenho de área offline.
+//
+// `cliqueHandler` continua declarado e `null`: `pararMarcacoes()` ainda o
+// consulta, e deixar a variável evita um segundo lugar para lembrar de mexer
+// se um dia o clique voltar.
+function ativarCliqueNoMapa() {
+  cliqueHandler = null;
 }
 
 // A porta de entrada de "criar marcação NESTE ponto", em um lugar só.
 //
-// Existem dois caminhos até ela desde 2026-09-19 — o toque curto no mapa e a
-// entrada "Marcar elemento aqui" do menu de toque longo — e a regra do projeto
-// é FONTE ÚNICA: uma segunda cópia destas guardas é como uma delas acabaria
-// divergindo da outra, e a que divergisse seria a que deixa criar quando o
-// instrutor já desabilitou. Devolve o motivo em vez de escrevê-lo na linha de
-// status porque os dois caminhos mostram a recusa em lugares diferentes.
+// Desde 2026-10-02 há UM caminho só até ela — a entrada "Marcar elemento
+// aqui" do menu de toque longo —, mas ela continua separada de quem a chama,
+// e por duas razões: `podeMarcarAqui()` precisa do veredito ANTES de abrir o
+// menu (para desenhar a linha esmaecida com o motivo), e `abrirMarcacaoEm()`
+// precisa dele de novo na hora de abrir, porque o instrutor pode ter
+// desligado a permissão no intervalo entre o menu aparecer e o dedo tocar.
+// Devolve o motivo em vez de escrevê-lo na linha de status porque os dois
+// consumidores mostram a recusa em lugares diferentes.
 //
 // Note o que NÃO está aqui: `cliqueEstaSuspenso()`. Ele é sobre a AMBIGUIDADE
 // de um toque no mapa (qual dos módulos ele era?), e uma escolha explícita num
@@ -1223,9 +1246,13 @@ export function podeMarcarAqui() {
 //
 // Ele abre o formulário COMPLETO, que é o único que existe: a fileira de
 // presets fica no topo dele e o catálogo inteiro logo abaixo (ver o cabeçalho
-// de paleta-tela.js). Ou seja, esta função faz o mesmo que um toque curto no
-// mapa — de propósito. No menu de toque longo ela é a saída de quem abriu o
-// menu sem querer, não uma segunda forma de marcar.
+// de paleta-tela.js).
+//
+// Desde 2026-10-02 esta função é o ÚNICO caminho para criar marcação: o toque
+// curto no mapa deixou de abrir o formulário (ver o comentário de
+// `ativarCliqueNoMapa` mais abaixo). Ela deixou de ser um atalho e passou a
+// ser a porta — então nenhuma guarda pode sair daqui achando que "o toque
+// curto também checa".
 export function abrirMarcacaoEm(latlng) {
   const r = avaliarAbertura();
   if (!r.permitido) {
@@ -1314,7 +1341,7 @@ export async function iniciarMarcacoes({
 
   await carregarEstadoInicial(turmaId, ctx);
   assinarCanal(turmaId, ctx);
-  ativarCliqueNoMapa(map);
+  ativarCliqueNoMapa();
 
   window.addEventListener('beforeunload', () => {
     if (canalAtual) supabase.removeChannel(canalAtual);

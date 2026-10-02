@@ -17,13 +17,17 @@
 // cada, porque as contas já existiam (`visada.js` desde 2026-08-02,
 // `preferencias.js` desde a 9b).
 //
-// ── Por que a primeira entrada é um sinônimo do toque curto ───────────────
-// Não é redundância por descuido: é a SAÍDA de quem abriu o menu sem querer.
-// O toque longo é um gesto que se dispara sozinho às vezes (foi a suspeita do
-// item 15j), e um menu sem o caminho normal obrigaria a pessoa a fechá-lo e
-// tocar de novo — no meio de um exercício, com luva. Não existe "modo
-// completo" a oferecer aqui: o formulário do toque curto JÁ é o completo, com
-// a fileira de presets no topo e o catálogo inteiro embaixo.
+// ── "Marcar elemento aqui" é o ÚNICO caminho desde 2026-10-02 ────────────
+// Nasceu como sinônimo do toque curto, servindo de saída para quem abrisse o
+// menu sem querer. Deixou de ser sinônimo: **o toque curto não cria mais
+// marcação** (ver o comentário de `ativarCliqueNoMapa` em marcacoes.js), a
+// pedido de quem usa — tocar na tela para apontar algo, ou para começar um
+// arrasto, abria formulário sozinho.
+//
+// Então esta entrada passou de conveniência a porta principal, e isso é o que
+// simplifica a explicação em vez de complicar: toque curto inspeciona, toque
+// longo age. O formulário que ela abre é o completo — fileira de presets no
+// topo, catálogo inteiro embaixo —, porque nunca houve outro.
 //
 // ── Por que não é um L.popup ──────────────────────────────────────────────
 // Seria o caminho óbvio, e está errado por dois motivos: o popup do Leaflet é

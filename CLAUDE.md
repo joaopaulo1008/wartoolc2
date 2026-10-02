@@ -245,6 +245,14 @@ empurrado" até 2026-09-19). Duas coisas distintas:
    que este arquivo descreve no topo como se já estivesse no repositório. Um
    `git clone` **não** traz nada disso.
 
+**O toque curto deixou de criar marcação (2026-10-02).** Tocar na tela para
+apontar algo, ou para começar um arrasto, abria formulário sozinho. Criar
+marcação é só pelo menu do toque longo agora — o gesto que não dispara por
+acidente. **Obrigou ligar o menu em `situacao.js`**, senão o instrutor fica sem
+como marcar; feito no mesmo commit. `suspenderClique()` e companhia continuam,
+agora servindo ao menu. Ver o bloco 18 do roteiro de campo. **Reversível:** se
+em campo o meio segundo a mais por marcação não compensar, volta.
+
 **Grade de quadrículas e barra de coordenada (2026-10-02), sem migration e
 sem chave de permissão nova.** `coordenadas.js` ganhou o **UTM INVERSO**
 (`deUtm`, Snyder §8, erro de 5e-10 grau contra o PROJ) e a **zona forçada** em

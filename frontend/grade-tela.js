@@ -55,14 +55,21 @@ function injetarEstilos() {
   estilosInjetados = true;
   const s = document.createElement('style');
   s.textContent = `
+    /* 15px, e não 10: pedido de quem usa, "50% maiores". Em campo, com sol
+       na tela e o aparelho a meio braço de distância, 10px era legível só
+       parado. */
     .${CLASSE_ROTULO} {
       position: absolute; z-index: 420; pointer-events: none;
-      font-size: 10px; font-weight: 600; font-variant-numeric: tabular-nums;
-      color: #0d1b2a; background: rgba(255,255,255,.82);
-      padding: 0 3px; border-radius: 2px; line-height: 1.5;
-      transform: translate(-50%, 0);
+      font-size: 15px; font-weight: 600; font-variant-numeric: tabular-nums;
+      color: #0d1b2a; background: rgba(255,255,255,.85);
+      padding: 1px 4px; border-radius: 3px; line-height: 1.35;
     }
-    .${CLASSE_ROTULO}.grd-lat { transform: translate(0, -50%); }
+    /* Uma âncora por margem. O rótulo encosta NA BORDA e cresce para dentro,
+       nunca para fora — senão metade dele fica cortada. */
+    .${CLASSE_ROTULO}.grd-cima  { transform: translate(-50%, 0); }
+    .${CLASSE_ROTULO}.grd-baixo { transform: translate(-50%, -100%); }
+    .${CLASSE_ROTULO}.grd-esq   { transform: translate(0, -50%); }
+    .${CLASSE_ROTULO}.grd-dir   { transform: translate(-100%, -50%); }
     .${CLASSE_LEGENDA} {
       position: absolute; z-index: 420; pointer-events: none;
       /* 20px, e não 8: a atribuição do Leaflet mora no canto inferior
@@ -104,9 +111,9 @@ export function ligarGrade({ map } = {}) {
     caixaRotulos.textContent = '';
   }
 
-  function rotulo(texto, x, y, classeExtra) {
+  function rotulo(texto, x, y, margem) {
     const d = document.createElement('div');
-    d.className = CLASSE_ROTULO + (classeExtra ? ` ${classeExtra}` : '');
+    d.className = `${CLASSE_ROTULO} grd-${margem}`;
     d.textContent = texto;
     d.style.left = `${Math.round(x)}px`;
     d.style.top = `${Math.round(y)}px`;
@@ -127,46 +134,21 @@ export function ligarGrade({ map } = {}) {
 
     const largura = container.clientWidth;
     const altura = container.clientHeight;
-    const MARGEM = 2;
+    const MARGEM = 3;
     // Medidos do controle de zoom padrão do Leaflet (10px de topo + ~58px de
     // altura dos dois botões, mais folga).
     const ALTURA_CONTROLE_ZOOM = 78;
-    const X_DESVIO_ZOOM = 46;
+    const LARGURA_CONTROLE_ZOOM = 46;
+    // A atribuição do Leaflet mora no canto inferior direito e não é nossa
+    // para mover.
+    const LARGURA_ATRIBUICAO = 130;
 
-    for (const linha of g.linhas) {
-      camada.addLayer(L.polyline(linha.pontos, ESTILO_LINHA));
-      if (!linha.rotulo) continue;
-
-      // Onde a linha encosta na margem. As linhas vêm de grade.js ordenadas:
-      // as de este/longitude do sul para o norte, as de norte/latitude do
-      // oeste para o leste. Então o último vértice de uma e o primeiro da
-      // outra são exatamente os pontos de margem — nada de procurar.
-      const vertical = linha.eixo === 'E' || linha.eixo === 'lon';
-      const [lat, lon] = vertical
-        ? linha.pontos[linha.pontos.length - 1]
-        : linha.pontos[0];
-      const p = map.latLngToContainerPoint(L.latLng(lat, lon));
-
-      if (vertical) {
-        // Rótulo na margem de CIMA. Fora da tela não se desenha: um rótulo
-        // grudado na borda, de uma linha que não está ali, é pior que nenhum.
-        if (p.x < -20 || p.x > largura + 20) continue;
-        rotulo(linha.rotulo, Math.max(12, Math.min(largura - 12, p.x)), MARGEM);
-      } else {
-        if (p.y < -20 || p.y > altura + 20) continue;
-        // O controle de zoom do Leaflet ocupa o canto superior esquerdo. Um
-        // rótulo de norte que caia ali fica ATRÁS dos botões — some sem
-        // explicação, que é o defeito que este projeto evita em toda parte.
-        // Então ele se afasta para a direita dos botões em vez de sumir.
-        const y = Math.max(8, Math.min(altura - 8, p.y));
-        rotulo(linha.rotulo, y < ALTURA_CONTROLE_ZOOM ? X_DESVIO_ZOOM : MARGEM, y, 'grd-lat');
-      }
-    }
-
-    // ── A legenda do canto ────────────────────────────────────────────────
-    // Os dois dígitos do rótulo não localizam nada sozinhos: "84" repete a
-    // cada 100 km. Quem localiza é zona + banda + o passo em vigor, e é isso
-    // que a legenda carrega — como a margem de uma carta carrega.
+    // ── A legenda vem ANTES dos rótulos, de propósito ────────────────────
+    // Ela precisa estar no DOM e medida para os rótulos das margens de baixo
+    // e da direita saberem de que espaço desviar. Desenhar os rótulos
+    // primeiro e a legenda por cima deixaria números ilegíveis embaixo dela —
+    // e um número de quadrícula ilegível é pior que ausente, porque quem lê
+    // adivinha em vez de procurar.
     const leg = document.createElement('div');
     leg.className = CLASSE_LEGENDA;
     if (g.modo === 'utm') {
@@ -184,6 +166,59 @@ export function ligarGrade({ map } = {}) {
       leg.innerHTML = `Grade geográfica <b>${g.rotuloPasso}</b>`;
     }
     caixaRotulos.appendChild(leg);
+    const legLargura = leg.offsetWidth + 16;
+    const legAltura = leg.offsetHeight + 28;   // 20px de `bottom` + folga
+
+    for (const linha of g.linhas) {
+      camada.addLayer(L.polyline(linha.pontos, ESTILO_LINHA));
+      if (!linha.rotulo) continue;
+
+      // Onde a linha encosta em cada margem. As linhas vêm de grade.js
+      // ordenadas: as de este/longitude do sul para o norte, as de
+      // norte/latitude do oeste para o leste. Então o primeiro e o último
+      // vértice JÁ SÃO os dois pontos de margem — nada de procurar.
+      const vertical = linha.eixo === 'E' || linha.eixo === 'lon';
+      const primeiro = map.latLngToContainerPoint(L.latLng(...linha.pontos[0]));
+      const ultimo = map.latLngToContainerPoint(
+        L.latLng(...linha.pontos[linha.pontos.length - 1]));
+
+      if (vertical) {
+        // `ultimo` é o vértice ao NORTE (margem de cima), `primeiro` ao sul.
+        // Eles não têm o mesmo x: a linha de este é inclinada pela
+        // convergência meridiana, e é justamente por isso que cada margem usa
+        // o seu próprio ponto em vez de um x só para as duas.
+        const xCima = ultimo.x, xBaixo = primeiro.x;
+
+        // CIMA — pula sob o controle de zoom, que fica por cima do rótulo.
+        // Pular, e não desviar: agora a mesma linha tem rótulo embaixo também,
+        // então não se perde a informação.
+        if (xCima > -20 && xCima < largura + 20 && xCima > LARGURA_CONTROLE_ZOOM) {
+          rotulo(linha.rotulo, Math.max(14, Math.min(largura - 14, xCima)), MARGEM, 'cima');
+        }
+        // BAIXO — pula a faixa da legenda e da atribuição do Leaflet.
+        if (xBaixo > -20 && xBaixo < largura + 20 &&
+            xBaixo < largura - Math.max(legLargura, LARGURA_ATRIBUICAO)) {
+          rotulo(linha.rotulo, Math.max(14, Math.min(largura - 14, xBaixo)), altura - MARGEM, 'baixo');
+        }
+      } else {
+        // `primeiro` é o vértice a OESTE (margem esquerda), `ultimo` a leste.
+        const yEsq = primeiro.y, yDir = ultimo.y;
+
+        // ESQUERDA — pula o controle de zoom.
+        if (yEsq > -20 && yEsq < altura + 20 && yEsq > ALTURA_CONTROLE_ZOOM) {
+          rotulo(linha.rotulo, MARGEM, Math.max(12, Math.min(altura - 12, yEsq)), 'esq');
+        }
+        // DIREITA — pula a faixa da legenda.
+        if (yDir > -20 && yDir < altura + 20 && yDir < altura - legAltura) {
+          rotulo(linha.rotulo, largura - MARGEM, Math.max(12, Math.min(altura - 12, yDir)), 'dir');
+        }
+      }
+    }
+
+    // A legenda já foi montada e medida lá em cima, antes dos rótulos — os
+    // dois dígitos do rótulo não localizam nada sozinhos ("84" repete a cada
+    // 100 km), e quem localiza é zona + banda + passo, como a margem de uma
+    // carta de papel.
   }
 
   const aoMudarVista = () => desenhar();

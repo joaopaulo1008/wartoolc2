@@ -589,6 +589,43 @@ cruzando o fuso 21/22). SQL não rodado de novo — a entrega não toca em SQL.
 **Em aberto, por decisão:** `situacao.js` (aba do instrutor) não recebeu nem a
 grade nem a barra. Ver o bloco **17** do roteiro de teste de campo.
 
+### 2026-10-02 (b) — o toque curto deixou de criar marcação, e a grade nas quatro margens
+
+**O toque curto não abre mais o formulário.** Pedido de quem usa: tocar na
+tela para apontar algo, ou para começar um arrasto, abria formulário de
+marcação sozinho — e o custo não era incômodo de interface, era o aluno
+gravando elemento inimigo sem querer e depois tendo que achar e remover a
+marcação fantasma. Criar marcação passou a ser só pelo menu do toque longo,
+que é justamente o gesto que NÃO dispara por acidente (tolerância de
+movimento, e morre na pinça — ver `toque-longo.js`). Convenção do Google Maps
+e do ATAK: toque curto inspeciona, toque longo age.
+
+**Isso obrigou ligar o menu em `situacao.js`** (aba "Situação atual" do
+instrutor), que marcava pelo mesmo `map.on('click')`. Sem isso o instrutor
+ficaria sem nenhum caminho para marcar. Não é escopo extra; é a consequência,
+e foi feita no mesmo commit. Lá o menu vai **sem** `obterPosto`: o instrutor
+não tem posto próprio, e a linha de visada simplesmente não aparece.
+
+O que NÃO saiu: `suspenderClique()`/`retomarClique()`/`cliqueEstaSuspenso()`.
+Continuam valendo, agora para o MENU — ele não abre no meio de um desenho de
+área offline.
+
+**Rótulos da grade nas quatro margens, 50% maiores.** Eram só cima e esquerda,
+em 10px; passaram a cima, baixo, esquerda e direita, em 15px. Dois detalhes
+que vieram junto:
+
+- Cada margem usa **o seu próprio vértice**, não um x para as duas: a linha de
+  este é inclinada pela convergência meridiana, e o ponto onde ela encosta em
+  cima não tem o mesmo x de onde encosta embaixo.
+- A legenda passou a ser montada e **medida antes** dos rótulos, para os das
+  margens de baixo e da direita saberem de que espaço desviar. Rótulo pulado é
+  melhor que rótulo ilegível: um número de quadrícula meio tapado faz quem lê
+  adivinhar em vez de procurar, e a mesma linha sempre tem o número na margem
+  oposta.
+
+Roteiro de campo: bloco **18** novo (8 itens), e os itens `15h`, `15i` e
+`15l2` mudaram de significado.
+
 ## A fazer, em ordem
 
 - [ ] **Etapa 2 — Autenticação e papéis** *(em andamento — dividida em 2a e 2b)*
