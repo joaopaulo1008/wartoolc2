@@ -692,6 +692,56 @@ Verificado em Chromium real com os `<select>`: a grade liga e desliga, a nota
 aparece, e as duas barras (a padrão e a de `alvo` próprio) escrevem e
 acompanham a troca de formato ao vivo.
 
+### 2026-10-03 (c) — exportar as marcações da turma em KMZ
+
+O instrutor pode **baixar as marcações como KMZ**: botão na aba "Situação
+atual", com ícone **PNG** (Google Earth) ou **SVG** (QGIS). O arquivo traz uma
+pasta por força, subpasta por categoria de símbolo, os símbolos militares como
+ícone, uma descrição em cada ponto (símbolo em português, força, coordenadas,
+altitude, frente × profundidade, autor, datas) e as anotações do instrutor.
+**Cor fixa**: azul amigo, vermelho hostil, verde neutro, amarelo sem força.
+
+Sem migration, sem chave de permissão, sem dependência nova. Três módulos no
+trio do projeto: `exportar-kmz.js` (KML, puro), `zip-simples.js` (zip sem
+compressão, puro) e `exportar-kmz-tela.js` (banco, canvas, download).
+
+**Medido:** 29 casos (`exportar-kmz.teste.mjs`), com o zip aberto por um
+descompactador real e o KML por um parser XML real. **Não testado:** o desenho
+no QGIS, o PNG por `canvas` e o download no navegador — bloco **21** do roteiro
+de teste de campo. Por que cada decisão ficou assim: seção **35** do histórico.
+
+**Fora, por decisão:** pedidos de apoio e situações (estado volátil).
+
+### 2026-10-03 (c) — o rodapé no celular: `100vh` virou `100dvh`
+
+Defeito encontrado em uso real. Relato: *"não está aparecendo a coordenada do
+ponto, apenas um 22J da área"*. O `22J` era a legenda da grade, dentro do mapa;
+**o rodapé inteiro estava fora da tela** no celular.
+
+`body { height: 100vh }` nas duas páginas. Em navegador de celular `100vh` é a
+altura com a barra de endereço RECOLHIDA — maior que a área visível. Body em
+coluna flex, rodapé como último filho: ele caía abaixo da dobra, sem scroll e
+sem sinal de que existia.
+
+**O carimbo de build mora no mesmo rodapé**, e existe para alguém em campo
+dizer, pelo telefone, qual versão está na mão. Nunca funcionou no celular — e
+três correções já tinham sido relatadas como "continua igual" por causa de
+cache, com o diagnóstico invisível para quem mais precisava dele. A coordenada
+foi o sintoma que revelou isso; não era o problema maior.
+
+Conserto: `height:100vh` seguido de `height:100dvh`. Duas linhas de propósito —
+quem não conhece `dvh` ignora a segunda e fica com o comportamento anterior.
+
+**O que o teste prova e o que não prova:** medido no Chromium a 390, 360 e 1280
+px, o rodapé fica dentro da tela e a página não rola. Mas em navegador de mesa
+`100vh` e `100dvh` dão o mesmo valor — então isso prova que a correção **não
+quebra nada**, e não que ela conserta. Quem prova é o aparelho. Bloco 21 do
+roteiro.
+
+**Se algum aparelho não conhecer `dvh`**, a saída registrada é tirar a
+coordenada do rodapé e pô-la dentro do mapa, como a legenda da grade — onde ela
+não depende da barra do navegador.
+
 ## A fazer, em ordem
 
 - [ ] **Etapa 2 — Autenticação e papéis** *(em andamento — dividida em 2a e 2b)*
@@ -834,6 +884,8 @@ acompanham a troca de formato ao vivo.
 
   - Provavelmente geração no NAVEGADOR (sem backend novo), reaproveitando `fn_rastro_historico` (0005) e as consultas que `debriefing.js`/instrutor-permissoes.js já fazem — é montar o documento a partir de dado que já chega ao cliente, não uma nova fonte de dado.
   - Mais rico se a Etapa 15 (log) já existir, mas o relatório básico (rastro + marcações) não depende dela.
+
+  - **Parte já feita em 2026-10-03:** o KMZ das marcações e anotações (ver a seção "Feito"). Continua em aberto o resto do relatório: participantes, distância percorrida, timeline.
 
   Complexidade: média. Modelo sugerido: intermediário.
 

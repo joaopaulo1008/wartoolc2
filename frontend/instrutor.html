@@ -27,7 +27,30 @@
   body {
     font-family:'Segoe UI',Arial,sans-serif;
     background:#151A10; color:#e8eaf0;
-    height:100vh; display:flex; flex-direction:column;
+    /* ── A ALTURA, e por que são duas linhas (2026-10-03) ─────────────
+       `100vh` em navegador de celular NÃO é a altura visível: é a altura
+       com a barra de endereço RECOLHIDA, que é maior que a área que a
+       pessoa enxerga. Como o body é uma coluna flex e o #footer é o último
+       filho, ele ficava ABAIXO DA DOBRA — invisível no celular, sem
+       scroll, sem nada indicando que existia.
+
+       Relatado assim: "não está aparecendo a coordenada do ponto, apenas um
+       22J da área" — o 22J era a legenda da grade, dentro do mapa; o rodapé
+       inteiro estava fora da tela.
+
+       O estrago maior não era a coordenada: **o carimbo de build mora
+       aqui**. Ele existe para alguém em campo, pelo celular, dizer qual
+       versão está na mão (ver versao.js) — e nunca funcionou nesse aparelho.
+       Três correções já foram relatadas como "continua igual" por causa de
+       cache; a ferramenta de diagnosticar isso estava invisível justamente
+       em quem mais precisa dela.
+
+       `dvh` é a altura visível DINÂMICA, que acompanha a barra do navegador.
+       As duas linhas são de propósito: quem não conhece `dvh` ignora a
+       segunda e fica com o comportamento de antes. */
+    height:100vh;
+    height:100dvh;
+    display:flex; flex-direction:column;
   }
 
   #topbar {

@@ -1012,4 +1012,93 @@ controles que não tinha; o debriefing usa a escolha feita ali.
   esquerda nem cortados pela borda — a coluna fica ao lado do mapa, não por
   cima, mas confirme com o painel no tamanho real.
 
+## 21. Exportar as marcações em KMZ (2026-10-03)
+
+O instrutor baixa as marcações e anotações da turma. **Nada aqui foi visto num
+navegador ainda**: o que foi medido é o arquivo (XML, zip, SVG). O desenho em
+PNG por `canvas`, o download e o QGIS dependem deste bloco.
+
+**Preparo:** uma turma com marcações das **duas forças**, pelo menos uma
+marcação do próprio instrutor (sem força), uma **anotação** com cor, e um
+título com `<`, `&` e acento (por exemplo `1º Pel <Alfa> & cia`).
+
+- [ ] 21a. Painel → aba **"Situação atual"**, faixa abaixo do mapa: existem o
+  seletor **"Ícones PNG (Google Earth) / Ícones SVG (QGIS)"** e o botão
+  **"Baixar KMZ das marcações"**. No app do **aluno** não existem.
+- [ ] 21b. Com **PNG**, clicar: o navegador baixa
+  `wartoolc2-marcacoes-<turma>-AAAAMMDD-HHMM.kmz`. A mensagem ao lado diz
+  quantas marcações e anotações saíram. **Falha:** nada baixa, ou a mensagem
+  fica em "desenhando PNG…" (o `canvas` não gerou).
+- [ ] 21c. **A contagem bate** com o que o mapa mostra (marcações vigentes;
+  as apagadas não entram).
+- [ ] 21d. Abrir no **Google Earth** (web ou desktop): árvore **Força →
+  categoria → ponto**, com a contagem no nome de cada pasta.
+- [ ] 21e. **As cores:** marcação da força de menor ordem (Azul) em **azul**,
+  do Vermelho em **vermelho**, a do instrutor (sem força) em **amarelo**.
+  Confira uma marcação do Vermelho: tem de sair vermelha mesmo exportando de uma
+  turma onde você olha como Azul — a cor não depende de quem exporta.
+- [ ] 21f. **O símbolo fica ancorado no ponto certo.** Aproxime muito o zoom
+  sobre uma marcação e compare com o mapa do app: a base do símbolo (o ponto
+  geográfico) está sobre a mesma coordenada, e o tamanho é razoável (**não o
+  dobro** — é o teste da escala 0.5 do PNG).
+- [ ] 21g. Clicar num ponto: a descrição mostra símbolo, força, coordenadas,
+  altitude (quando houver), frente × profundidade, autor e data em horário de
+  Brasília.
+- [ ] 21h. A **anotação** aparece como **texto na cor escolhida**, sem
+  alfinete.
+- [ ] 21i. O título com `<`, `&` e acento abre sem erro e aparece certo.
+- [ ] 21j. Trocar de turma no seletor do topo e exportar: o arquivo traz **só**
+  a turma nova.
+- [ ] 21k. **SVG:** exportar de novo escolhendo SVG. Renomear o `.kmz` para
+  `.zip` e abrir: há `doc.kml`, `LEIA-ME.txt` e uma pasta `icones/` com `.svg`.
+- [ ] 21l. **QGIS** (o item que ninguém conseguiu testar): carregar `doc.kml`
+  como camada vetorial. A tabela de atributos tem `forca`, `categoria`, `sidc`,
+  `altitude_m`, `autor`, `icone`. Tente o estilo "Marcador SVG" com o caminho
+  definido por dados, como descreve o `LEIA-ME.txt`, e **anote se funcionou**.
+  Se não funcionar, o conserto provável está na instrução, não no arquivo.
+- [ ] 21m. **Escala:** com umas 200 marcações, quanto leva do clique ao
+  download? Se passar de alguns segundos em celular, vale registrar.
+- [ ] 21n. **Turma sem nada marcado:** a mensagem diz "nada marcado nesta turma
+  ainda" e **nenhum arquivo baixa**.
+- [ ] 21o. Uma marcação cujo partido foi **desativado** cai em "Sem força
+  definida" (limite conhecido, seção 35 do histórico). Confirmar que é isso e
+  não que sumiu.
+
+## 21. O rodapé no celular — `100vh` virou `100dvh` (2026-10-03)
+
+**Defeito encontrado em uso real, não em teste.** Relato: *"não está aparecendo
+a coordenada do ponto, apenas um 22J da área"* — o `22J` era a legenda da grade,
+dentro do mapa, e **o rodapé inteiro estava fora da tela**.
+
+Causa: `body { height: 100vh }`. Em navegador de celular, `100vh` é a altura com
+a barra de endereço RECOLHIDA, maior que a área visível. Como o `body` é uma
+coluna flex e o rodapé é o último filho, ele ficava abaixo da dobra — sem
+scroll, sem nada indicando que existia.
+
+**O estrago maior não era a coordenada.** O carimbo de build mora no mesmo
+rodapé, e existe exatamente para alguém em campo, pelo celular, dizer qual
+versão está na mão. Ele nunca funcionou nesse aparelho — e três correções já
+foram relatadas como "continua igual" por causa de cache, com a ferramenta de
+diagnosticar isso invisível justamente para quem mais precisava dela.
+
+**Isto só se confirma no aparelho.** Em navegador de mesa `100vh` e `100dvh`
+dão o mesmo valor, então nenhum teste daqui prova o conserto.
+
+- [ ] 21a. **No celular, app do aluno:** o rodapé aparece, com a coordenada à
+  esquerda e a data do build à direita. É o item inteiro.
+- [ ] 21b. **Role a página com o dedo** (arraste para baixo a partir da topbar,
+  se der): a barra de endereço do navegador aparece e some. O rodapé **continua
+  visível** nos dois estados, e o mapa encolhe/cresce em vez de empurrar o
+  rodapé para fora.
+- [ ] 21c. **Gire o aparelho** para paisagem e de volta: idem.
+- [ ] 21d. **Leia a data do build em voz alta pelo telefone.** É o uso para o
+  qual o carimbo existe; se ele não estiver legível, o problema não acabou.
+- [ ] 21e. No **painel do instrutor** num tablet ou celular: o rodapé também
+  aparece (a mesma correção foi aplicada lá).
+- [ ] 21f. **No monitor, nada mudou:** rodapé no lugar, mapa ocupando o resto.
+- [ ] 21g. **Se o rodapé ainda sumir** num aparelho específico, anote o modelo e
+  o navegador: significa que ele não conhece `dvh` e caiu no `100vh` de
+  reserva — e aí a saída é tirar a coordenada do rodapé e pô-la dentro do mapa,
+  como a legenda da grade.
+
 Qualquer item marcado como falha vira a prioridade do próximo chat — cole este checklist preenchido para retomar com contexto completo.

@@ -29,6 +29,8 @@ WebGIS militar de instrução e C2, para uso em campo com rede de dados disponí
 
 - Camada de fundo trocável (mapa online ou imagem georreferenciada local).
 - KML/KMZ com controle de visibilidade e opacidade.
+- O instrutor **baixa as marcações da turma como KMZ** (pastas por força e
+  categoria, símbolos militares como ícone, descrição em cada ponto).
 - Avatar do usuário como símbolo militar padrão OTAN (APP-6D), posicionado pelo
   GPS do celular em tempo real.
 - Duas interfaces: **instrutor** (habilita funções e visualizações por usuário)
@@ -163,7 +165,8 @@ Não são preferências. Quebrar qualquer uma destas causa dano real.
   `vigia-ausencia.js` para limiares de ausência, `catalogo-form.js` para os
   `<option>` do catálogo, `toque-longo.js` para o gesto de manter o dedo
   (intervalo e tolerância de movimento), `grade.js` para o passo e os rótulos
-  da quadrícula. `preferencias.js` virou um REGISTRO de chaves em 2026-10-02 —
+  da quadrícula, `exportar-kmz.js` para a estrutura e a **cor fixa** do KMZ
+  exportado. `preferencias.js` virou um REGISTRO de chaves em 2026-10-02 —
   chave nova entra lá, com padrão e validador, não numa variável solta.
 
 ## Lições que custaram caro
@@ -207,7 +210,7 @@ for f in frontend/*.teste.mjs; do node "$f"; done    # todas
 Cada suíte imprime a própria linha de resumo, em **dois formatos diferentes**
 ("N passaram, 0 falharam de N" e "N passou, 0 falhou, N total") — quem for
 somar precisa aceitar os dois. Estado atual: **1282 casos, 0 falhas, 21
-suítes** (medido em 2026-10-02).
+suítes** (medido em 2026-10-03).
 
 **Uma correção de número, porque este arquivo manda não inventar um.** Até
 2026-09-19 aqui se lia "895 casos em 14 suítes". Rodando as catorze suítes do
@@ -230,7 +233,7 @@ uma suíte por banco (ver regra dura 2).
 ```
 frontend/       o app. Puro/testável: rastro, visada, coordenadas, paleta,
                 kml, situacao-usuario, enquadrar-mapa, anotacoes,
-                vigia-ausencia, toque-longo, grade, exportar-kmz. Telas:
+                vigia-ausencia, toque-longo, grade, exportar-kmz, zip-simples. Telas:
                 login, index (aluno), instrutor, debriefing, situacao,
                 menu-contexto, grade-tela, barra-coordenada,
                 preferencias-tela, exportar-kmz-tela. Fontes únicas: simbolos,
@@ -250,6 +253,42 @@ O mapa detalhado de qual módulo faz o quê, arquivo por arquivo, está no
 histórico — a estrutura acima basta para se localizar.
 
 ## Estado atual
+
+**Exportação das marcações em KMZ (2026-10-03), sem migration e sem chave de
+permissão nova.** Botão **"Baixar KMZ das marcações"** na aba "Situação atual"
+do painel do instrutor, com escolha de ícone **PNG** (Google Earth, que não
+desenha SVG como ícone) ou **SVG** (QGIS). O KMZ traz pasta por força, subpasta
+por categoria de símbolo, e as anotações do instrutor numa pasta própria.
+Regras que valem daqui em diante:
+
+- **A cor do ícone exportado é FIXA, não relativa.** Um arquivo não tem
+  observador. Partido de menor `ordem` = amigo (azul), demais beligerantes =
+  hostil (vermelho), neutro = verde, **sem força = desconhecido (amarelo)**. A
+  regra mora em `exportar-kmz.js` e reaproveita `hostilidadeRelativa()` com
+  observador nulo — não reimplementar. Partido sem `ordem` sai com o SIDC cru
+  (placeholder), nunca com uma cor chutada.
+- **Lê do banco no clique, paginado de 1000 em 1000**, não do estado do mapa
+  (`marcacoes.js` não exporta suas linhas). O PostgREST corta em 1000 sem
+  avisar; um arquivo "completo" que perdeu a marcação 1001 é pior que um que
+  falha.
+- **O zip é escrito por `zip-simples.js`** (método STORE, sem dependência e sem
+  CDN). Exportar não pode depender de um servidor externo responder.
+- **"Só o instrutor" é decisão de interface** (o botão só existe em
+  `instrutor.html`); a barreira real é a RLS. Não criar chave em
+  `catalogo_permissoes` para isto (regra dura 3).
+- **Fora do arquivo, de propósito:** pedidos de apoio e situações (estado
+  volátil que o arquivo congelaria como se fosse o atual).
+- **Limite conhecido:** marcação de partido **desativado** cai em "Sem força
+  definida", porque `buscarPartidosDaTurma` só devolve partidos ativos.
+
+**Medido:** suíte `exportar-kmz.teste.mjs`, 29 casos, inclusive o zip aberto por
+um descompactador de verdade e o KML por um parser XML de verdade — foi o parser
+que pegou um caractere de controle vazando para dentro do CDATA. Os ícones
+foram gerados com a `milsymbol` real e os SVG conferidos como XML.
+**NÃO testado:** o desenho dos símbolos no **QGIS** (a instrução do `LEIA-ME.txt`
+do modo SVG é hipótese), o desenho em PNG por `canvas` e o download no
+navegador. Roteiro: bloco 21 de `docs/roteiro-teste-campo.md`. O porquê das
+decisões: `docs/historico-de-decisoes.md`, seção 35.
 
 **2026-10-03 — migrations `0016`–`0019` aplicadas em produção** (0017, 0018 e
 0019 conferidas por consulta de leitura). Isolar exercícios = **uma turma nova
@@ -393,6 +432,14 @@ código é a única barreira de entrada. Ganhou urgência desde que existe um
 endereço curto e fácil de repassar.
 
 ## Pontos de atenção conhecidos
+
+- **`100vh` não é a altura visível no celular** — é a altura com a barra de
+  endereço recolhida. O `body` das duas telas usa `height:100vh` seguido de
+  `height:100dvh` (2026-10-03); quem mexer ali tem que manter as duas linhas, e
+  a segunda por último. Com só `100vh`, **o rodapé fica fora da tela no
+  celular** — e com ele o carimbo de build, que existe justamente para ser lido
+  em campo, pelo telefone. Custou um relato de "a coordenada não aparece" para
+  descobrir, e a coordenada era o menor dos problemas.
 
 - **Termos de uso de mapas:** o Google Maps proíbe uso militar/defesa nos
   termos padrão. Os basemaps `google_sat`/`google_hybrid` presentes no código
