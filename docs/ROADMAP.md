@@ -650,6 +650,48 @@ logado como administrador e os números no mapa com dois celulares. Detalhe e
 decisões em `docs/historico-de-decisoes.md` (seção 33). Itens de campo: bloco 19
 de `docs/roteiro-teste-campo.md`.
 
+### 2026-10-03 (b) — grade e coordenada nas três telas
+
+A grade de quadrículas e a barra de coordenada existiam só no app do aluno.
+Relato: *"ficou faltando as grades, quadrículas e coordenada no mapa do
+instrutor"*. Entraram na aba **"Situação atual"** e também no **debriefing** —
+rever um exercício é quando mais se pergunta "onde foi isso".
+
+**A surpresa que definiu o escopo:** `instrutor.html` não tinha controle de
+coordenada nenhum. `iniciarPreferencias()` rodava lá, mas não havia interface
+para escolher — então ligar a grade sozinha seria código morto para um
+instrutor que nunca abriu o app do aluno. A entrega não era "duas chamadas";
+era duas chamadas mais um controle.
+
+**`preferencias-tela.js` (novo).** Os dois seletores viviam soltos dentro do
+`<script>` do `index.html`; o painel do instrutor é o segundo consumidor, e a
+regra do projeto é extrair na segunda vez. O módulo aceita **rádios** (idioma
+do cartão do aluno, que tem espaço) e **`<select>`** (idioma da coluna do
+instrutor, estreita e com a lista da turma disputando altura, e onde "Mapa
+base" já era assim desde a Etapa 6c). Impor rádios ao instrutor deixaria um
+bloco destoante; duas funções quase iguais é o que a extração evita.
+
+**Sem controle no debriefing**, de propósito: a preferência é de quem olha,
+não da tela, e já vale nas três.
+
+**Decisões de lugar, verificadas no código e não supostas:**
+- O painel da aba fica **em fluxo** ao lado do mapa, não sobrepondo — então os
+  rótulos da margem direita e a legenda do canto não caem debaixo dele.
+- A barra vai na **faixa de status sob o mapa**, não no `#footer` da página:
+  ali ela está encostada no mapa, que é onde se olha. No app do aluno o rodapé
+  É a borda do mapa; aqui não.
+- O debriefing tem **elemento próprio** para a barra: são duas instâncias de
+  Leaflet independentes, e uma barra compartilhada mostraria a coordenada do
+  mapa que não está à vista.
+- As duas fiações entram **dentro de `garantirMapa()`**, que retorna cedo
+  quando o mapa já existe — rodam uma vez, não a cada abertura de aba nem a
+  cada troca de turma. Não são por turma, e por isso também não entram no
+  teardown da turma.
+
+Verificado em Chromium real com os `<select>`: a grade liga e desliga, a nota
+aparece, e as duas barras (a padrão e a de `alvo` próprio) escrevem e
+acompanham a troca de formato ao vivo.
+
 ## A fazer, em ordem
 
 - [ ] **Etapa 2 — Autenticação e papéis** *(em andamento — dividida em 2a e 2b)*

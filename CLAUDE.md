@@ -177,7 +177,7 @@ npm run build    # gera dist/ (o deploy é por Actions no push)
 ```
 
 **Não existe `npm test`.** Os scripts do `package.json` são só `dev`, `build` e
-`preview`. As 17 suítes de frontend são arquivos `frontend/*.teste.mjs` rodados
+`preview`. As 21 suítes de frontend são arquivos `frontend/*.teste.mjs` rodados
 direto no Node, um por vez:
 
 ```bash
@@ -187,7 +187,7 @@ for f in frontend/*.teste.mjs; do node "$f"; done    # todas
 
 Cada suíte imprime a própria linha de resumo, em **dois formatos diferentes**
 ("N passaram, 0 falharam de N" e "N passou, 0 falhou, N total") — quem for
-somar precisa aceitar os dois. Estado atual: **1056 casos, 0 falhas, 17
+somar precisa aceitar os dois. Estado atual: **1282 casos, 0 falhas, 21
 suítes** (medido em 2026-10-02).
 
 **Uma correção de número, porque este arquivo manda não inventar um.** Até
@@ -214,8 +214,9 @@ frontend/       o app. Puro/testável: rastro, visada, coordenadas, paleta,
                 vigia-ausencia, toque-longo, grade, exportar-kmz. Telas:
                 login, index (aluno), instrutor, debriefing, situacao,
                 menu-contexto, grade-tela, barra-coordenada,
-                exportar-kmz-tela. Fontes únicas: simbolos, permissoes,
-                preferencias, basemaps, catalogo-form, toque-longo, grade.
+                preferencias-tela, exportar-kmz-tela. Fontes únicas: simbolos,
+                permissoes, preferencias, basemaps, catalogo-form,
+                toque-longo, grade.
                 GERADO, não editar: simbolos-catalogo.js
 data/           só simbologia-eb/ (extrato do MD/EB + PROCEDENCIA.md)
 scripts/        utilitários de build/manutenção
@@ -272,6 +273,17 @@ empurrado" até 2026-09-19). Duas coisas distintas:
    reorganização da documentação (`CLAUDE.md` + `docs/historico-de-decisoes.md`)
    que este arquivo descreve no topo como se já estivesse no repositório. Um
    `git clone` **não** traz nada disso.
+
+**Grade, quadrículas e coordenada nas TRÊS telas (2026-10-03).** A grade e a
+barra existiam só no app do aluno; o relato foi "ficou faltando no mapa do
+instrutor". Entraram na aba "Situação atual" e no **debriefing** — rever um
+exercício é justamente quando se quer quadrícula. O painel do instrutor não
+tinha nenhum controle de coordenada, então ganhou os dois, em `<select>`, que é
+o idioma daquela coluna (o do aluno usa rádios). Daí a extração de
+`preferencias-tela.js`, que aceita os dois idiomas: o instrutor era o SEGUNDO
+consumidor dos seletores, que viviam soltos dentro do `index.html`. O
+debriefing **não** ganhou controle próprio — a preferência é de quem olha, não
+da tela, e vale nas três de uma vez.
 
 **O toque curto deixou de criar marcação (2026-10-02).** Tocar na tela para
 apontar algo, ou para começar um arrasto, abria formulário sozinho. Criar

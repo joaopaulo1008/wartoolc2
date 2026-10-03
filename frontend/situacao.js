@@ -74,6 +74,12 @@ import { iniciarMarcacoes, pararMarcacoes } from './marcacoes.js';
 // marcacoes.js): sem este menu, o instrutor ficaria sem nenhum caminho para
 // marcar nesta aba. Não é escopo extra, é a consequência daquela mudança.
 import { ligarMenuDoMapa } from './menu-contexto.js';
+// Grade de quadrículas e barra de coordenada (2026-10-03). Chegaram ao app do
+// aluno em 2026-10-02 e ficaram de fora desta aba por escopo; o relato foi
+// direto — "ficou faltando as grades, quadrículas e coordenada no mapa do
+// instrutor". A aritmética é grade.js (puro); aqui só entram as duas fiações.
+import { ligarGrade } from './grade-tela.js';
+import { ligarBarraCoordenada } from './barra-coordenada.js';
 // Paleta de marcação rápida (2026-09-14). Desde que ela passou a morar DENTRO
 // do formulário de marcacoes.js, esta aba ganha os mesmos atalhos de graça —
 // só precisa carregar os presets da turma. É o mesmo tipo de reuso que a 6c já
@@ -231,6 +237,18 @@ function garantirMapa() {
   // vetor que ESTA aba mostra é o do posto de quem MARCOU, por marcação, e
   // continua vindo por `obterPostoObservacao` em iniciarMarcacoesDaTurma.)
   ligarMenuDoMapa({ map });
+
+  // As duas leem só PREFERÊNCIA, nunca permissão — a escolha é de quem olha,
+  // fica gravada no perfil dele e vale também no app do aluno e no
+  // debriefing. A grade nasce no modo gravado (padrão `off`): ela não
+  // aparece sem alguém pedir.
+  //
+  // Aqui dentro de garantirMapa(), que retorna cedo quando o mapa já existe —
+  // então isto roda UMA vez, não a cada abertura da aba nem a cada troca de
+  // turma. Nenhuma das duas é por turma, e por isso também não entram no
+  // teardown de `pararSituacao()`, que é o teardown da TURMA.
+  ligarGrade({ map });
+  ligarBarraCoordenada({ map });
 
   const seletor = el('situacao-basemap');
   if (seletor) {

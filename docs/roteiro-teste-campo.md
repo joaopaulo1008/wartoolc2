@@ -985,4 +985,31 @@ Migrations `0016` a `0019`. Faça com uma turma **descartável** (2 contas).
 - [ ] 19j. Tentar o cadastro público com o código da turma ainda cria um aluno
   sem partido, que não vê nada. Se não for desejado, troque o `codigo_acesso`.
 
+## 20. Grade e coordenada no painel do instrutor e no debriefing (2026-10-03)
+
+Mesmas funções do bloco 17, agora nas outras duas telas. O instrutor ganhou os
+controles que não tinha; o debriefing usa a escolha feita ali.
+
+- [ ] 20a. Painel → aba **"Situação atual"** → coluna da esquerda: existem
+  **"Coordenada"** e **"Grade de quadrículas"**, em `<select>`.
+- [ ] 20b. Escolher "Quadrícula UTM": a grade aparece no mapa ao vivo, com
+  rótulos nas quatro margens e legenda no canto.
+- [ ] 20c. A nota embaixo do seletor explica o piso de 1 km.
+- [ ] 20d. **A coordenada aparece na faixa abaixo do mapa** e segue o cursor.
+- [ ] 20e. Trocar o formato no `<select>`: a barra muda **na hora**.
+- [ ] 20f. **Vá para a aba "Debriefing"**: a grade está lá também, no mesmo
+  modo, **sem precisar escolher de novo**.
+- [ ] 20g. No debriefing a coordenada aparece na linha de controles do replay
+  (ao lado de "Reproduzir"), e é a do **mapa do debriefing**, não a do mapa ao
+  vivo. Volte e compare: são pontos diferentes, cada barra com o seu.
+- [ ] 20h. **A escolha atravessa as telas e o aparelho.** Ligue a grade no
+  painel, abra o app do **aluno** com o MESMO login: a grade está ligada lá.
+  É a mesma coluna do perfil.
+- [ ] 20i. Dê F5 no painel: a escolha permanece.
+- [ ] 20j. **Desempenho na aba ao vivo**, que é a mais carregada: grade ligada
+  + turma inteira + calco grande. Arrastar e dar zoom continua fluido?
+- [ ] 20k. Os rótulos da margem **direita** não ficam debaixo da coluna da
+  esquerda nem cortados pela borda — a coluna fica ao lado do mapa, não por
+  cima, mas confirme com o painel no tamanho real.
+
 Qualquer item marcado como falha vira a prioridade do próximo chat — cole este checklist preenchido para retomar com contexto completo.

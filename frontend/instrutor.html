@@ -485,6 +485,35 @@
         <div class="lista-titulo">Turma (<span id="situacao-contagem">0</span>)</div>
         <div id="situacao-lista"></div>
 
+        <!-- ── Coordenada e grade (2026-10-03) ───────────────────────────
+             `<select>` e não rádios, que é o idioma desta coluna desde a
+             Etapa 6c ("Mapa base" logo abaixo já é assim) — e ela é estreita,
+             com a lista da turma disputando a altura. O painel do aluno usa
+             rádios; preferencias-tela.js aceita os dois e normaliza.
+
+             É PREFERÊNCIA, não permissão: fica gravada no perfil de quem
+             olha, vale nas duas telas e no debriefing, e o instrutor não a
+             controla para ninguém além de si. -->
+        <div class="lista-titulo">Coordenada</div>
+        <div class="campo">
+          <select id="situacao-formato-coordenada">
+            <option value="utm">UTM (carta)</option>
+            <option value="decimal">Grau decimal</option>
+            <option value="dms">Grau, minuto, segundo</option>
+          </select>
+        </div>
+
+        <div class="lista-titulo">Grade de quadrículas</div>
+        <div class="campo">
+          <select id="situacao-modo-grade">
+            <option value="off">Sem grade</option>
+            <option value="utm">Quadrícula UTM</option>
+            <option value="geo">Grade geográfica</option>
+          </select>
+        </div>
+        <div id="situacao-grade-nota"
+             style="font-size:10px;color:#4a6a8a;margin:-4px 4px 10px;line-height:1.4"></div>
+
         <div class="lista-titulo">Mapa base</div>
         <div class="campo">
           <select id="situacao-basemap">
@@ -499,6 +528,11 @@
         <div id="situacao-aviso" class="painel-aviso"></div>
         <div id="situacao-mapa"></div>
         <div style="display:flex; gap:16px; padding:4px 12px; font-size:11px; color:#7a9ab8;">
+          <!-- A coordenada do ponto olhado vem PRIMEIRO, e nesta faixa e não
+               no #footer da página: aqui ela está encostada no mapa, que é
+               onde se olha. No app do aluno o rodapé É a borda do mapa; aqui
+               não. -->
+          <span id="barra-coordenada"></span>
           <span id="marcacoes-status"></span>
           <!-- Exportação do KMZ (exportar-kmz-tela.js). Só existe nesta página,
                que só o instrutor abre. -->
@@ -585,6 +619,12 @@
         <div id="debriefing-mapa"></div>
 
         <div id="debriefing-controles">
+          <!-- Mesma barra do mapa ao vivo, elemento próprio: são duas
+               instâncias de Leaflet independentes (ver o comentário em
+               situacao.js sobre por que elas não se compartilham), e cada uma
+               escreve na sua. -->
+          <span id="debriefing-coordenada" style="font-size:11px;color:#9fc0e0;
+                font-variant-numeric:tabular-nums;white-space:nowrap"></span>
           <button type="button" id="debriefing-tocar" class="btn-replay">▶ Reproduzir</button>
           <button type="button" id="debriefing-inicio-replay" class="btn-mini">⏮ Início</button>
           <input type="range" id="debriefing-barra" min="0" max="1000" value="0">
@@ -865,6 +905,9 @@ import { iniciarPermissoes } from './permissoes.js';
 // escolheu no app do aluno, ou do padrão UTM. Sem esta chamada, os popups de
 // situacao.js cairiam sempre no padrão, ignorando a escolha dele.
 import { iniciarPreferencias } from './preferencias.js';
+// Os controles do painel (2026-10-03). O mesmo módulo que o app do aluno usa —
+// lá com rádios, aqui com <select>. Ver o cabeçalho de preferencias-tela.js.
+import { ligarSeletorDeCoordenada, ligarSeletorDeGrade } from './preferencias-tela.js';
 import { iniciarPainelPermissoes, observarTurma } from './instrutor-permissoes.js';
 import { iniciarModoPosicaoInstrutor } from './instrutor-modo-posicao.js';
 import { iniciarImportarTurma } from './instrutor-importar.js';
@@ -907,6 +950,17 @@ if (resultado) {
   // Etapa 9b: antes de qualquer aba que desenhe coordenada (Situação atual).
   // Nenhuma consulta nova — `preferencias_visualizacao` já vem no perfil.
   iniciarPreferencias({ userId: session.user.id, perfil });
+
+  // Ligados na carga da página, e não quando a aba "Situação atual" abre: os
+  // elementos existem no DOM desde o início (a aba só está `hidden`), e a
+  // preferência vale para o mapa do debriefing também, que é outra aba. Amarrar
+  // o controle à abertura de uma aba faria a escolha depender de por onde a
+  // pessoa entrou.
+  //
+  // Sem `map`: o exemplo "Centro do mapa: …" do painel do aluno não cabe aqui,
+  // porque nesta página há DOIS mapas e nenhum deles existe ainda neste ponto.
+  ligarSeletorDeCoordenada({ alvo: '#situacao-formato-coordenada' });
+  ligarSeletorDeGrade({ alvo: '#situacao-modo-grade', nota: 'situacao-grade-nota' });
 
   // Toda a lógica do painel de permissões (lista da turma, grade lida de
   // vw_permissoes_efetivas, escrita nas duas camadas) está em

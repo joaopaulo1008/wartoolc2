@@ -384,11 +384,10 @@ import { iniciarPermissoes, observarPermissao, pode } from './permissoes.js';
 // Etapa 9b: preferências de VISUALIZAÇÃO do próprio usuário (hoje só o
 // formato de coordenada). Não confundir com permissoes.js, que é o que o
 // INSTRUTOR deixa ver — ver o cabeçalho de preferencias.js.
-import {
-  iniciarPreferencias, definirFormatoCoordenada,
-  observarFormatoCoordenada, formatarCoordenada,
-  definirModoGrade, observarModoGrade,
-} from './preferencias.js';
+// Quatro nomes saíram deste import em 2026-10-03: `definirFormatoCoordenada`,
+// `observarFormatoCoordenada`, `definirModoGrade` e `observarModoGrade` agora
+// são consumidos por preferencias-tela.js, não por esta tela.
+import { iniciarPreferencias, formatarCoordenada } from './preferencias.js';
 // Grade de quadrículas (2026-10-02). A aritmética é grade.js (puro, testado
 // em Node); este import é só do desenho. Ver o cabeçalho de grade.js para por
 // que a grade UTM precisou do UTM inverso em coordenadas.js.
@@ -408,6 +407,10 @@ import { ligarSeloSimulacao } from './selo-simulacao.js';
 import { iniciarColegas } from './colegas.js';
 import { iniciarMarcacoes } from './marcacoes.js';
 import { ligarMenuDoMapa } from './menu-contexto.js';
+// Os dois seletores do cartão "Coordenada" saíram daqui para um módulo em
+// 2026-10-03, quando o painel do instrutor virou o segundo consumidor — ver o
+// cabeçalho de preferencias-tela.js.
+import { ligarSeletorDeCoordenada, ligarSeletorDeGrade } from './preferencias-tela.js';
 import { iniciarCamadas } from './camadas.js';
 import { iniciarAnotacoes } from './anotacoes-tela.js';
 import { iniciarSituacaoUsuario } from './situacao-tela.js';
@@ -609,78 +612,6 @@ const camadasPermissao = (() => {
 // O ponto do exemplo é o CENTRO ATUAL DO MAPA, não uma coordenada inventada:
 // assim quem está trocando de formato vê o efeito num lugar que reconhece, e
 // dá para conferir contra a carta na mão sem esperar o GPS fixar.
-function ligarSeletorDeCoordenada() {
-  const radios = [...document.querySelectorAll('input[name="formato-coordenada"]')];
-  const exemplo = document.getElementById('coordenada-exemplo');
-  const nota = document.getElementById('coordenada-nota');
-  if (!radios.length) return;
-
-  // Só em UTM, porque só lá `E`/`N` significam outra coisa que não hemisfério.
-  // Em grau decimal e GMS, S e W SÃO hemisfério — explicar ali seria criar a
-  // dúvida em vez de tirá-la.
-  const NOTA_UTM =
-    'mE / mN são metros nos eixos da quadrícula (leste e norte), não hemisfério. ' +
-    'O hemisfério está na letra da zona.';
-
-  function atualizarExemplo() {
-    if (!exemplo) return;
-    const centro = map.getCenter();
-    exemplo.textContent = `Centro do mapa: ${formatarCoordenada(centro.lat, centro.lng)}`;
-  }
-
-  radios.forEach((radio) => {
-    radio.addEventListener('change', () => {
-      if (radio.checked) definirFormatoCoordenada(radio.value);
-    });
-  });
-
-  // Um observador, não uma atribuição direta: o valor pode mudar por outro
-  // caminho que não este seletor (a carga inicial do perfil, e amanhã uma
-  // segunda tela), e o rádio marcado precisa acompanhar. Já é chamado na
-  // hora com o valor atual — daí o rádio nascer no formato gravado.
-  observarFormatoCoordenada((formato) => {
-    radios.forEach((r) => { r.checked = (r.value === formato); });
-    if (nota) nota.textContent = (formato === 'utm') ? NOTA_UTM : '';
-    atualizarExemplo();
-  });
-
-  map.on('moveend', atualizarExemplo);
-  atualizarExemplo();
-}
-
-// Espelha ligarSeletorDeCoordenada() de propósito: mesma forma, mesmo
-// observador, mesma razão para ser observador e não atribuição direta (o
-// valor pode mudar por outro caminho que não este seletor — a carga do
-// perfil, hoje; outra tela, amanhã).
-function ligarSeletorDeGrade() {
-  const radios = [...document.querySelectorAll('input[name="modo-grade"]')];
-  const nota = document.getElementById('grade-nota');
-  if (!radios.length) return;
-
-  // A nota existe por causa de uma pergunta que vai aparecer em campo: por
-  // que a quadrícula não fica menor que isso. A resposta é decisão de quem
-  // usa (piso de 1 km), não limitação — e dizer isso evita o relato
-  // "a grade não acompanha o zoom".
-  const NOTA = {
-    utm: 'O passo acompanha o zoom (1, 2, 5, 10 km…) e nunca fica menor que 1 km. ' +
-         'Os dois dígitos na margem são os dígitos principais, como na carta; ' +
-         'a zona e o passo estão na legenda do canto.',
-    geo: 'Linhas de latitude e longitude, com o passo em minutos acompanhando o zoom.',
-    off: '',
-  };
-
-  radios.forEach((radio) => {
-    radio.addEventListener('change', () => {
-      if (radio.checked) definirModoGrade(radio.value);
-    });
-  });
-
-  observarModoGrade((modo) => {
-    radios.forEach((r) => { r.checked = (r.value === modo); });
-    if (nota) nota.textContent = NOTA[modo] || '';
-  });
-}
-
 // ── Sessão e roteamento por papel (Etapa 2b) ─────────────────────────────
 // Fica escondido (body com visibility:hidden) até confirmar que há sessão
 // válida e papel = usuario; senão redireciona para login.html. Ver
@@ -749,8 +680,8 @@ if (resultado) {
     // nenhuma — `perfil.preferencias_visualizacao` já veio no mesmo
     // round-trip de `buscarPerfil()`, desde a Etapa 4.5.
     iniciarPreferencias({ userId: session.user.id, perfil });
-    ligarSeletorDeCoordenada();
-    ligarSeletorDeGrade();
+    ligarSeletorDeCoordenada({ exemplo: 'coordenada-exemplo', nota: 'coordenada-nota', map });
+    ligarSeletorDeGrade({ nota: 'grade-nota' });
 
     // Grade e barra de coordenada (2026-10-02). As duas só leem preferência,
     // nunca permissão — então entram aqui, junto dos seletores, e não no

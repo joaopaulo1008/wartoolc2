@@ -90,6 +90,12 @@ import { observarPermissao } from './permissoes.js';
 // Onde o mapa abre antes de haver rastro carregado. Mesma constante dos outros
 // dois mapas — ver enquadrar-mapa.js.
 import { CENTRO_PADRAO, ZOOM_PADRAO } from './enquadrar-mapa.js';
+// Grade de quadrículas e barra de coordenada (2026-10-03). Rever um exercício
+// é justamente quando se quer quadrícula: "onde foi isso" é a pergunta do
+// debriefing inteiro. Sem controle PRÓPRIO — a escolha é a mesma do painel da
+// aba "Situação atual", porque é preferência de quem olha, não da tela.
+import { ligarGrade } from './grade-tela.js';
+import { ligarBarraCoordenada } from './barra-coordenada.js';
 import {
   GAP_SEM_SINAL_MS,
   ALVO_PONTOS_TOTAL,
@@ -285,6 +291,14 @@ function garantirMapa() {
   preencherSeletorBasemap(el('debriefing-basemap'));
   basemapAtual = trocarBasemap(map, basemaps, BASEMAP_PADRAO, null);
   camadaTrilhas = L.layerGroup().addTo(map);
+
+  // Dentro de garantirMapa(), que retorna cedo quando o mapa já existe —
+  // roda uma vez. A barra escreve no elemento PRÓPRIO desta aba: são duas
+  // instâncias de Leaflet independentes (ver o comentário em situacao.js
+  // sobre por que elas não se compartilham), e uma barra só, compartilhada,
+  // mostraria a coordenada do mapa que não está à vista.
+  ligarGrade({ map });
+  ligarBarraCoordenada({ map, alvo: el('debriefing-coordenada') });
 
   const seletor = el('debriefing-basemap');
   if (seletor) {
