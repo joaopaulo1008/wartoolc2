@@ -144,7 +144,10 @@ async function main() {
       email,
       password: linha.senha,
       email_confirm: true, // confirmação por e-mail fica desligada no projeto; sem isto a conta nasceria não confirmada
-      user_metadata: { nome_completo: linha.nome_completo || linha.nome_guerra, papel: linha.papel },
+      // O papel NÃO vai nos metadados: desde a migration 0017 a trigger de perfil ignora
+      // o papel vindo dali (no signUp público ele é do cliente). O papel é gravado pelo
+      // UPDATE do perfil logo abaixo, que só a service_role consegue fazer.
+      user_metadata: { nome_completo: linha.nome_completo || linha.nome_guerra },
     });
 
     if (erroCriar) {
@@ -176,6 +179,7 @@ async function main() {
     const { error: erroPerfil } = await admin
       .from('perfis')
       .update({
+        papel: linha.papel,
         nome_guerra: linha.nome_guerra,
         posto_graduacao: linha.posto_graduacao || null,
         turma_id: turmaId || null,
