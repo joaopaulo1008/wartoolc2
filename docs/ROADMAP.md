@@ -735,7 +735,7 @@ quem não conhece `dvh` ignora a segunda e fica com o comportamento anterior.
 **O que o teste prova e o que não prova:** medido no Chromium a 390, 360 e 1280
 px, o rodapé fica dentro da tela e a página não rola. Mas em navegador de mesa
 `100vh` e `100dvh` dão o mesmo valor — então isso prova que a correção **não
-quebra nada**, e não que ela conserta. Quem prova é o aparelho. Bloco 21 do
+quebra nada**, e não que ela conserta. Quem prova é o aparelho. Bloco 22 do
 roteiro.
 
 **Se algum aparelho não conhecer `dvh`**, a saída registrada é tirar a

@@ -5,7 +5,7 @@ Saiu do `CLAUDE.md` em 2026-09-19, quando aquele arquivo passou de 247 KB
 (≈ 62 mil tokens carregados a cada sessão) para um manual de operação curto.
 
 **Nada aqui foi reescrito ou resumido** — as 32 seções originais estão
-íntegras, na ordem original; as de número 33 e 34 nasceram já aqui.
+íntegras, na ordem original; as de número 33 a 35 nasceram já aqui.
 
 ## Como usar este arquivo
 
@@ -61,6 +61,7 @@ As seções mais caras de reaprender, se um dia sumirem da sua memória:
 32. [O mapa abre onde as pessoas estão (2026-09-15) — sem migration](#o-mapa-abre-onde-as-pessoas-estao-2026-09-15-sem-migration)
 33. [Simulação, turma por CSV, designação do calunga e administrador (2026-10-02/03) — migrations 0016 a 0019](#simulacao-turma-por-csv-designacao-do-calunga-e-administrador-2026-10-0203-migrations-0016-a-0019)
 34. [As quatro entregas de UX: toque longo, grade, coordenada e o fim do toque curto (2026-09-19 a 2026-10-03) — sem migration](#as-quatro-entregas-de-ux-toque-longo-grade-coordenada-e-o-fim-do-toque-curto-2026-09-19-a-2026-10-03-sem-migration)
+35. [Exportação das marcações em KMZ (2026-10-03) — sem migration](#exportacao-das-marcacoes-em-kmz-2026-10-03-sem-migration)
 
 ---
 
@@ -2073,3 +2074,119 @@ de simbologia.
 
 Fica registrado aqui porque a medição é a parte cara: a correção em si é uma
 tabela de treze linhas.
+
+
+### Exportação das marcações em KMZ (2026-10-03) — sem migration
+
+O pedido: "baixar um KMZ dos pontos marcados, herdando os gráficos militares e
+as descrições". Escopo decidido pelo João: só o instrutor, todas as marcações,
+organizadas em pastas, **azul amigo e vermelho inimigo**, e a opção de ícone em
+PNG ou SVG — o SVG pensando no QGIS. Nenhuma migration, nenhuma chave nova,
+nenhuma dependência nova.
+
+#### 1. A cor é fixa, e por quê
+
+No mapa, a hostilidade é **derivada de quem olha** (Etapa 4.5). Um arquivo
+exportado não tem observador: vai ser aberto por gente de qualquer força, e um
+ícone que fosse "amigo" para quem exportou seria "inimigo" para quem recebeu.
+Usou-se a mesma referência que o painel do instrutor já aplica a quem não tem
+partido (`hostilidadeRelativa(null, partido)`): o partido de menor `ordem` é
+amigo, os demais beligerantes são hostis, neutro é neutro.
+
+Dois casos de borda decididos de propósito:
+
+- **Marcação sem partido sai DESCONHECIDO (amarelo)**, não azul. É uma afirmação
+  verdadeira — "não sei de quem é" — e não uma cor escolhida por falta de dado.
+  É o caso das marcações do próprio instrutor, que não tem partido.
+- **Partido sem `ordem` (embed antigo) preserva o SIDC gravado.** O dígito de
+  hostilidade gravado é placeholder, então sai amarelo; é a mesma escolha de
+  `simbolos.js` e a razão é a mesma: melhor um ícone neutro que uma cor errada.
+
+#### 2. Ler do banco, e paginado
+
+`marcacoes.js` guarda as linhas num `Map` interno e não as exporta. Em vez de
+abrir uma porta nele, a exportação faz uma leitura nova no clique: é o que
+garante que o arquivo reflete o banco **naquele instante**, e não o que o
+Realtime já entregou a esta aba. A RLS decide o que volta (`elementos_ler` e
+`calcos_ler` liberam o instrutor); chamada por um aluno, a mesma consulta
+devolveria só o que ele já enxerga.
+
+Paginada de 1000 em 1000 com `order(criada_em, id)`: o PostgREST corta em 1000
+linhas **sem erro**. Sem paginação, uma turma grande exportaria 1000 marcações e
+declararia sucesso.
+
+#### 3. Zip próprio, sem compressão
+
+Para **ler** zip o projeto já carrega o fflate sob demanda (`kml-navegador.js`,
+via esm.sh). Para **escrever** dezenas de arquivos pequenos, trazer uma
+biblioteca da rede só para guardar bytes não se justifica, e exportar não pode
+depender de um CDN respondendo. `zip-simples.js` escreve método STORE (zip
+válido, sem compressão), com nome em UTF-8 e o `doc.kml` sempre primeiro. Foi
+conferido contra um descompactador de verdade (CRC, ordem, nome com acento,
+binário, arquivo vazio) e o CRC-32 contra o valor de referência do padrão.
+**O que não faz:** comprimir, zip64, diretórios.
+
+#### 4. PNG ou SVG
+
+O KML referencia o ícone por arquivo, e quem abre tem exigências opostas:
+
+- **PNG**, para o **Google Earth/Maps**, que não desenham SVG como ícone de
+  marcador. Desenhado por `canvas` em resolução dobrada (nítido ao aproximar) e
+  compensado com `<scale>0.5</scale>`, porque o KML mede o ícone em pixels da
+  imagem — sem a escala, o símbolo apareceria com o dobro do tamanho.
+- **SVG**, vetorial, para o **QGIS**. Cada ponto leva o atributo `icone` (caminho
+  relativo do arquivo) em `ExtendedData`, e o KMZ leva um `LEIA-ME.txt` com a
+  instrução de usar "Marcador SVG" com caminho definido por dados.
+
+O ponto de ancoragem (`hotSpot`) é gravado em **fração** da imagem, medido do
+canto **inferior** esquerdo — por isso `1 - y`. Em pixels ele estaria certo só
+para uma resolução de PNG. Um ícone por **SIDC final**, não por marcação:
+quarenta carros de combate azuis são um arquivo.
+
+**A parte do SVG no QGIS é hipótese.** Não havia QGIS no ambiente. O que foi
+medido é o arquivo: KML aceito por parser XML, zip aberto por descompactador, SVG
+gerados com a `milsymbol` real e conferidos como XML. Se o QGIS não desenhar,
+o conserto provavelmente é na instrução do `LEIA-ME.txt`, não no arquivo.
+
+#### 5. O que entra e o que não entra
+
+Entram **marcações** (`elementos_marcados`) e **anotações** do instrutor
+(`anotacoes`), estas numa pasta própria, como texto colorido sem alfinete
+(`IconStyle` com `scale 0` e `LabelStyle` na cor escolhida).
+
+**Ficaram de fora os pedidos de apoio e as situações.** São estado volátil do
+exercício — ficam vigentes, são reconhecidos, respondidos, encerrados — com RLS
+copiada de `posicoes_ler`. Um arquivo estático os congelaria num instante e
+pareceria o estado atual. Se fizerem falta, é uma segunda exportação, com o
+carimbo de hora em destaque.
+
+A altitude **não** vai na coordenada (`clampToGround`): vai na descrição e em
+`ExtendedData`, com a fonte (`manual` ou `mde`). Linha com coordenada ou SIDC
+inválidos é **contada**, não engolida: a mensagem do botão diz quantas ficaram
+de fora.
+
+#### 6. O defeito que o parser pegou
+
+A primeira versão passava no teste de strings e **gerava XML malformado**: um
+título com caractere de controle (`\u0000`, que um celular produz ao colar
+texto) saía limpo do `<name>` mas não da `<description>`. `escaparHtml` escapa
+`<` e `&` e deixa o controle passar, e XML 1.0 não o aceita nem dentro de CDATA —
+o arquivo inteiro ficaria ilegível para o QGIS. Só a conferência com um parser de
+verdade derrubou; a comparação por substring não derrubaria.
+
+#### 7. Limites conhecidos, não resolvidos
+
+- Marcação de **partido desativado** cai em "Sem força definida":
+  `buscarPartidosDaTurma` só devolve partidos ativos. Trocar isso é decisão de
+  escopo (afeta o seletor de forças), não um detalhe desta entrega.
+- O ícone não leva **designação** (o `uniqueDesignation` da milsymbol): o ícone é
+  por SIDC, e a designação é por marcação. O rótulo do ponto carrega o título.
+  Consequência: "Comando Nomeado" (`000000`) sai como moldura vazia no arquivo.
+- Ícone cujo SIDC a `milsymbol` não desenha sai **sem estilo** (alfinete padrão
+  do Earth), e a mensagem diz quantos.
+- Partido sem `ordem` e marcação sem partido saem **amarelos** e isso é correto,
+  mas pode ser lido como defeito por quem espera só azul e vermelho.
+
+**Não testado:** QGIS, o desenho em PNG por `canvas` e o download no navegador
+(só rodam no navegador); `npm run build` não rodou no ambiente onde a entrega
+foi escrita. Bloco 21 do roteiro de campo.

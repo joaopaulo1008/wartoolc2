@@ -1064,7 +1064,7 @@ título com `<`, `&` e acento (por exemplo `1º Pel <Alfa> & cia`).
   definida" (limite conhecido, seção 35 do histórico). Confirmar que é isso e
   não que sumiu.
 
-## 21. O rodapé no celular — `100vh` virou `100dvh` (2026-10-03)
+## 22. O rodapé no celular — `100vh` virou `100dvh` (2026-10-03)
 
 **Defeito encontrado em uso real, não em teste.** Relato: *"não está aparecendo
 a coordenada do ponto, apenas um 22J da área"* — o `22J` era a legenda da grade,
@@ -1084,19 +1084,19 @@ diagnosticar isso invisível justamente para quem mais precisava dela.
 **Isto só se confirma no aparelho.** Em navegador de mesa `100vh` e `100dvh`
 dão o mesmo valor, então nenhum teste daqui prova o conserto.
 
-- [ ] 21a. **No celular, app do aluno:** o rodapé aparece, com a coordenada à
+- [ ] 22a. **No celular, app do aluno:** o rodapé aparece, com a coordenada à
   esquerda e a data do build à direita. É o item inteiro.
-- [ ] 21b. **Role a página com o dedo** (arraste para baixo a partir da topbar,
+- [ ] 22b. **Role a página com o dedo** (arraste para baixo a partir da topbar,
   se der): a barra de endereço do navegador aparece e some. O rodapé **continua
   visível** nos dois estados, e o mapa encolhe/cresce em vez de empurrar o
   rodapé para fora.
-- [ ] 21c. **Gire o aparelho** para paisagem e de volta: idem.
-- [ ] 21d. **Leia a data do build em voz alta pelo telefone.** É o uso para o
+- [ ] 22c. **Gire o aparelho** para paisagem e de volta: idem.
+- [ ] 22d. **Leia a data do build em voz alta pelo telefone.** É o uso para o
   qual o carimbo existe; se ele não estiver legível, o problema não acabou.
-- [ ] 21e. No **painel do instrutor** num tablet ou celular: o rodapé também
+- [ ] 22e. No **painel do instrutor** num tablet ou celular: o rodapé também
   aparece (a mesma correção foi aplicada lá).
-- [ ] 21f. **No monitor, nada mudou:** rodapé no lugar, mapa ocupando o resto.
-- [ ] 21g. **Se o rodapé ainda sumir** num aparelho específico, anote o modelo e
+- [ ] 22f. **No monitor, nada mudou:** rodapé no lugar, mapa ocupando o resto.
+- [ ] 22g. **Se o rodapé ainda sumir** num aparelho específico, anote o modelo e
   o navegador: significa que ele não conhece `dvh` e caiu no `100vh` de
   reserva — e aí a saída é tirar a coordenada do rodapé e pô-la dentro do mapa,
   como a legenda da grade.
