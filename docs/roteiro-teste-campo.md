@@ -952,4 +952,37 @@ aba do instrutor, que marcava pelo mesmo clique.
   ponto de atrapalhar? O ganho é não marcar sem querer; o custo é meio segundo
   a mais por marcação. Se o custo não compensar, dá para voltar.
 
+---
+
+## 19. Turma por CSV, designação do calunga e administrador (2026-10-03)
+
+Migrations `0016` a `0019`. Faça com uma turma **descartável** (2 contas).
+
+- [ ] 19a. Painel do instrutor → "Nova turma (CSV)": baixe o CSV de exemplo (ou
+  salve o modelo Excel como CSV UTF-8), troque os usuários por nomes novos
+  (`teste01`, `teste02`), escolha nome, código e modo, e suba o arquivo. A
+  prévia mostra os erros por linha **antes** de criar. Crie.
+- [ ] 19b. Em Authentication e na tabela `perfis`: as duas contas existem, com o
+  papel, o partido e o SIDC da planilha. **Primeira vez que a função publicada
+  roda de verdade** — se der 404, ela não está publicada; se der 403, a conta
+  não é instrutora.
+- [ ] 19c. Entre como `teste01` com a senha da planilha: cai na turma nova, sem
+  digitar código.
+- [ ] 19d. Na planilha, um aluno com `numero_esq = 1`, `numero_dir = 2` e escalão
+  PEL: no mapa aparece `1 [símbolo] 2` com três pontos em cima; o nome de guerra
+  **não** aparece ao lado. Um aluno sem números continua com o nome de guerra.
+- [ ] 19e. Clique no símbolo: o popup traz o **nome da fração** (só ali).
+- [ ] 19f. No painel, selecione um aluno → linha "Designação" → mude os números
+  e salve. O aluno **no outro celular** vê a mudança sem F5 (a própria conta só
+  vê ao recarregar — limite conhecido).
+- [ ] 19g. Como **aluno**, tente mudar a própria designação pelo console do
+  navegador: o banco recusa (erro 42501).
+- [ ] 19h. Entre como a conta administradora: o seletor de turma lista **todas**
+  as turmas e **nenhum** aviso de "não é o instrutor responsável" aparece na
+  turma de outro instrutor. Edite uma coisa (a designação de um aluno) para
+  confirmar.
+- [ ] 19i. O administrador **não consegue apagar** uma turma que não é dele.
+- [ ] 19j. Tentar o cadastro público com o código da turma ainda cria um aluno
+  sem partido, que não vê nada. Se não for desejado, troque o `codigo_acesso`.
+
 Qualquer item marcado como falha vira a prioridade do próximo chat — cole este checklist preenchido para retomar com contexto completo.

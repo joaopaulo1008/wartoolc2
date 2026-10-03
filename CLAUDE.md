@@ -231,6 +231,34 @@ histórico — a estrutura acima basta para se localizar.
 
 ## Estado atual
 
+**2026-10-03 — migrations `0016`–`0019` aplicadas em produção** (0017, 0018 e
+0019 conferidas por consulta de leitura). Isolar exercícios = **uma turma nova
+por exercício**, criada pela aba "Nova turma (CSV)" (Edge Function
+`importar-turma`, `service_role` só no servidor). Regras novas que valem daqui
+em diante:
+
+- **O papel de uma conta nova é sempre `usuario`** (0017). Nunca ler papel de
+  `raw_user_meta_data`; papel só muda por UPDATE de quem tem `service_role` ou
+  pelo instrutor.
+- **Designação do calunga** (0018): `perfis.numero_esq`, `numero_dir`,
+  `nome_fracao`; só o instrutor define (trigger `fn_proteger_campos_do_perfil`).
+  Sem número, o símbolo escreve o nome de guerra; com número, os números
+  assumem. Os clientes **toleram banco sem a coluna** (42703).
+- **Administrador** (0019): `perfis.administrador` + `fn_sou_admin()`. Comanda
+  todas as turmas, **menos apagar turma**. Só o SQL Editor/`service_role`
+  concede; a trigger recusa o resto. Quem escrever uma policy nova de turma deve
+  passar por `fn_sou_instrutor_da_turma` (já aceita o administrador); policy que
+  compare `turmas.instrutor_id = auth.uid()` direto **não** enxerga o
+  administrador.
+- **Cadastro público** continua aberto, protegido só pelo código da turma:
+  trocar o `codigo_acesso` por algo difícil de adivinhar.
+- Testes SQL: **um banco limpo por suíte**; distinguir `erro` de `zero linhas`.
+  Suítes novas: 07 (modo de posição), 08 (papel no cadastro), 09 (designação),
+  10 (administrador).
+
+Detalhe, decisões e limites conhecidos: `docs/historico-de-decisoes.md`,
+seção 33. Pendente de teste ao vivo: importar uma turma descartável.
+
 **2026-09-19.** `0001`–`0015` aplicadas em produção, nenhuma pendente. As
 catorze entregas de setembro confirmadas funcionando no uso normal.
 

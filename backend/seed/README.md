@@ -76,3 +76,20 @@ quem já está treinando.
 ## Aviso
 
 Senhas padronizadas e e-mails fictícios são adequados para um exercício de instrução controlado. Não leve esse esquema para nada que trate informação real ou sensível.
+
+## Importar uma turma inteira pelo app (planilha → CSV)
+
+Desde 2026-10-03 há um caminho que **não usa este script**: no painel do
+instrutor, aba "Nova turma (CSV)". Use o modelo `modelo-importacao-turma.xlsx`
+desta pasta (abas Pessoas, Instruções, Listas e Exemplo), salve a aba Pessoas
+como CSV UTF-8 e suba o arquivo. Quem cria as contas é a Edge Function
+`importar-turma`. **O CSV tem senhas: não o coloque no repositório.**
+
+Colunas do modelo: `usuario`, `senha`, `nome_completo`, `nome_guerra`,
+`posto_graduacao`, `papel` (`instrutor` ou `aluno`), `partido` (Azul ou
+Vermelho; obrigatório para aluno), `dimensao`, `escalao`, `natureza_code`, e as
+três da designação do símbolo: **`numero_esq`** (número à esquerda, ex.: `1`),
+**`numero_dir`** (à direita, ex.: `2`) e **`nome_fracao`** (texto livre até 20
+caracteres, só no popup). O 1º Pelotão do 2º Esquadrão é escalão `PEL`, esq `1`,
+dir `2`. Com algum número preenchido o nome de guerra deixa de aparecer ao lado
+do símbolo. Contas que já existem não são movidas.

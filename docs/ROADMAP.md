@@ -626,13 +626,37 @@ que vieram junto:
 Roteiro de campo: bloco **18** novo (8 itens), e os itens `15h`, `15i` e
 `15l2` mudaram de significado.
 
+### 2026-10-02/03 — modo de posição, turma por CSV, designação do calunga e administrador (0016–0019)
+
+Quatro entregas, nascidas da pergunta "como isolar um exercício do outro sem
+perder o histórico?". Decisão: **uma turma nova por exercício**.
+
+- **Modo de posição da turma (0016):** GPS ou simulação (o aluno posiciona o
+  posto no mapa). `externa` reservada para o simulador externo.
+- **Turma por CSV (2c):** aba "Nova turma (CSV)" + Edge Function
+  `importar-turma` + modelo Excel em `backend/seed/`.
+- **Correção de segurança (0017):** o papel de uma conta nova não vem mais dos
+  metadados do cadastro.
+- **Designação do calunga (0018):** número à esquerda e à direita do símbolo, e
+  nome da fração no popup. Só o instrutor define.
+- **Administrador (0019):** uma conta que comanda todas as turmas; só o SQL
+  Editor concede; não apaga turma.
+
+**Estado: `0001`–`0019` aplicadas no Supabase de produção** (0017–0019
+conferidas por consulta de leitura em 2026-10-03). SQL: 10 suítes, todas verdes
+em banco limpo. Node: 18 + 92 + 51 nas suítes novas. **Pendente de teste ao
+vivo:** a primeira importação de uma turma descartável de 2 contas, o painel
+logado como administrador e os números no mapa com dois celulares. Detalhe e
+decisões em `docs/historico-de-decisoes.md` (seção 33). Itens de campo: bloco 19
+de `docs/roteiro-teste-campo.md`.
+
 ## A fazer, em ordem
 
 - [ ] **Etapa 2 — Autenticação e papéis** *(em andamento — dividida em 2a e 2b)*
 
   - [x] **2a.1 — Projeto Supabase no ar.** Projeto criado (região sa-east-1), extensões `postgis` e `pgcrypto` habilitadas, migrations `0001` e `0002` aplicadas pelo SQL Editor e verificadas: 8 tabelas, 8 com RLS, 22 políticas, 16 permissões no catálogo. Confirmação de e-mail desligada, para permitir e-mails fictícios em campo.
   - [x] **2b — Tela de login e roteamento por papel.** `frontend/login.html` com cadastro e login por *usuário* + senha (o domínio `@wartool.local` é acrescentado pelo código em `frontend/auth.js`; o usuário nunca digita e-mail nem vê a palavra "e-mail"). Cadastro pede também o nome de guerra (grava em `perfis.nome_guerra`) e entra automaticamente na turma `TESTE` via RPC `entrar_na_turma` de verdade. Sessão persiste ao recarregar (supabase-js guarda o token no navegador), papel é lido de `perfis.papel` e direciona para `frontend/index.html` (aluno) ou `frontend/instrutor.html` (esqueleto do painel, completo na Etapa 6). Logout, sessão expirada, usuário sem turma e usuário/senha inválidos tratados com mensagens em PT-BR. `frontend/config.js` (gitignored) + `config.example.js` (modelo) para a Project URL/anon key.
-  - [x] **2c — Seed dos usuários do exercício** *(feita em 2026-10-02: `backend/seed/criar_usuarios.mjs` pela linha de comando e, no painel do instrutor, a aba "Nova turma (CSV)" com a Edge Function `importar-turma`, que cria turma + contas a partir do modelo `backend/seed/modelo-importacao-turma.xlsx`. Pendente de teste ao vivo: publicar a função e importar uma turma descartável de 2 contas.)*. Script que lê `backend/seed/usuarios_exercicio.csv` e cria as contas via Admin API, já com papel, turma, nome de guerra e SIDC. O CSV modelo e a documentação já existem em `backend/seed/`. Enquanto isso, o cadastro é aberto e o símbolo de cada um fica no padrão do schema.
+  - [x] **2c — Seed dos usuários do exercício** *(feita em 2026-10-02/03: `backend/seed/criar_usuarios.mjs` pela linha de comando e, no painel do instrutor, a aba "Nova turma (CSV)" com a Edge Function `importar-turma`, que cria turma + contas a partir do modelo `backend/seed/modelo-importacao-turma.xlsx`, agora também com número à esquerda/direita e nome da fração. Pendente de teste ao vivo: importar uma turma descartável de 2 contas e conferir em Authentication e em `perfis`.)*. Script que lê `backend/seed/usuarios_exercicio.csv` e cria as contas via Admin API, já com papel, turma, nome de guerra e SIDC. O CSV modelo e a documentação já existem em `backend/seed/`. Enquanto isso, o cadastro é aberto e o símbolo de cada um fica no padrão do schema.
 
   Complexidade: média. Modelo sugerido: intermediário.
 

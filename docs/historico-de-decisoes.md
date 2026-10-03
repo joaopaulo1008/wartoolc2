@@ -59,6 +59,7 @@ As seções mais caras de reaprender, se um dia sumirem da sua memória:
 30. [Situação do usuário e pedido de apoio (2026-09-15) — migration 0014](#situacao-do-usuario-e-pedido-de-apoio-2026-09-15-migration-0014)
 31. [A resposta do instrutor ao pedido de apoio (2026-09-15) — migration 0015](#a-resposta-do-instrutor-ao-pedido-de-apoio-2026-09-15-migration-0015)
 32. [O mapa abre onde as pessoas estão (2026-09-15) — sem migration](#o-mapa-abre-onde-as-pessoas-estao-2026-09-15-sem-migration)
+33. [Simulação, turma por CSV, designação do calunga e administrador (2026-10-02/03) — migrations 0016 a 0019](#simulacao-turma-por-csv-designacao-do-calunga-e-administrador-2026-10-0203-migrations-0016-a-0019)
 
 ---
 
@@ -1696,3 +1697,111 @@ degenerado travado nos dois sentidos (metade da tolerância ainda é ponto; o
 dobro já é área) e com ponto inválido no meio da lista provando que não
 contamina a caixa. **895 casos de frontend** em catorze suítes; `npm run build`.
 Sem migration e sem mudança de banco.
+
+---
+
+### Simulação, turma por CSV, designação do calunga e administrador (2026-10-02/03) — migrations 0016 a 0019
+
+Quatro entregas encadeadas, nascidas de uma pergunta: *como isolar um exercício
+do outro sem perder o histórico da turma atual?*
+
+**Isolar exercícios: uma turma nova por exercício (Opção A).** Decidido pelo
+João. A turma é a unidade de isolamento (`perfis.turma_id` é único por usuário),
+então o exercício novo é uma turma nova e a atual, com o histórico dela, não é
+tocada. O instrutor não move aluno de turma (a RLS impede, de propósito): o aluno
+entra pelo código (`entrar_na_turma`) ou já nasce na turma, criado por quem tem a
+`service_role`.
+
+**Modo de posição da turma (0016, commit `3b87f31`).** `turmas.modo_posicao`
+(`gps` | `manual`; `externa` reservada, ainda sem uso) e `posicoes.origem`. Em
+simulação o aluno posiciona o próprio posto no mapa, sem GPS, e o app marca a
+posição como manual (selo de simulação, popup "Posição manual"). Suíte SQL 07
+(36 asserções). Preparação para o simulador externo (Steel Beasts/SABRA), que
+fica para depois.
+
+**Turma por CSV (etapa 2c, commit `43ae03f`).** Aba "Nova turma (CSV)" no painel
+do instrutor. O nome, o código de acesso e o modo da turma são digitados na
+tela; as pessoas vêm da planilha (`backend/seed/modelo-importacao-turma.xlsx`,
+salva como CSV). Quem cria as contas é a **Edge Function `importar-turma`**
+(`backend/supabase/functions/importar-turma/`), porque criar conta com papel
+exige a `service_role`, que nunca vai para o navegador. Regras da função:
+só chama quem tem `papel = 'instrutor'`; revalida tudo (o cliente pode ser
+contornado); a turma nasce com `instrutor_id` = quem chamou; conta que já existe
+**não é movida** nem tem senha trocada; o papel é gravado por UPDATE da própria
+função e **nunca por metadados**; se nenhuma conta for criada a turma é apagada
+de volta; a resposta nunca carrega senha. A regra pura mora em `logica.js` (sem
+Deno, testada em Node com um cliente de mentira: 51 casos) e o navegador valida
+antes de enviar (`importar-turma.js`: 92 casos, incluindo "pontes" que leem o
+SQL e o servidor para garantir que os limites são os mesmos nos três lados).
+O CSV do Excel brasileiro usa `;` e às vezes Windows-1252: ambos tratados.
+Para publicar: `npx supabase functions deploy importar-turma --use-api
+--workdir backend --project-ref <ref>` (o `--workdir backend` é porque as
+funções ficam em `backend/supabase/functions`).
+
+**Achado de segurança, corrigido na 0017 (commit `e2981fc`).** A trigger de
+criação de perfil lia `papel` de `raw_user_meta_data`, que no `signUp` público
+vem do navegador: quem chamasse `signUp` com `data: { papel: 'instrutor' }`
+nascia instrutor. Reproduzido num Postgres e fechado: o perfil nasce **sempre**
+`usuario`. Suíte SQL 08 (12 asserções; 6 de 14 passavam antes da 0017). **A 0017
+não rebaixa ninguém**: a consulta de auditoria está no cabeçalho dela. Em
+2026-10-03, ao aplicá-la, havia dois instrutores (a conta do João e a
+"Instrutor 1", criada no mesmo dia).
+
+**Designação do calunga (0018).** "Calunga" é o nome que o João dá ao símbolo
+militar no mapa. Cada um pode ter um número **à esquerda** (designação) e um
+**à direita** (subordinação): o 1º Pelotão do 2º Esquadrão é `1 [símbolo] 2`,
+com os três pontos do escalão PEL vindo do SIDC. Mais o **nome da fração**
+(texto livre, até 20 caracteres), que aparece **só no popup**. Colunas
+`perfis.numero_esq`, `numero_dir` (1 a 4 caracteres) e `nome_fracao` (1 a 20),
+sem espaço nas pontas, vazio é NULL. **Só o instrutor da turma define**: a
+trigger `fn_proteger_campos_do_perfil` recusa o aluno com 42501 (é atribuição
+de comando, como o partido). Regra de compatibilidade: **sem nenhum número, o
+símbolo continua escrevendo o nome de guerra** ao lado; com pelo menos um
+número, os números assumem a identificação e o nome de guerra sai do desenho
+(o João identifica a conta pelo usuário). O milsymbol não tem campo para o
+número da esquerda (`uniqueDesignation` e `higherFormation` são ambos da
+direita), então os números são spans posicionados a partir da âncora do
+símbolo (`icones.js`). Módulo puro `designacao.js` (18 casos); editor por aluno
+no painel do instrutor; as três colunas na planilha e na Edge Function; os
+clientes **toleram banco sem a 0018** (erro 42703, repetem a consulta sem as
+colunas), para o deploy do front não quebrar o mapa se vier antes do SQL. Suíte
+SQL 09 (18 asserções). Conferido num Chromium: `1 [símbolo] 2`, nome de guerra
+mantido sem número, texto estranho aparece como texto e não como HTML.
+
+**Administrador de todas as turmas (0019).** Até aqui um instrutor só mandava
+numa turma se estivesse lotado nela ou fosse o responsável (`turmas.instrutor_id`).
+A 0019 cria `perfis.administrador` e `fn_sou_admin()` (exige `papel = 'instrutor'`).
+Como quase toda policy do projeto passa por `fn_sou_instrutor_da_turma`, **um
+ponto cobre a maioria**; os que não passam por ela foram tratados à parte:
+`turmas_ler`, `turmas_editar` e `fn_usuarios_visiveis`. **O administrador NÃO
+apaga turma** (`turmas_remover` ficou como estava: apagar leva o histórico por
+cascade e não deve ser consequência de um papel amplo). **Ninguém concede a
+marca pelo app**: a trigger recusa (42501) aluno, instrutor e o próprio
+administrador; só o SQL Editor/`service_role` grava. Concedido a `joao@wartool.local`.
+Suíte SQL 10 (29 asserções), com mutação: desligar cada mudança da migration
+derruba os testes que a protegem. O painel espelhava a regra no cliente e
+mostrava o aviso "você não é o instrutor responsável" mesmo para o
+administrador: corrigido (commit `1000bce`). **A conta do administrador não
+deve ser compartilhada**: comprometê-la dá acesso a todas as turmas.
+
+**Cadastro público: decisão de manter como está (2026-10-03).** Quem sabe o
+código de acesso de uma turma ativa ainda cria conta sozinho e entra nela, mesmo
+sem estar no CSV. Entra como aluno, sem partido, e não vê nada até ser
+distribuído. O código é a senha do exercício: **trocar `turmas.codigo_acesso`
+por algo difícil de adivinhar** (quem veio do CSV não precisa dele). Alternativas
+discutidas e **não** feitas: desligar o signup no painel do Supabase; um
+interruptor `aceita_cadastro` por turma (migration futura).
+
+**Verificação.** SQL, cada suíte num banco limpo, 0001–0019: 43 + 26 + 11 + 28 +
+23 + 37 + 36 + 12 + 18 + 29. Node: 18 (`designacao`), 92 (`importar-turma`), 51
+(`logica`). `npm run build` compila. **Medido no Supabase real** (consultas só de
+leitura, 2026-10-03): 0017 aplicada, 0018 com as 3 colunas, 0019 com a coluna, a
+função e uma única conta administradora. **NÃO testado no Supabase real**: a
+função `importar-turma` publicada (o João a publicou; a primeira importação com
+uma turma descartável de 2 contas ainda deve ser conferida em Authentication e
+em `perfis`), o painel logado como administrador, e os números do símbolo no
+app inteiro. Limites conhecidos: ao mudar a **própria** designação com o app
+aberto, o aluno só vê ao recarregar (os colegas veem ao vivo); o aluno ainda
+consegue trocar o próprio `sidc` pelo console (nota da 0012, não mexida); o
+popup de colegas escreve o nome de guerra sem escapar HTML (já era assim; o
+nome da fração é escapado).

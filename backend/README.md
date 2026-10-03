@@ -378,6 +378,40 @@ update public.perfis set papel = 'instrutor'
 where id = (select id from auth.users where email = 'instrutor@exemplo.mil');
 ```
 
+## Migrations 0016 a 0019 (2026-10)
+
+Aplicar em ordem no SQL Editor; todas idempotentes.
+
+| Migration | O que faz | Suíte de teste |
+|---|---|---|
+| `0016_modo_posicao_simulacao.sql` | `turmas.modo_posicao` (`gps`/`manual`) e `posicoes.origem` | `07_teste_modo_posicao.sql` |
+| `0017_papel_nao_vem_do_cliente.sql` | o perfil de uma conta nova nasce **sempre** `usuario` (antes lia o papel dos metadados do `signUp`) | `08_teste_papel_no_cadastro.sql` |
+| `0018_designacao_do_calunga.sql` | `perfis.numero_esq`, `numero_dir`, `nome_fracao`; só o instrutor altera | `09_teste_designacao.sql` |
+| `0019_administrador_de_todas_as_turmas.sql` | `perfis.administrador` e `fn_sou_admin()`; comanda todas as turmas, menos apagar | `10_teste_administrador.sql` |
+
+**A 0017 não rebaixa ninguém.** Depois de aplicá-la, audite os instrutores:
+
+```sql
+select p.id, p.nome_guerra, p.nome_completo, u.email, u.created_at, p.turma_id
+from public.perfis p join auth.users u on u.id = p.id
+where p.papel = 'instrutor' order by u.created_at;
+```
+
+**Dar (ou tirar) o papel de administrador** só funciona no SQL Editor; o app
+não consegue (a trigger recusa):
+
+```sql
+update public.perfis set administrador = true
+ where id = (select id from auth.users where email = 'joao@wartool.local');
+```
+
+**Edge Function `importar-turma`** (cria turma + contas a partir do CSV): ver
+`backend/supabase/functions/importar-turma/README.md`. Publicar com
+`npx supabase functions deploy importar-turma --use-api --workdir backend --project-ref <ref>`.
+
+Os testes SQL esperam um banco **limpo** por suíte (`00_stub_supabase.sql`, as
+migrations em ordem e então o arquivo de teste). Nunca contra produção.
+
 ## Próximo passo
 
 **Etapa 6a — Painel do instrutor (permissões por usuário): concluída.** Também sem migration nova: as três tabelas de permissão, a `vw_permissoes_efetivas` e a publicação delas no Realtime existem desde a `0001`/`0002` — a 6a foi a primeira a usá-las, em `frontend/permissoes.js` (fonte única de permissão no cliente) e `frontend/instrutor-permissoes.js` (a tela). Ver [../docs/ROADMAP.md](../docs/ROADMAP.md) e a seção "Decisões da Etapa 6a" em [../CLAUDE.md](../CLAUDE.md).
