@@ -4,8 +4,8 @@ Registro cronológico de **por que** cada entrega ficou do jeito que ficou.
 Saiu do `CLAUDE.md` em 2026-09-19, quando aquele arquivo passou de 247 KB
 (≈ 62 mil tokens carregados a cada sessão) para um manual de operação curto.
 
-**Nada aqui foi reescrito ou resumido** — as 32 seções estão
-íntegras, na ordem original.
+**Nada aqui foi reescrito ou resumido** — as 32 seções originais estão
+íntegras, na ordem original; as de número 33 e 34 nasceram já aqui.
 
 ## Como usar este arquivo
 
@@ -60,6 +60,7 @@ As seções mais caras de reaprender, se um dia sumirem da sua memória:
 31. [A resposta do instrutor ao pedido de apoio (2026-09-15) — migration 0015](#a-resposta-do-instrutor-ao-pedido-de-apoio-2026-09-15-migration-0015)
 32. [O mapa abre onde as pessoas estão (2026-09-15) — sem migration](#o-mapa-abre-onde-as-pessoas-estao-2026-09-15-sem-migration)
 33. [Simulação, turma por CSV, designação do calunga e administrador (2026-10-02/03) — migrations 0016 a 0019](#simulacao-turma-por-csv-designacao-do-calunga-e-administrador-2026-10-0203-migrations-0016-a-0019)
+34. [As quatro entregas de UX: toque longo, grade, coordenada e o fim do toque curto (2026-09-19 a 2026-10-03) — sem migration](#as-quatro-entregas-de-ux-toque-longo-grade-coordenada-e-o-fim-do-toque-curto-2026-09-19-a-2026-10-03-sem-migration)
 
 ---
 
@@ -1805,3 +1806,270 @@ aberto, o aluno só vê ao recarregar (os colegas veem ao vivo); o aluno ainda
 consegue trocar o próprio `sidc` pelo console (nota da 0012, não mexida); o
 popup de colegas escreve o nome de guerra sem escapar HTML (já era assim; o
 nome da fração é escapado).
+
+
+---
+
+### As quatro entregas de UX: toque longo, grade, coordenada e o fim do toque curto (2026-09-19 a 2026-10-03) — sem migration
+
+Quatro entregas seguidas, e o que as une não é o código: **nenhuma delas toca o
+banco.** Nenhuma migration, nenhuma chave nova em `catalogo_permissoes`,
+nenhuma dependência nova no `package.json`. Todas mudam a mesma coisa — **como
+o mapa é lido e como ele é tocado.**
+
+Isso importa para quem vier depois: quando a próxima reclamação for "a tela
+está difícil de usar", o caminho provavelmente não passa pelo backend, e as
+decisões abaixo são o repertório.
+
+#### 1. O gesto virou módulo puro (`toque-longo.js`)
+
+O toque longo nasceu em 2026-09-14 dentro de `paleta-tela.js`, à mão, com
+pointer events. O menu de contexto do mapa foi o segundo consumidor — e a regra
+do projeto é extrair na segunda vez.
+
+A extração não foi arrumação. **A versão original não tinha tolerância de
+movimento:** `pointerdown` armava o cronômetro, e só soltar ou cancelar o
+desarmava. Rolar o formulário com o dedo em cima de um botão disparava o gesto.
+O roteiro de campo já suspeitava disso por escrito, no item `15j`, chamando-o de
+*"o gesto mais frágil da entrega"* — mas ninguém tinha conseguido reproduzir de
+propósito. Com a regra fora do DOM, o caso virou três linhas de teste.
+
+**O defeito que o teste em Node pegou e um celular não pegaria.** A primeira
+máquina de estado CONTAVA dedos na tela, para a pinça lenta não virar toque
+longo (quem aproxima o zoom devagar segura o primeiro dedo por mais de meio
+segundo antes de o segundo encostar). Quando o navegador **não entrega o
+`pointerup`** — o dedo sai durante uma rolagem, o elemento some, a página muda —
+o contador travava em 1, e todo toque seguinte era lido como "segundo dedo". **O
+gesto morria para sempre, em silêncio**, e quem estivesse com o app na mão só
+veria que parou de abrir.
+
+O conserto foi guardar o IDENTIFICADOR de cada dedo num conjunto, em vez de
+contar: um `pointerdown` de um identificador que já está lá é a prova de que a
+soltura dele se perdeu, e o estado velho é jogado fora. A lição é a de sempre
+neste projeto, por outro caminho: **o estado que só cresce precisa de uma forma
+de se provar errado.**
+
+#### 2. O menu de contexto (`menu-contexto.js`)
+
+**Por que não é um `L.popup`.** Seria o caminho óbvio e está errado por dois
+motivos: o popup do Leaflet é único por mapa (abrir este FECHARIA o popup da
+marcação que a pessoa estivesse lendo, e vice-versa), e ele entra na mesma fila
+de cliques que criou o bug de 2026-08-01. Um `<div>` posicionado à mão dentro do
+contêiner do mapa não disputa nada com ninguém.
+
+**A fila de cliques, pela terceira porta.** O toque longo dispara com o dedo
+AINDA na tela; o `click` do Leaflet vem depois, no `pointerup`. Sem tratamento,
+o mesmo gesto abriria o menu e, por baixo dele, o formulário de marcação. A
+solução não foi nova — `suspenderClique()`/`retomarClique()`, a convenção que
+`offline-tela.js` usa desde 2026-08-01.
+
+Mas ela **virou contador**. Com booleano, o segundo consumidor a soltar
+desligava a suspensão do primeiro: abrir o menu durante um desenho de área
+offline devolvia o clique para `marcacoes.js` e reproduzia o bug original por
+outra porta. É o tipo de regressão que não aparece em teste de unidade porque
+depende de dois módulos estarem ativos ao mesmo tempo.
+
+**FONTE ÚNICA na guarda.** "Pode criar marcação neste ponto?" ficou em
+`avaliarAbertura()`, consultada pelos dois caminhos. Uma segunda cópia seria a
+chance de uma delas divergir — e a que divergisse seria, por azar estatístico, a
+que deixa criar depois de o instrutor ter desabilitado.
+
+**As duas linhas de leitura do menu.** A coordenada e a visada aparecem **lidas
+na própria linha**, não atrás de uma tela que se abre. Foi o que tornou a
+entrega barata: o que parecia ser "duas telas novas" é uma linha de texto cada,
+porque as contas já existiam (`visada.js` desde 2026-08-02, `preferencias.js`
+desde a 9b).
+
+#### 3. O UTM inverso e a grade de quadrículas
+
+**Por que o inverso teve de existir.** Até aqui só havia o caminho de ida, e
+bastava: as telas recebiam lat/lon do GPS e precisavam ESCREVER a posição. A
+grade inverte o problema — uma linha de quadrícula é definida por um valor
+redondo de ESTE (584 000 m), e o Leaflet só entende lat/lon. Sem `deUtm()` não
+existe grade UTM: existiria uma grade geográfica fingindo ser UTM, que é pior
+que não ter nenhuma.
+
+É a Transversa de Mercator inversa de Snyder (§8), com as MESMAS constantes do
+caminho de ida — de propósito, porque duas tabelas de constantes é como ida e
+volta deixam de fechar. Erro medido contra o PROJ 9.5.1: **5×10⁻¹⁰ grau, cerca
+de 0,06 mm.**
+
+**Metade da tabela de referência do teste é de interseções de grade**, com este
+e norte redondos. Testar apenas pontos que foram para UTM e voltaram verifica o
+fechamento ida-e-volta, que é mais fraco: **um erro presente nos dois sentidos
+se cancela e o teste passa.** As linhas de grade nunca passaram pelo caminho de
+ida, e são o uso real do código.
+
+**A zona forçada (extensão de zona).** `paraUtm()` ganhou um parâmetro para
+converter NA ZONA PEDIDA em vez de na zona natural da longitude. Sem isso, a
+grade quebra no meio da tela quando a vista cruza um fuso: as linhas da zona 21
+precisam continuar a leste de 54° W, e `zonaUtm()` devolveria 22 para esses
+pontos, com um salto de 500 km no valor do este. **Não é hipótese:** Rosário do
+Sul/RS é 21J, Santa Maria/RS é 22J, a fronteira corre 88 km a leste de Rosário,
+e o próximo exercício é lá. Fora da zona natural a distorção cresce, e por isso
+o parâmetro não é o padrão — só quem desenha grade pede.
+
+**O piso de 1 km é estrutural, não uma checagem.** Pedido de quem usa: a
+quadrícula acompanha o zoom, mas nunca fica menor que 1 km. A lista de passos
+começa em 1000 m e `passoUtm()` só escolhe de dentro dela — **não há caminho no
+código que produza 500 m.** Uma verificação `if (passo < 1000)` seria uma
+segunda regra, esquecível; a lista é a regra.
+
+**O teto SOBE o passo, em vez de cortar linhas.** Sem teto, um zoom afastado
+pede milhares de polilinhas e o celular trava — mesma disciplina do teto de 60
+rótulos de calco. Mas cortar pela metade produziria uma grade ERRADA: metade
+das linhas num espaçamento que não é o declarado. Uma grade de 10 km onde se
+pediu 1 km continua sendo uma grade de 10 km, e a legenda diz qual é.
+
+**Linha UTM tem 5 vértices; linha geográfica tem 2.** No EPSG:3857 as linhas de
+latitude e longitude são retas; as de este e norte se inclinam pela
+**convergência meridiana** — a mesma que `visada.js` calcula para corrigir o
+azimute, e que no Paraná chega a ~0,4°. Numa tela de 1000 px isso é
+deslocamento de vários pixels entre o topo e a base: uma linha desenhada com
+dois vértices sairia visivelmente torta em relação à verdadeira.
+
+**A pane em `zIndex 350`: a quadrícula é CARTA, não situação tática.** Acima dos
+tiles, **abaixo** dos calcos e dos símbolos. Numa carta de papel a quadrícula
+está impressa debaixo de tudo que se desenha em cima, e é assim que se lê: a
+grade não disputa atenção com o símbolo, ela localiza o símbolo. Consequência
+declarada: um polígono de calco opaco cobre a grade naquele pedaço, e isso é o
+comportamento certo.
+
+**Os rótulos são os DÍGITOS PRINCIPAIS.** Em carta militar a linha não é
+rotulada com o valor inteiro: são os dois algarismos do quilômetro que mudam
+dentro da folha — 584 km vira **84**. É o que se dita no rádio e o que se lê na
+margem. O valor inteiro não desaparece: vai para a legenda do canto junto com a
+zona, porque dois dígitos sem zona e sem a centena não localizam nada (repetem a
+cada 100 km).
+
+#### 4. A barra de coordenada (`barra-coordenada.js`)
+
+O pedido foi "a coordenada da posição do mouse, parecido com o Google Earth". O
+que ele esconde decidiu o desenho: **não existe cursor em tela de toque**, e o
+dedo tapa exatamente o ponto que aponta.
+
+São duas interfaces, e a escolha foi de quem usa: no monitor a coordenada SEGUE
+o cursor; no celular uma cruz fina no CENTRO, e a coordenada é a dela — como se
+lê carta, pondo o centro no ponto.
+
+**A detecção é por `(hover: hover) and (pointer: fine)`, não por string de
+navegador.** User-agent mente, e mente em campo: tablet com teclado acoplado,
+celular em "modo desktop", notebook com tela de toque. A media query responde
+sobre o aparelho de entrada EM USO, que é exatamente a pergunta.
+
+**A zona UTM só aparece quando o formato não a traz.** Em UTM o texto já começa
+com ela; em grau decimal e GMS ela não apareceria em lugar nenhum — e com o
+exercício mudando de estado isso deixou de ser detalhe.
+
+#### 5. O fim do toque curto (2026-10-02)
+
+Relato de quem usa: *"quando a pessoa toca na tela por acidente, para mostrar
+alguma coisa ou pra arrastar o mapa, que o menu não abra"*.
+
+Não era incômodo de interface. **Era o aluno gravando elemento inimigo sem
+querer**, e depois tendo que achar e remover a marcação fantasma. Apontar algo
+na tela com o dedo e começar um arrasto são gestos que acontecem o tempo todo
+num exercício, e os dois terminavam num formulário aberto.
+
+Criar marcação passou a ser **só pelo menu do toque longo** — que é justamente o
+gesto que não dispara por acidente, porque tem tolerância de movimento e morre
+quando um segundo dedo encosta. É a convenção do Google Maps e do ATAK: toque
+curto inspeciona, toque longo age.
+
+**O que isso obrigou.** `situacao.js` marcava pelo MESMO `map.on('click')`. Sem
+o menu ligado na aba do instrutor, ele ficaria sem nenhum caminho para marcar.
+Não foi escopo extra: foi a consequência, e entrou no mesmo commit. É o padrão a
+repetir — **quando se tira um caminho de entrada, procurar todos os
+consumidores dele antes de commitar, não depois do relato.**
+
+**Reversível, e está escrito que é.** O ganho é não marcar sem querer; o custo é
+meio segundo a mais por marcação. Se em campo não compensar, volta — item `18h`
+do roteiro.
+
+#### 6. `preferencias.js` virou registro; `preferencias-tela.js` fala dois idiomas
+
+A Etapa 9b escreveu em `preferencias.js` que o encanamento existia "para a
+próxima chave ser barata". **Não existia:** estava cravado numa chave só —
+uma variável, um conjunto de observadores, uma função de gravação. A grade foi a
+segunda chave, e a generalização aconteceu aí, não na terceira. As cinco
+exportações que os consumidores já usavam continuaram idênticas; viraram casca
+fina sobre o registro.
+
+Vale como aviso geral: **um comentário que promete extensibilidade não é
+extensibilidade.** Este ficou um mês no arquivo sem ninguém notar que era falso.
+
+`preferencias-tela.js` nasceu quando o painel do instrutor virou o segundo
+consumidor dos seletores, que viviam soltos dentro do `<script>` do
+`index.html`. Ele aceita **rádios** (o cartão do aluno, que tem espaço e mostra
+a escolha inteira) e **`<select>`** (a coluna do instrutor, estreita, com a
+lista da turma disputando a altura, e onde "Mapa base" já era assim desde a
+Etapa 6c). Impor rádios ao instrutor deixaria um bloco destoante do painel dele;
+duas funções quase iguais é o que a extração evita.
+
+#### 7. As três telas (2026-10-03)
+
+Relato: *"ficou faltando as grades, quadrículas e coordenada no mapa do
+instrutor"*. A grade e a barra existiam só no app do aluno.
+
+**A surpresa que definiu o escopo:** `instrutor.html` não tinha controle de
+coordenada nenhum. `iniciarPreferencias()` rodava lá, mas não havia interface
+para escolher — então ligar a grade sozinha seria **código morto para um
+instrutor** que nunca abriu o app do aluno. A entrega não era "duas chamadas";
+era duas chamadas mais um controle, e o controle puxou a extração do item 6.
+
+O **debriefing** entrou junto, por decisão do João: rever um exercício é
+justamente quando se pergunta "onde foi isso". **Sem controle próprio** — a
+preferência é de quem olha, não da tela, e vale nas três de uma vez.
+
+Quatro decisões de lugar, todas conferidas no código antes de escrever:
+
+- O painel da aba fica **em fluxo** ao lado do mapa, não sobrepondo — então os
+  rótulos da margem direita e a legenda do canto não caem debaixo dele. Era a
+  maior dúvida antes de começar, e se resolveu sozinha.
+- A barra vai na **faixa de status sob o mapa**, não no `#footer` da página: ali
+  ela está encostada no mapa, que é onde se olha. No app do aluno o rodapé É a
+  borda do mapa; no painel não é.
+- O debriefing tem **elemento próprio** para a barra. São duas instâncias de
+  Leaflet independentes (ver a Etapa 6c para por que elas não se compartilham),
+  e uma barra compartilhada mostraria a coordenada do mapa que não está à vista.
+- As fiações entram **dentro de `garantirMapa()`**, que retorna cedo quando o
+  mapa já existe — rodam uma vez, não a cada abertura de aba nem a cada troca de
+  turma. Não são por turma, e por isso também não entram no teardown da turma.
+
+#### A lição transversal: teste em Node não substitui navegador
+
+As suítes em Node pegaram o que era regra. **Dois defeitos da grade só
+apareceram no Chromium**, e nenhum dos dois fazia a tela parecer quebrada:
+
+1. **`L.layerGroup([], { pane })` NÃO propaga a pane para as camadas filhas.**
+   As linhas caíam na `overlayPane` — acima dos calcos, o contrário exato da
+   decisão documentada no cabeçalho do próprio arquivo. **O comentário estava
+   certo e o código não o cumpria**, e a grade aparecia bonita do mesmo jeito.
+2. A legenda montava sobre a atribuição do Leaflet, e o rótulo mais alto da
+   margem esquerda ficava atrás do controle de zoom.
+
+O arcabouço que os encontrou é barato de refazer e vale como receita: copiar
+`frontend/` para uma pasta temporária, **trocar `auth.js` por um dublê** (é ele
+que arrasta o Supabase), montar uma página mínima com o módulo sob teste, e
+dirigir com Playwright + o Chromium já instalado no container. Um terceiro
+defeito — o rótulo vazando da tela — era na verdade defeito do arcabouço
+(faltava a `<meta name="viewport">`), e foi medido antes de virar "conserto" de
+um código que estava certo.
+
+#### O que ficou medido e NÃO entregue
+
+**A tabela de escalão em `simbolos.js` está deslocada em uma posição.** Medido
+rodando a própria milsymbol código por código: `BN` vai para `'15'`, que
+desenha `I` (companhia); `ESC` vai para `'14'`, que desenha `•••` (pelotão). E
+pior: `CRP` (`'19'`) e `EX` (`'20'`) **não desenham nada** — não existem no
+APP-6D. A tabela veio de `legacy-qgis/cop_tatico_v7.py` e está intocada desde a
+Etapa 4.5, então todo SIDC já gravado carrega o dígito errado.
+
+Decisões do João já tomadas: `Grupo` e `Batalhão` = `II`; **`Regimento` =
+`III`** (motivo histórico — na cavalaria as unidades desse escalão se chamam
+regimentos); `Companhia`, `Bateria` e `Esquadrão` = `I`; e o `update` pontual
+nos SIDC gravados vale a pena. **Em espera a pedido dele**, com o resto do item
+de simbologia.
+
+Fica registrado aqui porque a medição é a parte cara: a correção em si é uma
+tabela de treze linhas.

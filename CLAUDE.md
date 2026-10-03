@@ -285,6 +285,13 @@ consumidor dos seletores, que viviam soltos dentro do `index.html`. O
 debriefing **não** ganhou controle próprio — a preferência é de quem olha, não
 da tela, e vale nas três de uma vez.
 
+**O raciocínio das quatro entregas de UX** (toque longo, grade, coordenada e o
+fim do toque curto, de 2026-09-19 a 2026-10-03) está em
+`docs/historico-de-decisoes.md`, **seção 34** — por que o gesto virou módulo
+puro, por que a grade UTM exigiu o UTM inverso, por que a pane fica abaixo dos
+calcos, e os dois defeitos que só o navegador pegou. As regras destiladas delas
+já estão acima, em forma imperativa; a seção guarda o porquê.
+
 **O toque curto deixou de criar marcação (2026-10-02).** Tocar na tela para
 apontar algo, ou para começar um arrasto, abria formulário sozinho. Criar
 marcação é só pelo menu do toque longo agora — o gesto que não dispara por
