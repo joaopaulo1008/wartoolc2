@@ -34,6 +34,36 @@
 // ajuda.
 export const LARGURA_PAINEL_ABERTO = 820;
 
+// ── O cartão precisa nascer recolhido NO HTML, não em JavaScript ───────────
+// Relato recorrente: *"sempre que se faz o login, os cards começam todos
+// abertos e se fecham depois de alguns segundos"*.
+//
+// A causa não era lentidão, era ORDEM. `tornarRecolhivel()` faz três coisas,
+// todas em JS: injeta o CSS, envolve o conteúdo num `.pl-corpo` e põe a classe
+// `pl-recolhido`. Antes dele rodar não existe `.pl-corpo` nenhum — então a
+// regra `.pl-recolhido .pl-corpo { display:none }` não casa com nada, e o
+// navegador pinta o cartão ABERTO, porque é o que o HTML diz. No `index.html`
+// esse "antes" durava seis idas ao Supabase.
+//
+// Mexer na ordem das chamadas conserta hoje e volta a quebrar quando alguém
+// acrescentar um `await` amanhã. O conserto que NÃO regride é declarar o
+// estado inicial no próprio HTML, e é isso que esta classe é. A página põe
+//
+//     <div class="panel-card pl-nasce-recolhido" id="...">
+//
+// e carrega, no `<style>` dela, a regra que cobre a janela até o JS rodar:
+//
+//     .panel-card.pl-nasce-recolhido > :not(h3) { display: none; }
+//
+// A REGRA NÃO PODE MORAR AQUI, e isso é o ponto: tudo que este módulo injeta
+// chega junto com o JavaScript, que é exatamente tarde demais. O módulo é dono
+// do NOME (a constante abaixo) e da documentação; a página carrega a regra
+// porque só ela é lida na primeira pintura.
+//
+// `tornarRecolhivel()` tira a classe ao montar o cartão de verdade — a partir
+// daí quem manda é `pl-recolhido`, e o cartão volta a poder abrir no clique.
+export const CLASSE_NASCE_RECOLHIDO = 'pl-nasce-recolhido';
+
 let estilosInjetados = false;
 function injetarEstilos() {
   if (estilosInjetados) return;
@@ -141,6 +171,10 @@ export function tornarRecolhivel(cartao, { recolhido = true } = {}) {
 
   if (recolhido) cartao.classList.add('pl-recolhido');
   titulo.setAttribute('aria-expanded', String(!recolhido));
+  // A classe de arranque cumpriu o papel dela (segurar a primeira pintura) e
+  // sai agora: daqui em diante quem decide é `pl-recolhido`, senão o cartão
+  // nunca mais abriria no clique. Ver o comentário de CLASSE_NASCE_RECOLHIDO.
+  cartao.classList.remove(CLASSE_NASCE_RECOLHIDO);
   return cartao;
 }
 

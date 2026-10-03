@@ -62,6 +62,7 @@ As seções mais caras de reaprender, se um dia sumirem da sua memória:
 33. [Simulação, turma por CSV, designação do calunga e administrador (2026-10-02/03) — migrations 0016 a 0019](#simulacao-turma-por-csv-designacao-do-calunga-e-administrador-2026-10-0203-migrations-0016-a-0019)
 34. [As quatro entregas de UX: toque longo, grade, coordenada e o fim do toque curto (2026-09-19 a 2026-10-03) — sem migration](#as-quatro-entregas-de-ux-toque-longo-grade-coordenada-e-o-fim-do-toque-curto-2026-09-19-a-2026-10-03-sem-migration)
 35. [Exportação das marcações em KMZ (2026-10-03) — sem migration](#exportacao-das-marcacoes-em-kmz-2026-10-03-sem-migration)
+36. [O pisca dos cartões no login (2026-10-03) — sem migration](#o-pisca-dos-cartoes-no-login-2026-10-03-sem-migration)
 
 ---
 
@@ -2190,3 +2191,109 @@ verdade derrubou; a comparação por substring não derrubaria.
 **Não testado:** QGIS, o desenho em PNG por `canvas` e o download no navegador
 (só rodam no navegador); `npm run build` não rodou no ambiente onde a entrega
 foi escrita. Bloco 21 do roteiro de campo.
+
+---
+
+### O pisca dos cartões no login (2026-10-03) — sem migration
+
+O relato chegou assim, depois de muitos logins: *"sempre que se faz o login, os
+cards começam todos abertos e se fecham depois de alguns segundos"*. É um
+defeito pequeno de consequência e grande de frequência — toda entrada no app
+começava com o painel se mexendo por cima do mapa.
+
+#### 1. A causa não era lentidão, era ordem
+
+A tentação é tratar isso como desempenho: "demora alguns segundos, então deixa
+mais rápido". O diagnóstico é outro, e mais simples de verificar do que de
+adivinhar: `tornarRecolhivel()` monta o cartão em JavaScript e faz três coisas
+— injeta o CSS, envolve o conteúdo num `.pl-corpo` e põe a classe
+`pl-recolhido`. A regra que recolhe é `.pl-recolhido .pl-corpo {display:none}`.
+
+**Antes do JS rodar, `.pl-corpo` não existe.** A regra não casa com nada, e o
+navegador pinta o que o HTML diz: o cartão aberto, com tudo dentro. Não é um
+atraso na aplicação do estilo; é um estado inicial que ninguém declarou.
+
+No `index.html`, as três chamadas do painel estavam no fim do bloco de
+inicialização, depois de **seis `await`** ao Supabase: `iniciarPermissoes`,
+`iniciarCamadas`, `iniciarAnotacoes`, `iniciarSituacaoUsuario`, `iniciarPaleta`
+e `iniciarOfflineMapa`. Daí os "alguns segundos": a janela durava o que durasse
+a rede. Em 4G ruim, mais.
+
+#### 2. Por que a ordem sozinha não resolve, e o que resolve
+
+Subir as chamadas conserta hoje. Mas o motivo de o defeito existir é que o
+estado inicial do cartão depende de JavaScript ter rodado — e isso continua
+verdade depois de reordenar. O próximo `await` que alguém acrescentar no meio
+do bloco traz o pisca de volta, sem que nada acuse.
+
+O conserto que **não regride** é declarar o estado inicial no HTML. A página
+carrega, no `<style>` dela:
+
+```css
+.panel-card.pl-nasce-recolhido > :not(h3) { display: none; }
+.panel-card.pl-nasce-recolhido > h3 { margin-bottom: 0; }
+```
+
+e os cartões nascem `<div class="panel-card pl-nasce-recolhido" id="...">`.
+`tornarRecolhivel()` tira a classe ao montar o cartão de verdade — a partir
+daí quem manda é `pl-recolhido`, senão o cartão ficaria preso fechado para
+sempre (há um item do roteiro só para isso: **23c**).
+
+**A regra não pode morar em `painel-lateral.js`, e esse é o ponto.** Tudo que o
+módulo injeta chega junto com o JavaScript, que é exatamente tarde demais. Isso
+tensiona FONTE ÚNICA: a classe é um contrato em dois arquivos. A divisão
+escolhida foi dar ao módulo o **nome** (`CLASSE_NASCE_RECOLHIDO`, exportado) e a
+documentação, e à página a **regra**, porque só ela é lida na primeira pintura.
+Quem for mexer nisso lê o comentário no módulo antes de encontrar o CSS.
+
+#### 3. A segunda linha de CSS foi achada medindo, não pensando
+
+A primeira versão tinha só a regra do `> :not(h3)`. O conteúdo deixou de ser
+pintado, e eu teria parado aí. A medição mostrou outra coisa: a altura do
+cartão era **42px antes do JS e 34px depois** — um encolhimento de 8px, que é
+a `margin-bottom` do `<h3>` que `.pl-recolhido .pl-titulo` zera depois. Pequeno,
+mas é reflow na cara de quem acabou de entrar, e é a mesma classe de defeito que
+se estava consertando. A segunda linha igualou as duas fases: 34 e 34.
+
+#### 4. O painel inteiro foi reordenado, e não declarado — por quê
+
+Em tela estreita o painel inteiro (que é `position:absolute` por cima do mapa)
+também ficava visível durante toda a carga, até `iniciarPainelRecolhivel()`
+rodar. As três chamadas subiram para imediatamente antes de
+`document.body.style.visibility = 'visible'`.
+
+Aqui **não** houve conserto declarativo, de propósito. A regra equivalente
+precisaria ser `@media (max-width: 820px)` no CSS da página — e 820px é um
+número que `painel-lateral.js` já define e exporta (`LARGURA_PAINEL_ABERTO`,
+com a justificativa de por que 820 e não o breakpoint de ninguém). Repetir o
+número em CSS, onde ninguém vai ver que ele tem dono, é pior do que depender da
+ordem. Fica registrado como a assimetria consciente: cartão declarativo, painel
+por ordem.
+
+Um comentário antigo no lugar das chamadas dizia que elas tinham de vir
+**depois** de `iniciarCamadas()`, "porque o cartão de camadas é montado lá
+dentro". Isso deixou de valer em algum momento sem ninguém corrigir o
+comentário: `camadas.js` já chama `tornarRecolhivel()` no próprio cartão ao
+montá-lo (linha 267), porque ele serve também à aba do instrutor, que não passa
+por este bloco. O comentário foi reescrito dizendo isso — restrição que não
+existe mais é pior que comentário nenhum.
+
+#### 5. O que foi medido, e o que o teste não prova
+
+O arnês do Chromium reproduz a janela **atrasando o JS do painel em 600ms de
+propósito**, com o `body` revelado antes — ou seja, mede a pior versão do
+problema, não a de hoje. Nas duas larguras (1280×820 e 390×740): o conteúdo do
+cartão nunca é pintado na fase "antes", a altura é a mesma nas duas fases a
+1280px, o clique abre e refecha, e a classe de arranque sai. Bateria completa:
+**1282 casos em 21 suítes, 0 falhas**. `npm run build` verde, e conferido que as
+duas regras saem **inline no HTML gerado** — se o bundler as tivesse movido
+para um CSS carregado depois, elas não serviriam para nada neste caso
+específico, que é justamente a primeira pintura.
+
+O que isso **não** prova: o login de verdade, com rede, cache e os seis
+`await`. O arnês não tem Supabase. Bloco **23** do roteiro de teste de campo.
+
+A 390px a medição registra, de propósito, o painel inteiro sumindo entre as
+duas fases (34 → 0): é o pisca do painel, que o arnês exibe porque revela o
+`body` antes do JS e que na página real a reordenação evita. Deixei aparecendo
+porque é a prova de que aquele caminho continua dependendo da ordem.

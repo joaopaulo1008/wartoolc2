@@ -1101,4 +1101,43 @@ dão o mesmo valor, então nenhum teste daqui prova o conserto.
   reserva — e aí a saída é tirar a coordenada do rodapé e pô-la dentro do mapa,
   como a legenda da grade.
 
+## 23. Os cartões do painel no login (2026-10-03)
+
+**Defeito encontrado em uso real, relatado de muitos logins:** *"sempre que se
+faz o login, os cards começam todos abertos e se fecham depois de alguns
+segundos"*.
+
+Não era lentidão: era ordem. O cartão só virava recolhível depois de seis idas
+ao Supabase, e até lá o navegador pintava o que o HTML dizia — aberto. Agora o
+cartão nasce recolhido **declarado no HTML**, e as três chamadas do painel
+subiram para antes de a tela aparecer.
+
+**O que daqui não se prova:** o arnês do Chromium reproduz a janela atrasando o
+JS de propósito, mas não reproduz o login de verdade, com rede, cache e os seis
+`await`. Quem prova é entrar no app.
+
+- [ ] 23a. **Faça login no app do aluno, no monitor, e olhe o painel no
+  instante em que a tela aparece.** "Mapa Base" e "Coordenada" estão
+  **recolhidos desde o primeiro quadro** — não abrem e fecham depois.
+- [ ] 23b. **O cartão não dá pulinho.** A altura da faixa do título não muda
+  quando o resto da página termina de carregar. (Era o resto do defeito: 8px de
+  margem que sobravam antes do JS chegar.)
+- [ ] 23c. **Clique no título de "Mapa Base":** abre. Clique de novo: fecha.
+  Idem "Coordenada". Se algum ficar **preso fechado**, a classe de arranque não
+  está sendo removida — é falha, e anote qual cartão.
+- [ ] 23d. **Enter e Espaço** com o título focado pelo Tab fazem o mesmo.
+- [ ] 23e. **No celular (tela estreita), faça login:** o painel inteiro
+  **não** aparece cobrindo o mapa durante a carga. O botão ☰ está lá; tocar
+  nele abre o painel com os dois cartões recolhidos.
+- [ ] 23f. **Recarregue com F5 algumas vezes, inclusive com a rede lenta**
+  (ferramentas do navegador → throttling, ou 4G ruim de verdade): o
+  comportamento é o mesmo. Rede pior era justamente o que deixava o pisca mais
+  longo.
+- [ ] 23g. **O cartão "Camadas"** (que é montado por `camadas.js`, não escrito
+  no HTML) continua nascendo recolhido e abrindo no clique — ele nunca piscou,
+  porque nasce junto com o JS, e esta correção não deve tê-lo mexido.
+- [ ] 23h. **No painel do instrutor:** nada mudou. Ele não tem `.panel-card`
+  recolhível, então a correção não o alcança — se algo lá mudou de aparência, é
+  efeito colateral e é falha.
+
 Qualquer item marcado como falha vira a prioridade do próximo chat — cole este checklist preenchido para retomar com contexto completo.

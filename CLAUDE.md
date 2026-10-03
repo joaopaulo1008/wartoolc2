@@ -332,6 +332,24 @@ empurrado" até 2026-09-19). Duas coisas distintas:
    que este arquivo descreve no topo como se já estivesse no repositório. Um
    `git clone` **não** traz nada disso.
 
+**Estado inicial de interface se declara no HTML, não em JavaScript
+(2026-10-03).** Relato recorrente: *"sempre que se faz o login, os cards
+começam todos abertos e se fecham depois de alguns segundos"*. Não era
+lentidão, era ordem: `tornarRecolhivel()` monta o cartão em JS (injeta CSS,
+cria o `.pl-corpo`, põe `pl-recolhido`), e **antes dele rodar a regra que
+recolhe não casa com nada** — o navegador pinta o cartão aberto, porque é o que
+o HTML diz. No `index.html` essa janela durava seis `await` ao Supabase. Os
+cartões passaram a nascer `class="panel-card pl-nasce-recolhido"`, com a regra
+no `<style>` da página; `painel-lateral.js` é dono do **nome**
+(`CLASSE_NASCE_RECOLHIDO`) e a remove ao montar o cartão, senão ele ficaria
+preso fechado. **A regra não pode morar no módulo**: tudo que ele injeta chega
+junto com o JavaScript, que é tarde demais — é a exceção consciente a FONTE
+ÚNICA, e está justificada na seção **36** do histórico. O painel inteiro, esse
+foi só **reordenado** (sobe para antes de o `body` aparecer), porque declará-lo
+em CSS exigiria repetir os 820px de `LARGURA_PAINEL_ABERTO`. **A segunda regra
+(`> h3 { margin-bottom: 0 }`) foi achada medindo:** sem ela o cartão nasce 42px
+e encolhe para 34px quando o JS chega. Bloco 23 do roteiro.
+
 **Grade, quadrículas e coordenada nas TRÊS telas (2026-10-03).** A grade e a
 barra existiam só no app do aluno; o relato foi "ficou faltando no mapa do
 instrutor". Entraram na aba "Situação atual" e no **debriefing** — rever um

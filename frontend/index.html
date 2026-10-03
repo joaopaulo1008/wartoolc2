@@ -105,6 +105,27 @@
       background:rgba(30,38,22,.92); border:1px solid #4B5A2E;
       border-radius:6px; padding:10px 14px; font-size:12px; min-width:170px;
     }
+    /* ── O cartão nasce recolhido na PRIMEIRA PINTURA (2026-10-03) ────────
+       Relato recorrente: "sempre que se faz o login, os cards começam todos
+       abertos e se fecham depois de alguns segundos".
+
+       Não era lentidão, era ordem: `tornarRecolhivel()` só roda depois de seis
+       idas ao Supabase, e a regra que recolhe (`.pl-recolhido .pl-corpo`)
+       depende de um invólucro que o próprio JS cria. Até lá o navegador pinta
+       o cartão aberto, porque é o que o HTML diz.
+
+       Esta regra cobre essa janela, e por isso PRECISA estar aqui, no CSS da
+       página: qualquer coisa que painel-lateral.js injete chega junto com o
+       JavaScript, que é tarde demais. O módulo é dono do nome da classe
+       (`CLASSE_NASCE_RECOLHIDO`) e a remove ao montar o cartão de verdade —
+       ver o comentário grande lá. */
+    .panel-card.pl-nasce-recolhido > :not(h3) { display: none; }
+    /* O <h3> perde a margem de baixo junto com o corpo, igual ao que
+       `.pl-recolhido .pl-titulo` faz depois. Sem esta linha o cartão nasce
+       8px mais alto e ENCOLHE quando o JS chega — medido em 42px -> 34px no
+       Chromium. Era o resto do piscar: pequeno, mas é reflow na cara de quem
+       acabou de entrar. */
+    .panel-card.pl-nasce-recolhido > h3 { margin-bottom: 0; }
     .panel-card h3 {
       font-size:11px; letter-spacing:.06em; text-transform:uppercase;
       color:#A9A584; margin-bottom:8px;
@@ -258,7 +279,7 @@
   <div id="side-panel">
 
   <!-- Seletor de mapa base -->
-  <div class="panel-card" id="card-mapa-base">
+  <div class="panel-card pl-nasce-recolhido" id="card-mapa-base">
     <h3>Mapa Base</h3>
 
     <!-- Seis opções, na ordem de importância para a instrução. A lista
@@ -315,7 +336,7 @@
        este mesmo painel serve como mapa de fundo, logo acima. O radio marcado
        de verdade é definido pelo script (o valor gravado manda), este `checked`
        é só o estado inicial antes de o perfil carregar. -->
-  <div class="panel-card" id="card-coordenada">
+  <div class="panel-card pl-nasce-recolhido" id="card-coordenada">
     <h3>Coordenada</h3>
     <label class="layer-row">
       <input type="radio" name="formato-coordenada" value="utm" checked>
@@ -693,6 +714,30 @@ if (resultado) {
     });
   }
 
+  // ── O painel, ANTES de a tela aparecer (2026-10-03) ────────────────────
+  // Estas três chamadas viviam no fim do bloco, depois de seis `await` ao
+  // Supabase. O efeito era o relato recorrente: "sempre que se faz o login, os
+  // cards começam todos abertos e se fecham depois de alguns segundos" — e, em
+  // tela estreita, o painel inteiro cobrindo o mapa durante toda a carga.
+  //
+  // Elas não dependem de dado nenhum: os dois cartões são escritos à mão no
+  // HTML e existem desde o parse, e recolher o painel é decisão de LARGURA DE
+  // TELA. Rodando aqui, a primeira pintura já sai no estado final.
+  //
+  // O comentário que estava no lugar antigo dizia que a ordem era "DEPOIS de
+  // iniciarCamadas() de propósito, porque o cartão de camadas é montado lá
+  // dentro". Isso deixou de valer: `camadas.js` já torna o próprio cartão
+  // recolhível ao montá-lo (ele serve também à aba do instrutor, que não passa
+  // por este bloco), e estas duas chamadas nunca dependeram dele.
+  //
+  // Cinto e suspensório: os cartões TAMBÉM declaram `pl-nasce-recolhido` no
+  // HTML, com a regra no <style> da página. A ordem conserta hoje; a classe é
+  // o que impede o pisca de voltar quando alguém acrescentar um `await` aqui
+  // no meio amanhã.
+  tornarRecolhivel(document.getElementById('card-mapa-base'));
+  tornarRecolhivel(document.getElementById('card-coordenada'));
+  iniciarPainelRecolhivel({ seletor: '#side-panel' });
+
   document.body.style.visibility = 'visible';
   // Corrige o tamanho do Leaflet caso o container tenha ficado com dimensão
   // indefinida enquanto estava com visibility:hidden. Até a Etapa 9a este
@@ -912,25 +957,8 @@ if (resultado) {
       await iniciarOfflineMapa({ map, camadaBdgex: BASEMAPS.bdgex, userId: session.user.id });
     }
 
-    // Etapa 7.1: o painel encolhe. Vem DEPOIS de iniciarCamadas() de
-    // propósito — o cartão "Camadas de arquivo" é montado lá dentro, e
-    // tornarRecolhivel() envolve o que já existe no cartão. Rodando antes, ele
-    // não teria o que envolver.
-    //
-    // TODO cartão nasce recolhido desde 2026-09-14 — é o padrão de
-    // tornarRecolhivel() agora, não uma opção passada aqui (ver o comentário
-    // grande em painel-lateral.js). Por isso esta chamada não tem mais
-    // `{ recolhido: true }`: repetir o padrão em cada ponto de montagem é como
-    // um deles acaba divergindo.
-    tornarRecolhivel(document.getElementById('card-mapa-base'));
-    // "Coordenada" é escrito à mão no HTML e até hoje não passava por aqui —
-    // ou seja, era o único cartão que nem título clicável tinha. Entra agora,
-    // junto com os outros.
-    tornarRecolhivel(document.getElementById('card-coordenada'));
-    // O cartão "Camadas de arquivo" não entra aqui: camadas.js já o torna
-    // recolhível ao montá-lo, porque ele também é usado na aba "Situação
-    // atual" do instrutor, que não passa por este bloco.
-    iniciarPainelRecolhivel({ seletor: '#side-panel' });
+    // O painel lateral (Etapa 7.1) NÃO é montado mais aqui: subiu para antes
+    // de o body aparecer, lá em cima. Ver o comentário de lá para por quê.
   }
 }
 </script>

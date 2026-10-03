@@ -712,7 +712,7 @@ de teste de campo. Por que cada decisão ficou assim: seção **35** do históri
 
 **Fora, por decisão:** pedidos de apoio e situações (estado volátil).
 
-### 2026-10-03 (c) — o rodapé no celular: `100vh` virou `100dvh`
+### 2026-10-03 (d) — o rodapé no celular: `100vh` virou `100dvh`
 
 Defeito encontrado em uso real. Relato: *"não está aparecendo a coordenada do
 ponto, apenas um 22J da área"*. O `22J` era a legenda da grade, dentro do mapa;
@@ -737,6 +737,45 @@ px, o rodapé fica dentro da tela e a página não rola. Mas em navegador de mes
 `100vh` e `100dvh` dão o mesmo valor — então isso prova que a correção **não
 quebra nada**, e não que ela conserta. Quem prova é o aparelho. Bloco 22 do
 roteiro.
+
+### 2026-10-03 (e) — os cartões do painel param de piscar no login
+
+Relato recorrente, de muitos logins: *"sempre que se faz o login, os cards
+começam todos abertos e se fecham depois de alguns segundos"*.
+
+**Não era lentidão, era ordem.** `tornarRecolhivel()` monta o cartão em JS:
+injeta o CSS, envolve o conteúdo num `.pl-corpo` e põe `pl-recolhido`. Antes
+dele rodar não existe `.pl-corpo` nenhum — a regra que recolhe não casa com
+nada e o navegador pinta o cartão ABERTO, porque é o que o HTML diz. No
+`index.html` essa janela durava **seis `await` ao Supabase**: permissões,
+camadas, anotações, situação do usuário, paleta e mapa offline. Em tela
+estreita o painel INTEIRO também ficava por cima do mapa durante toda a carga.
+
+Dois consertos, de naturezas diferentes de propósito:
+
+- **O cartão passou a nascer recolhido declarado no HTML.** A página carrega,
+  no `<style>` dela, `.panel-card.pl-nasce-recolhido > :not(h3) {display:none}`
+  (mais a margem do `<h3>`, senão o cartão nasce 8px mais alto e encolhe quando
+  o JS chega). A regra **não pode morar em `painel-lateral.js`**: tudo que o
+  módulo injeta chega junto com o JavaScript, que é exatamente tarde demais. O
+  módulo é dono do nome (`CLASSE_NASCE_RECOLHIDO`) e a remove ao montar o
+  cartão de verdade. Não existe mais quadro aberto para piscar, e isso **não
+  regride** se alguém acrescentar um `await` amanhã.
+- **O painel inteiro foi reordenado.** As três chamadas subiram para
+  imediatamente antes da linha que torna o `body` visível — elas não dependem
+  de dado nenhum. Aqui não houve conserto declarativo: a regra equivalente em
+  CSS precisaria repetir os 820px que `LARGURA_PAINEL_ABERTO` já define, e
+  duplicar o número é pior do que depender da ordem (FONTE ÚNICA).
+
+**Medido** no Chromium, num arnês que atrasa o JS do painel de propósito para
+reproduzir a janela: a 1280px a altura do cartão é **34px antes e 34px depois**
+(era 42 → 34), o conteúdo nunca é pintado nas duas fases, o clique continua
+abrindo e refechando, e a classe de arranque sai. Bateria: **1282 casos em 21
+suítes, 0 falhas**; `npm run build` verde, com as duas regras inline no HTML
+gerado (não num CSS carregado depois, o que seria inútil para a primeira
+pintura).
+
+**Não medido daqui:** o login real com os seis `await`. Bloco **23** do roteiro.
 
 **Se algum aparelho não conhecer `dvh`**, a saída registrada é tirar a
 coordenada do rodapé e pô-la dentro do mapa, como a legenda da grade — onde ela
