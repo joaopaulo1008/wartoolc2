@@ -209,7 +209,7 @@ for f in frontend/*.teste.mjs; do node "$f"; done    # todas
 
 Cada suíte imprime a própria linha de resumo, em **dois formatos diferentes**
 ("N passaram, 0 falharam de N" e "N passou, 0 falhou, N total") — quem for
-somar precisa aceitar os dois. Estado atual: **1282 casos, 0 falhas, 21
+somar precisa aceitar os dois. Estado atual: **1290 casos, 0 falhas, 21
 suítes** (medido em 2026-10-03).
 
 **Uma correção de número, porque este arquivo manda não inventar um.** Até
@@ -331,6 +331,19 @@ empurrado" até 2026-09-19). Duas coisas distintas:
    reorganização da documentação (`CLAUDE.md` + `docs/historico-de-decisoes.md`)
    que este arquivo descreve no topo como se já estivesse no repositório. Um
    `git clone` **não** traz nada disso.
+
+**A quadrícula nasce LIGADA, e o padrão não apaga escolha de ninguém
+(2026-10-03).** `MODO_PADRAO` de `grade.js` passou de `'off'` para `'utm'`:
+para quem lê carta, a quadrícula é a referência pela qual a coordenada é dita
+no rádio. **Padrão só governa quem não tem valor gravado** em
+`perfis.preferencias_visualizacao` — quem já escolheu, inclusive `'off'`, fica
+com o dele, e nenhum `update` foi rodado em produção para forçar o novo padrão.
+**Mudar um padrão de preferência obriga a mudar o `checked`/`selected` do
+controle no HTML de cada tela**, que é o estado da primeira pintura: divergir
+faz o botão pular na cara de quem entra, que é o defeito do parágrafo seguinte
+em outra roupa. Isso tem teste — a suíte de `grade.js` lê `index.html` e
+`instrutor.html` do disco e compara o controle marcado com `MODO_PADRAO`,
+conferido por mutação.
 
 **Estado inicial de interface se declara no HTML, não em JavaScript
 (2026-10-03).** Relato recorrente: *"sempre que se faz o login, os cards

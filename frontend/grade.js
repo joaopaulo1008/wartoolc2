@@ -43,7 +43,26 @@
 import { zonaUtm, bandaUtm, paraUtm, deUtm } from './coordenadas.js';
 
 export const MODOS = ['off', 'utm', 'geo'];
-export const MODO_PADRAO = 'off';
+// ── O padrão é 'utm' desde 2026-10-03, e era 'off' ────────────────────────
+// Pedido: "quero que a camada de quadrículas já comece ativa nativamente".
+// O 'off' original era prudência de quem acabou de escrever a grade: estreia
+// sem mexer na tela de ninguém. Mas para quem lê carta a quadrícula não é
+// enfeite opcional — é a referência pela qual a coordenada é dita no rádio.
+// Começar sem ela obriga todo mundo a ligar a mesma coisa em todo aparelho
+// novo, e a tela de referência (barra de coordenada) já nasce em UTM.
+//
+// ATENÇÃO ao alcance: isto é o PADRÃO, e padrão só vale para quem não tem
+// valor gravado em `perfis.preferencias_visualizacao`. Quem já escolheu
+// alguma coisa — inclusive 'off' — continua com a escolha dele, de propósito
+// (ver `iniciarPreferencias` em preferencias.js). Decidido assim em
+// 2026-10-03: não se apaga a escolha de alguém para instalar um padrão novo.
+//
+// Quem mudar isto tem que mudar TAMBÉM o `checked`/`selected` do controle no
+// HTML das telas (index.html e instrutor.html). O HTML é o estado da primeira
+// pintura, antes de `preferencias-tela.js` rodar; divergir daqui faz o botão
+// pular na cara de quem acabou de entrar — o mesmo defeito consertado nos
+// cartões do painel no mesmo dia.
+export const MODO_PADRAO = 'utm';
 
 // Metros. O primeiro valor É o piso pedido (1 km) — ver o cabeçalho.
 export const PASSOS_UTM_M = [1000, 2000, 5000, 10000, 25000, 50000, 100000, 250000];

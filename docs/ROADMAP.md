@@ -777,6 +777,38 @@ pintura).
 
 **Não medido daqui:** o login real com os seis `await`. Bloco **23** do roteiro.
 
+### 2026-10-03 (f) — a quadrícula nasce ligada
+
+Pedido: *"quero que a camada de quadrículas já comece ativa nativamente"*. O
+padrão de `grade.js` passou de `'off'` para `'utm'`. O `'off'` original era
+prudência de estreia — mas para quem lê carta a quadrícula é a referência pela
+qual a coordenada é dita no rádio, não um enfeite opcional, e a barra de
+coordenada já nascia em UTM.
+
+**Alcance, decidido com o João:** vale só para quem **não tem valor gravado**
+em `perfis.preferencias_visualizacao`. Quem já escolheu alguma coisa — inclusive
+`'off'` — fica com a escolha dele. Nenhum `update` em dado de produção: não se
+apaga a escolha de alguém para instalar um padrão novo. **Consequência prática:
+quem testou a grade em 02/10 e deixou desligada vai continuar vendo desligada**,
+e isso não é defeito.
+
+O `checked` do rádio em `index.html` e o `selected` do `<select>` em
+`instrutor.html` acompanharam. **Eles são o estado da primeira pintura:** deixar
+os dois apontando para "Sem grade" faria o botão pular assim que
+`preferencias-tela.js` rodasse — o mesmo defeito da entrada (e), na mesma tela.
+Isso agora tem teste: a suíte lê os dois HTML do disco e compara o controle
+marcado com `MODO_PADRAO`. Conferido por mutação — devolvendo o `checked` para
+"Sem grade", o teste falha.
+
+**Medido:** bateria **1290 casos em 21 suítes, 0 falhas**; `npm run build` verde
+com o `checked` certo no HTML gerado; e no Chromium, carregando sem nada
+gravado, a grade aparece sozinha (15 linhas, 28 rótulos nas quatro margens,
+legenda "Quadrícula 5 km · zona 22J"), enquanto `grade: 'off'` gravado continua
+sem linha nenhuma e `'geo'` continua geográfica.
+
+**Não medido daqui:** uma conta nova de verdade, contra o Supabase. Bloco **24**
+do roteiro.
+
 **Se algum aparelho não conhecer `dvh`**, a saída registrada é tirar a
 coordenada do rodapé e pô-la dentro do mapa, como a legenda da grade — onde ela
 não depende da barra do navegador.

@@ -1140,4 +1140,35 @@ JS de propósito, mas não reproduz o login de verdade, com rede, cache e os sei
   recolhível, então a correção não o alcança — se algo lá mudou de aparência, é
   efeito colateral e é falha.
 
+## 24. A quadrícula nasce ligada (2026-10-03)
+
+O padrão passou a ser **Quadrícula UTM**. Mas padrão só vale para quem **nunca
+escolheu**: quem já tem valor gravado no perfil mantém o dele, de propósito.
+
+**Leia isto antes de testar:** se você mexeu no seletor de grade em 02/10, o seu
+perfil tem valor gravado e você vai continuar vendo o que escolheu. **Isso não é
+falha.** Para testar o padrão de verdade é preciso uma conta que nunca tocou no
+seletor.
+
+- [ ] 24a. **Conta nova (ou que nunca mexeu em grade), app do aluno:** a
+  quadrícula UTM aparece **sozinha**, logo no primeiro carregamento, sem abrir o
+  painel. A legenda no canto diz o passo e a zona (ex.: "Quadrícula 5 km ·
+  zona 22J").
+- [ ] 24b. **Abra o cartão "Coordenada":** o rádio marcado é "Quadrícula UTM" —
+  e estava marcado **desde que a tela apareceu**, sem pular de "Sem grade" para
+  ele.
+- [ ] 24c. **Desligue** ("Sem grade") e **recarregue**: continua desligada. A
+  escolha é sua e sobrevive ao F5 — é o que prova que gravar funciona.
+- [ ] 24d. **Religue** em "Quadrícula UTM" e recarregue: continua ligada.
+- [ ] 24e. **Sua conta de sempre:** se você já tinha escolhido algo, continua
+  como estava. Se tinha "Sem grade" e quer o padrão novo, basta marcar UTM uma
+  vez.
+- [ ] 24f. **Painel do instrutor, aba "Situação atual", conta nova:** o
+  `<select>` já vem em "Quadrícula UTM" e o mapa já abre com a grade.
+- [ ] 24g. **Debriefing:** idem — e é a tela em que a quadrícula mais serve,
+  porque é quando se confere onde cada um esteve.
+- [ ] 24h. **No celular, conta nova:** a grade aparece e **continua legível** —
+  se as linhas poluírem a tela pequena a ponto de atrapalhar, isso é um dado
+  real e vale rediscutir o padrão em vez de insistir nele.
+
 Qualquer item marcado como falha vira a prioridade do próximo chat — cole este checklist preenchido para retomar com contexto completo.

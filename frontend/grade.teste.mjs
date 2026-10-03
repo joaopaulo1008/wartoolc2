@@ -22,8 +22,13 @@
 
 import {
   grade, passoUtm, passoGeo, rotuloUtm, rotuloGeo, linhasAlvo, modoValido,
-  PASSOS_UTM_M, PASSOS_GEO_MIN, TETO_LINHAS, VERTICES_UTM, MODOS,
+  PASSOS_UTM_M, PASSOS_GEO_MIN, TETO_LINHAS, VERTICES_UTM, MODOS, MODO_PADRAO,
 } from './grade.js';
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import { dirname, join } from 'node:path';
+
+const AQUI = dirname(fileURLToPath(import.meta.url));
 
 let passou = 0, falhou = 0;
 function ok(descricao, obtido, esperado) {
@@ -180,6 +185,44 @@ ok('positivo no norte', rotuloGeo(2.5, 'lat'), "2°30'N");
 ok('positivo no leste', rotuloGeo(10, 'lon'), '10°E');
 ok('o arredondamento do minuto não produz 60', rotuloGeo(-24.99999, 'lat'), '25°S');
 ok('valor inválido devolve vazio', rotuloGeo(undefined, 'lat'), '');
+
+// ── 7. O padrão, e o HTML que tem que concordar com ele ─────────────────────
+// Este bloco existe por um motivo específico: o padrão vive AQUI, mas o
+// estado da primeira pintura vive no `checked`/`selected` do controle em cada
+// tela. Se os dois divergirem, o botão pula na cara de quem acabou de entrar —
+// o navegador marca o que o HTML diz, e `preferencias-tela.js` corrige um
+// instante depois. É a mesma família do pisca dos cartões do painel, e não dá
+// sintoma nenhum em teste que só olhe o módulo.
+//
+// Lê os dois HTML do disco de propósito. Não é teste de interface: é teste de
+// que duas declarações do MESMO valor continuam iguais.
+console.log('\nO padrão e o HTML das telas concordam');
+ok('o padrão é utm (quadrícula ligada de saída)', MODO_PADRAO, 'utm');
+ok('e é um modo válido', modoValido(MODO_PADRAO), true);
+{
+  const html = readFileSync(join(AQUI, 'index.html'), 'utf-8');
+  // Todos os <input> do grupo modo-grade, na ordem em que aparecem.
+  const radios = [...html.matchAll(/<input[^>]*name="modo-grade"[^>]*>/g)].map((m) => m[0]);
+  const marcados = radios
+    .filter((r) => /\schecked\b/.test(r))
+    .map((r) => (r.match(/value="([^"]*)"/) || [])[1]);
+  ok('index.html tem os três radios de grade', radios.length, 3);
+  ok('e marca exatamente um', marcados.length, 1);
+  ok('e o marcado é o MODO_PADRAO', marcados[0], MODO_PADRAO);
+}
+{
+  const html = readFileSync(join(AQUI, 'instrutor.html'), 'utf-8');
+  // O <select> do painel do instrutor: só a região dele, para não pegar
+  // `selected` de outro seletor da página.
+  const bloco = (html.match(/<select id="situacao-modo-grade">[\s\S]*?<\/select>/) || [])[0] || '';
+  const options = [...bloco.matchAll(/<option[^>]*>/g)].map((m) => m[0]);
+  const sel = options
+    .filter((o) => /\sselected\b/.test(o))
+    .map((o) => (o.match(/value="([^"]*)"/) || [])[1]);
+  ok('instrutor.html tem as três opções de grade', options.length, 3);
+  ok('e marca exatamente uma', sel.length, 1);
+  ok('e a marcada é o MODO_PADRAO', sel[0], MODO_PADRAO);
+}
 
 console.log(`\n${passou} passou, ${falhou} falhou, ${passou + falhou} total\n`);
 process.exit(falhou === 0 ? 0 : 1);
