@@ -160,7 +160,7 @@ function atualizarIndicadorArea() {
   const zoom = Math.round(mapaRef.getZoom());
   const cobre = areaQueCobre(areas, bboxDoViewport(), zoom);
   el.textContent = cobre ? 'salva — funciona sem rede aqui' : 'não salva';
-  el.style.color = cobre ? '#7af57a' : '#7a9ab8';
+  el.style.color = cobre ? '#7af57a' : '#A9A584';
 }
 
 function atualizarIndicadorOrigem() {
@@ -173,7 +173,7 @@ function atualizarIndicadorOrigem() {
   };
   el.textContent = origemUltimoTile ? (rotulos[origemUltimoTile] || '—') : 'aguardando a carta carregar…';
   el.style.color = origemUltimoTile === 'falha' ? '#e05252'
-    : origemUltimoTile === 'cache' ? '#f5c842' : '#7a9ab8';
+    : origemUltimoTile === 'cache' ? '#f5c842' : '#A9A584';
 }
 
 // ── Download: fila com concorrência limitada e pausa entre lotes ─────────
@@ -374,34 +374,34 @@ function injetarEstilos() {
        visual base vem daqui, para o módulo ficar apresentável nas duas telas
        sem depender do CSS de nenhuma delas. */
     #card-offline {
-      background:rgba(13,27,42,.92); border:1px solid #2a4a6b;
+      background:rgba(30,38,22,.92); border:1px solid #4B5A2E;
       border-radius:6px; padding:10px 14px; font-size:12px; min-width:170px;
     }
     .offline-linha { margin-bottom:8px; line-height:1.5; }
     .offline-aviso { color:#f5c842; font-size:11px; margin-bottom:8px; }
-    .offline-explicacao { color:#7a9ab8; font-size:11px; margin-bottom:8px; }
+    .offline-explicacao { color:#A9A584; font-size:11px; margin-bottom:8px; }
     .offline-indicadores { display:flex; flex-direction:column; gap:2px; margin-bottom:10px; font-size:11px; }
     .offline-btn {
-      background:#1a3a5c; color:#a8c8e8; border:1px solid #2a5a8c; border-radius:4px;
+      background:#3A4726; color:#F2E8C9; border:1px solid #6B7F3E; border-radius:4px;
       padding:5px 10px; font-size:12px; cursor:pointer; font-family:inherit; width:100%;
       margin-bottom:6px;
     }
-    .offline-btn:hover { background:#254a72; }
+    .offline-btn:hover { background:#435230; }
     .offline-btn:disabled { opacity:.5; cursor:not-allowed; }
-    .offline-btn-secundario { background:transparent; border:1px solid #4a6a8a; color:#7a9ab8; }
+    .offline-btn-secundario { background:transparent; border:1px solid #7A7C5C; color:#A9A584; }
     .offline-btn-perigo { background:#3a1a1a; border-color:#6c2a2a; color:#f57a7a; }
-    .offline-plano { border:1px solid #2a4a6b; border-radius:4px; padding:8px; margin-bottom:8px; font-size:11px; }
+    .offline-plano { border:1px solid #4B5A2E; border-radius:4px; padding:8px; margin-bottom:8px; font-size:11px; }
     .offline-plano-erro { color:#f57a7a; }
     .offline-slider-linha { display:flex; align-items:center; gap:6px; margin:6px 0; font-size:11px; }
     .offline-slider-linha input[type=range] { flex:1; }
-    .offline-progresso-barra { background:#0d1b2a; border:1px solid #2a4a6b; border-radius:4px; height:8px; overflow:hidden; margin:6px 0; }
+    .offline-progresso-barra { background:#1E2616; border:1px solid #4B5A2E; border-radius:4px; height:8px; overflow:hidden; margin:6px 0; }
     .offline-progresso-preenchido { background:#4caf50; height:100%; width:0%; transition:width .15s ease; }
-    .offline-area-item { border-top:1px solid #2a4a6b; padding-top:6px; margin-top:6px; font-size:11px; }
+    .offline-area-item { border-top:1px solid #4B5A2E; padding-top:6px; margin-top:6px; font-size:11px; }
     .offline-area-titulo { display:flex; justify-content:space-between; align-items:center; }
     .offline-area-status { padding:1px 6px; border-radius:3px; font-size:10px; }
     .offline-status-pronta { background:#1a3a1a; color:#7af57a; }
     .offline-status-incompleta { background:#3a3a1a; color:#f5e07a; }
-    .offline-status-baixando { background:#1a3a5c; color:#7ab8f5; }
+    .offline-status-baixando { background:#3A4726; color:#E9BF55; }
     .offline-area-botoes { display:flex; gap:6px; margin-top:4px; }
     .offline-area-botoes button { flex:1; font-size:10px; padding:3px 6px; }
   `;
@@ -461,7 +461,7 @@ function montarInterfacePrincipal() {
   const linhaOrigem = document.createElement('div');
   linhaOrigem.append('Carta vindo de: ', Object.assign(document.createElement('span'), { id: 'offline-origem-atual', textContent: 'aguardando a carta carregar…' }));
   const notaOrigem = document.createElement('div');
-  notaOrigem.style.color = '#4a6a8a';
+  notaOrigem.style.color = '#7A7C5C';
   notaOrigem.style.fontSize = '10px';
   notaOrigem.textContent = '(só é confiável enquanto o mapa base atual é o BDGEx)';
   indicadores.append(linhaArea, linhaOrigem, notaOrigem);
@@ -485,7 +485,7 @@ function montarInterfacePrincipal() {
 
   const listaTitulo = document.createElement('div');
   listaTitulo.className = 'offline-linha';
-  listaTitulo.style.color = '#7a9ab8';
+  listaTitulo.style.color = '#A9A584';
   listaTitulo.style.fontSize = '11px';
   listaTitulo.textContent = 'Áreas salvas:';
   corpo.appendChild(listaTitulo);
@@ -595,7 +595,7 @@ function mostrarPainelDePlano(bbox, retanguloDesenhado) {
     resumo.appendChild(linhaTiles);
 
     const notaOpaco = document.createElement('div');
-    notaOpaco.style.color = '#4a6a8a';
+    notaOpaco.style.color = '#7A7C5C';
     notaOpaco.style.fontSize = '10px';
     notaOpaco.textContent = 'O navegador costuma reportar mais espaço ocupado do que isso de verdade '
       + '(o BDGEx é servido sem CORS, e a resposta "opaca" resultante recebe um acréscimo artificial de '
@@ -731,7 +731,7 @@ function renderizarListaAreas() {
 
   if (areas.length === 0) {
     const vazio = document.createElement('div');
-    vazio.style.color = '#4a6a8a';
+    vazio.style.color = '#7A7C5C';
     vazio.style.fontSize = '11px';
     vazio.textContent = 'nenhuma ainda';
     lista.appendChild(vazio);
@@ -754,7 +754,7 @@ function renderizarListaAreas() {
     item.appendChild(titulo);
 
     const detalhe = document.createElement('div');
-    detalhe.style.color = '#7a9ab8';
+    detalhe.style.color = '#A9A584';
     const tilesTexto = area.status === 'pronta'
       ? `${(area.tiles || 0).toLocaleString('pt-BR')} tiles, ~${formatarBytes(area.bytesEstimados || 0)}`
       : `${(area.tilesBaixados || 0).toLocaleString('pt-BR')} de ${(area.tiles || 0).toLocaleString('pt-BR')} tiles`;

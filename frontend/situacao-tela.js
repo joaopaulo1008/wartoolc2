@@ -125,16 +125,16 @@ function injetarEstilos() {
   const s = document.createElement('style');
   s.textContent = `
     #card-situacao {
-      background:rgba(13,27,42,.92); border:1px solid #2a4a6b;
+      background:rgba(30,38,22,.92); border:1px solid #4B5A2E;
       border-radius:6px; padding:10px 14px; font-size:12px; min-width:170px;
     }
     #card-situacao h3 {
       font-size:11px; letter-spacing:.06em; text-transform:uppercase;
-      color:#7a9ab8; margin-bottom:8px;
+      color:#A9A584; margin-bottom:8px;
     }
     #card-situacao select, #card-situacao input[type=text] {
-      width:100%; padding:5px 7px; margin-bottom:6px; background:#0d1b2a;
-      color:#e8eaf0; border:1px solid #2a4a6b; border-radius:4px;
+      width:100%; padding:5px 7px; margin-bottom:6px; background:#1E2616;
+      color:#e8eaf0; border:1px solid #4B5A2E; border-radius:4px;
       font-size:12px; font-family:inherit;
     }
     .sit-salvo { font-size:10px; color:#7af57a; min-height:12px; }
@@ -168,7 +168,7 @@ function injetarEstilos() {
     .sit-apoio .sit-rotulo { position:relative; }
     .sit-apoio.armando { color:#ffd0d0; }
     .sit-aviso {
-      margin-top:6px; font-size:10px; line-height:1.45; color:#8a9aa8;
+      margin-top:6px; font-size:10px; line-height:1.45; color:#AFAA90;
     }
     .sit-aviso b { color:#c8a24a; }
     .sit-meu-pedido {

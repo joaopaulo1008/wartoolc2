@@ -61,7 +61,7 @@ function injetarEstilos() {
     .${CLASSE_ROTULO} {
       position: absolute; z-index: 420; pointer-events: none;
       font-size: 15px; font-weight: 600; font-variant-numeric: tabular-nums;
-      color: #0d1b2a; background: rgba(255,255,255,.85);
+      color: #1E2616; background: rgba(255,255,255,.85);
       padding: 1px 4px; border-radius: 3px; line-height: 1.35;
     }
     /* Uma âncora por margem. O rótulo encosta NA BORDA e cresce para dentro,
@@ -77,7 +77,7 @@ function injetarEstilos() {
          não deduzido. */
       right: 8px; bottom: 20px; max-width: 60vw;
       font-size: 10px; line-height: 1.45; color: #e8eaf0;
-      background: rgba(13,27,42,.78); border: 1px solid #2a4a6b;
+      background: rgba(30,38,22,.78); border: 1px solid #4B5A2E;
       border-radius: 4px; padding: 3px 7px;
       font-variant-numeric: tabular-nums;
     }

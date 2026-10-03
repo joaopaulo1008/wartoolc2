@@ -192,7 +192,7 @@ function status(texto, cor) {
   const el = document.getElementById('marcacoes-status');
   if (!el) return;
   el.textContent = `Marcações: ${texto}`;
-  el.style.color = cor || '#7a9ab8';
+  el.style.color = cor || '#A9A584';
 }
 
 function statusContagem() {
@@ -546,7 +546,7 @@ async function carregarEstadoInicial(turmaId, ctx) {
   }
 
   (data || []).forEach((row) => registrarLinha(row, ctx));
-  if (marcadores.size === 0 && linhas.size === 0) status('nenhuma marcação visível ainda', '#7a9ab8');
+  if (marcadores.size === 0 && linhas.size === 0) status('nenhuma marcação visível ainda', '#A9A584');
 }
 
 // ── 2. Canal Realtime ─────────────────────────────────────────────────────
@@ -608,7 +608,7 @@ function injetarEstilos() {
   style.textContent = `
     #marcacao-painel {
       position:fixed; top:50%; left:50%; transform:translate(-50%,-50%);
-      z-index:2000; background:#0d1b2a; border:1px solid #2a4a6b;
+      z-index:2000; background:#1E2616; border:1px solid #4B5A2E;
       border-radius:8px; padding:16px 20px; min-width:280px; max-width:min(92vw,380px);
       max-height:88vh; overflow-y:auto;
       box-shadow:0 4px 24px rgba(0,0,0,.5); font-family:'Segoe UI',Arial,sans-serif;
@@ -616,29 +616,29 @@ function injetarEstilos() {
     }
     #marcacao-painel h3 {
       font-size:13px; letter-spacing:.05em; text-transform:uppercase;
-      color:#a8c8e8; margin-bottom:12px;
+      color:#F2E8C9; margin-bottom:12px;
     }
     #marcacao-painel label {
-      display:block; font-size:12px; color:#7a9ab8; margin-bottom:10px;
+      display:block; font-size:12px; color:#A9A584; margin-bottom:10px;
     }
     #marcacao-painel select, #marcacao-painel input[type=text] {
       display:block; width:100%; margin-top:4px; padding:5px 6px;
-      background:#16263a; color:#e8eaf0; border:1px solid #2a4a6b; border-radius:4px;
+      background:#252F1A; color:#e8eaf0; border:1px solid #4B5A2E; border-radius:4px;
       font-family:inherit; font-size:13px; box-sizing:border-box;
     }
-    #marcacao-painel input[type=text]::placeholder { color:#3f5f7f; }
+    #marcacao-painel input[type=text]::placeholder { color:#66764A; }
     #marcacao-painel .mc-acoes {
       display:flex; justify-content:flex-end; gap:8px; margin-top:14px;
     }
     #marcacao-painel button {
-      padding:5px 14px; border-radius:4px; font-size:12px; cursor:pointer; border:1px solid #2a5a8c;
+      padding:5px 14px; border-radius:4px; font-size:12px; cursor:pointer; border:1px solid #6B7F3E;
     }
-    #marcacao-painel .mc-salvar { background:#1a3a5c; color:#7ab8f5; }
-    #marcacao-painel .mc-cancelar { background:transparent; color:#c8d8e8; border-color:#3a5a7a; }
-    #marcacao-painel optgroup { background:#0d1b2a; color:#7a9ab8; font-style:normal; }
-    #marcacao-painel option { background:#16263a; color:#e8eaf0; }
+    #marcacao-painel .mc-salvar { background:#3A4726; color:#E9BF55; }
+    #marcacao-painel .mc-cancelar { background:transparent; color:#E6DCB8; border-color:#5A6B3A; }
+    #marcacao-painel optgroup { background:#1E2616; color:#A9A584; font-style:normal; }
+    #marcacao-painel option { background:#252F1A; color:#e8eaf0; }
     #marcacao-painel .mc-dica {
-      font-size:11px; color:#5f7f9f; margin:-6px 0 10px; line-height:1.35;
+      font-size:11px; color:#7F8D5A; margin:-6px 0 10px; line-height:1.35;
     }
     #marcacao-painel .mc-aviso {
       color:#f5c842; background:#2a2412; border:1px solid #5a4a1a;
@@ -653,12 +653,12 @@ function injetarEstilos() {
     }
     #marcacao-painel .mc-partido-btn {
       padding:11px 14px; font-size:14px; text-align:left;
-      background:#16263a; color:#e8eaf0; border:1px solid #2a4a6b;
+      background:#252F1A; color:#e8eaf0; border:1px solid #4B5A2E;
     }
     #marcacao-painel .mc-partido-btn:disabled { opacity:.5; cursor:default; }
     #marcacao-painel .mc-coord {
-      font-size:11px; color:#7a9ab8; margin-bottom:12px; padding:5px 7px;
-      background:#16263a; border:1px solid #23405e; border-radius:4px;
+      font-size:11px; color:#A9A584; margin-bottom:12px; padding:5px 7px;
+      background:#252F1A; border:1px solid #2F3B20; border-radius:4px;
       font-variant-numeric:tabular-nums;
     }
     .mc-botoes { display:flex; gap:6px; margin-top:8px; }
@@ -674,7 +674,7 @@ function injetarEstilos() {
     /* Os três campos de tiro, atrás de um <details> fechado. */
     .mc-alvo { margin:10px 0 4px; }
     .mc-alvo > summary {
-      cursor:pointer; font-size:12px; color:#7a9ab8; padding:4px 0;
+      cursor:pointer; font-size:12px; color:#A9A584; padding:4px 0;
       list-style:none; user-select:none;
     }
     .mc-alvo > summary::before { content:'▸ '; }
@@ -855,7 +855,7 @@ function abrirFormulario(latlng, { marcacaoExistente, sidcInicial, partidoInicia
          mapa — a designação da unidade, não o tipo dela (o tipo já está no
          desenho). Opcional: em branco, o símbolo sai limpo. O maxlength é o
          que impede a linha de voltar a atravessar a tela. -->
-    <label>Designação da unidade <span style="color:#4a6a8a">(opcional)</span>
+    <label>Designação da unidade <span style="color:#7A7C5C">(opcional)</span>
       <input id="mc-designacao" type="text" maxlength="12" autocomplete="off"
              placeholder="ex.: 1º/5º RCC" value="${escapar(designacaoInicial)}">
     </label>
@@ -873,7 +873,7 @@ function abrirFormulario(latlng, { marcacaoExistente, sidcInicial, partidoInicia
          (ver 0011) exatamente para ninguém gravar um número que outra pessoa
          leria como medida. -->
     <details class="mc-alvo">
-      <summary>Dados de tiro <span style="color:#4a6a8a">(opcional)</span></summary>
+      <summary>Dados de tiro <span style="color:#7A7C5C">(opcional)</span></summary>
       <label>Altitude do alvo (m)
         <input id="mc-altitude" type="number" step="1" min="-500" max="9000"
                inputmode="numeric" autocomplete="off" placeholder="lida na carta"

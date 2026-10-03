@@ -50,10 +50,10 @@ function injetarEstilos() {
   const s = document.createElement('style');
   s.textContent = `
     #barra-coordenada {
-      font-variant-numeric: tabular-nums; color: #9fc0e0; white-space: nowrap;
+      font-variant-numeric: tabular-nums; color: #EADFBE; white-space: nowrap;
     }
-    #barra-coordenada .brc-zona { color: #7a9ab8; }
-    #barra-coordenada .brc-vazio { color: #4a6a8a; }
+    #barra-coordenada .brc-zona { color: #A9A584; }
+    #barra-coordenada .brc-vazio { color: #7A7C5C; }
     /* A cruz do centro, só em tela de toque. Fina de propósito: ela marca um
        ponto, não chama atenção. Duas linhas com contorno claro para ser
        visível tanto sobre o OSM quanto sobre imagem de satélite. */
@@ -63,7 +63,7 @@ function injetarEstilos() {
       pointer-events: none;
     }
     .${CLASSE_CRUZ}::before, .${CLASSE_CRUZ}::after {
-      content: ''; position: absolute; background: #0d1b2a;
+      content: ''; position: absolute; background: #1E2616;
       box-shadow: 0 0 0 1px rgba(255,255,255,.75);
     }
     .${CLASSE_CRUZ}::before { left: 50%; top: 0; width: 1px; height: 100%; margin-left: -.5px; }

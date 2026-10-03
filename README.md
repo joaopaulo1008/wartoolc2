@@ -1,4 +1,6 @@
-# WartoolC2 — Portal WebGIS de Instrução
+# ELITE C2 — Portal WebGIS de Instrução
+
+> Antes chamado **WartoolC2**. O nome mudou na interface e na identidade visual (2026-10-02); o repositório, a URL e os identificadores técnicos continuam `wartoolc2`.
 
 Common Operational Picture tático para instrução/simulação, com simbologia militar padrão (APP-6B/APP-6D) sobre mapas web.
 

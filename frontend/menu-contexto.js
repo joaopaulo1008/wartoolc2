@@ -67,20 +67,20 @@ function injetarEstilos() {
   s.textContent = `
     .${CLASSE} {
       position: absolute; z-index: 1200; min-width: 208px; max-width: 74vw;
-      background: #0d1b2a; border: 1px solid #2a4a6b; border-radius: 6px;
+      background: #1E2616; border: 1px solid #4B5A2E; border-radius: 6px;
       box-shadow: 0 6px 18px rgba(0,0,0,.5); overflow: hidden;
       font-size: 12px; color: #e8eaf0; -webkit-tap-highlight-color: transparent;
     }
     .${CLASSE}-item {
       display: block; width: 100%; text-align: left; background: none; border: 0;
-      border-bottom: 1px solid #16263a; color: inherit; font: inherit;
+      border-bottom: 1px solid #252F1A; color: inherit; font: inherit;
       /* 44px é o mínimo de alvo de toque; com duas linhas passa disso. */
       min-height: 44px; padding: 8px 12px; cursor: pointer;
     }
     .${CLASSE}-item:last-child { border-bottom: 0; }
-    .${CLASSE}-item:active { background: #22354d; }
+    .${CLASSE}-item:active { background: #2D3822; }
     .${CLASSE}-item:disabled { cursor: default; opacity: .6; }
-    .${CLASSE}-rot { display: block; color: #9fc0e0; }
+    .${CLASSE}-rot { display: block; color: #EADFBE; }
     .${CLASSE}-val {
       display: block; margin-top: 2px; color: #f5f7fa;
       font-variant-numeric: tabular-nums; word-break: break-word;
@@ -88,7 +88,7 @@ function injetarEstilos() {
     /* A lacuna DECLARADA: quando não há posto, a linha continua e diz por quê.
        Mesma regra do vetor no popup da marcação (2026-09-14) — some é
        indistinguível de "a função foi removida". */
-    .${CLASSE}-ausente .${CLASSE}-val { color: #9aa7b4; font-style: italic; }
+    .${CLASSE}-ausente .${CLASSE}-val { color: #B5B096; font-style: italic; }
   `;
   document.head.appendChild(s);
 }

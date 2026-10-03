@@ -125,13 +125,13 @@ function status(texto, cor) {
   const el = document.getElementById('camadas-status');
   if (!el) return;
   el.textContent = `Camadas: ${texto}`;
-  el.style.color = cor || '#7a9ab8';
+  el.style.color = cor || '#A9A584';
 }
 
 function statusContagem() {
   const total = camadas.size;
   const desenhadas = [...camadas.values()].filter((c) => c.noMapa).length;
-  if (total === 0) { status('nenhuma carregada', '#7a9ab8'); return; }
+  if (total === 0) { status('nenhuma carregada', '#A9A584'); return; }
   const ocultas = total - desenhadas;
   if (ocultas > 0) status(`${desenhadas} de ${total} visíveis`, '#f5c842');
   else status(`${total} carregada${total === 1 ? '' : 's'}`, '#7af57a');
@@ -149,32 +149,32 @@ function injetarEstilos() {
        daqui, para o mesmo módulo ficar apresentável nas duas telas sem
        depender do CSS de nenhuma delas. */
     #card-camadas {
-      background:rgba(13,27,42,.92); border:1px solid #2a4a6b;
+      background:rgba(30,38,22,.92); border:1px solid #4B5A2E;
       border-radius:6px; padding:10px 14px; font-size:12px; min-width:170px;
     }
     #card-camadas h3 {
       font-size:11px; letter-spacing:.06em; text-transform:uppercase;
-      color:#7a9ab8; margin-bottom:8px;
+      color:#A9A584; margin-bottom:8px;
     }
     #card-camadas .cam-secao { margin-bottom:10px; }
     #card-camadas .cam-secao:last-child { margin-bottom:0; }
     #card-camadas .cam-subtitulo {
       font-size:10px; letter-spacing:.06em; text-transform:uppercase;
-      color:#5a7a98; margin:8px 0 6px; border-top:1px solid #23405e; padding-top:8px;
+      color:#7B8A55; margin:8px 0 6px; border-top:1px solid #2F3B20; padding-top:8px;
     }
     #card-camadas .cam-linha { margin-bottom:8px; }
     #card-camadas .cam-topo { display:flex; align-items:center; gap:6px; }
     #card-camadas .cam-nome {
-      flex:1; font-size:12px; color:#c8d8e8; overflow:hidden;
+      flex:1; font-size:12px; color:#E6DCB8; overflow:hidden;
       text-overflow:ellipsis; white-space:nowrap;
     }
     #card-camadas .cam-dot { width:10px; height:10px; border-radius:2px; flex-shrink:0; }
     #card-camadas .cam-mini {
-      background:transparent; border:1px solid #2a4a6b; color:#7a9ab8;
+      background:transparent; border:1px solid #4B5A2E; color:#A9A584;
       border-radius:3px; width:18px; height:18px; line-height:1; font-size:10px;
       cursor:pointer; padding:0; flex-shrink:0;
     }
-    #card-camadas .cam-mini:hover:not(:disabled) { color:#c8d8e8; border-color:#4a6a8a; }
+    #card-camadas .cam-mini:hover:not(:disabled) { color:#E6DCB8; border-color:#7A7C5C; }
     #card-camadas .cam-mini:disabled { opacity:.3; cursor:default; }
     /* Bolinhas de cor. Empurradas para o fim da linha pelo nome (que é
        flex:1), para a coluna de nomes continuar alinhada entre as camadas. */
@@ -183,7 +183,7 @@ function injetarEstilos() {
     #card-camadas .cam-rotulo-linha {
       display:flex; align-items:center; gap:5px; margin:4px 0 0 20px; font-size:11px;
     }
-    #card-camadas .cam-rotulo-linha label { color:#7a9ab8; cursor:pointer; }
+    #card-camadas .cam-rotulo-linha label { color:#A9A584; cursor:pointer; }
     #card-camadas .cam-rotulo-aviso { color:#c8a24a; font-style:italic; }
     /* O rótulo desenhado NO MAPA. Fora de #card-camadas de propósito: o
        tooltip do Leaflet vive no tooltipPane, não dentro do cartão.
@@ -191,7 +191,7 @@ function injetarEstilos() {
        embaixo — num celular, um rótulo sobre um símbolo impediria abrir o
        popup dele. */
     .leaflet-tooltip.cam-rotulo {
-      background:rgba(13,27,42,.82); border:none; box-shadow:none;
+      background:rgba(30,38,22,.82); border:none; box-shadow:none;
       color:#e8eaf0; font-size:11px; font-weight:600; padding:1px 5px;
       white-space:nowrap; pointer-events:none;
       text-shadow:0 1px 2px rgba(0,0,0,.9);
@@ -199,19 +199,19 @@ function injetarEstilos() {
     .leaflet-tooltip.cam-rotulo::before { display:none; }
     #card-camadas .cam-cor {
       width:13px; height:13px; border-radius:50%; padding:0; cursor:pointer;
-      border:1px solid #4a6a8a;
+      border:1px solid #7A7C5C;
     }
     #card-camadas .cam-cor.ativa { border-color:#e8eaf0; box-shadow:0 0 0 1px #e8eaf0; }
-    #card-camadas .cam-meta { font-size:10px; color:#5a7a98; padding-left:18px; }
+    #card-camadas .cam-meta { font-size:10px; color:#7B8A55; padding-left:18px; }
     /* Etapa 8b: opacidade de imagem georreferenciada — única camada de
        arquivo que ainda expõe este controle (ver o comentário grande no topo
        do arquivo, seção "ETAPA 8b — IMAGEM GEORREFERENCIADA..."). */
     #card-camadas .cam-opacidade-linha {
       display:flex; align-items:center; gap:6px; padding-left:18px; margin-top:2px;
     }
-    #card-camadas .cam-opacidade-rotulo { font-size:10px; color:#5a7a98; flex-shrink:0; }
+    #card-camadas .cam-opacidade-rotulo { font-size:10px; color:#7B8A55; flex-shrink:0; }
     #card-camadas .cam-opacidade-slider { flex:1; height:14px; }
-    #card-camadas .cam-opacidade-valor { font-size:10px; color:#7a9ab8; width:32px; text-align:right; flex-shrink:0; }
+    #card-camadas .cam-opacidade-valor { font-size:10px; color:#A9A584; width:32px; text-align:right; flex-shrink:0; }
     #card-camadas .cam-aviso {
       font-size:11px; color:#f5c842; line-height:1.5;
       background:#3a3a1a; border:1px solid #6c5a2a; border-radius:4px;
@@ -222,12 +222,12 @@ function injetarEstilos() {
       background:#3a1a1a; border:1px solid #6c2a2a; border-radius:4px;
       padding:6px 8px; margin-top:6px;
     }
-    #card-camadas .cam-vazio { font-size:11px; color:#5a7a98; font-style:italic; }
+    #card-camadas .cam-vazio { font-size:11px; color:#7B8A55; font-style:italic; }
     #card-camadas .cam-botao {
-      width:100%; background:#1a3a5c; color:#7ab8f5; border:1px solid #2a5a8c;
+      width:100%; background:#3A4726; color:#E9BF55; border:1px solid #6B7F3E;
       border-radius:4px; padding:5px 10px; font-size:12px; cursor:pointer; margin-top:4px;
     }
-    #card-camadas .cam-botao:hover:not(:disabled) { background:#22456c; }
+    #card-camadas .cam-botao:hover:not(:disabled) { background:#3F4D2A; }
     #card-camadas .cam-botao:disabled { opacity:.4; cursor:not-allowed; }
   `;
   document.head.appendChild(style);
@@ -633,7 +633,7 @@ function linhaDaCamada(registro, indice, total) {
   // Imagem não tem "cor" de verdade (a coluna `cor` do banco fica com o
   // padrão, sem efeito nenhum na renderização) — o quadrado neutro evita
   // sugerir uma escolha de cor que não existe para raster.
-  dot.style.background = ehImagem(registro) ? '#5a7a98' : registro.cor;
+  dot.style.background = ehImagem(registro) ? '#7B8A55' : registro.cor;
 
   const nome = document.createElement('span');
   nome.className = 'cam-nome';

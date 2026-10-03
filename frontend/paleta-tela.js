@@ -69,24 +69,24 @@ function injetarEstilos() {
   const s = document.createElement('style');
   s.textContent = `
     .pal-fileira { margin: 2px 0 12px; }
-    .pal-titulo { font-size: 11px; color: #7a9ab8; margin: 0 0 6px; line-height: 1.35; }
+    .pal-titulo { font-size: 11px; color: #A9A584; margin: 0 0 6px; line-height: 1.35; }
     .pal-grade { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
     /* Alto o bastante para um dedo com luva (44px é o mínimo recomendado para
        alvo de toque; aqui passa disso por causa do símbolo). */
     .pal-btn {
       display: flex; flex-direction: column; align-items: center; justify-content: flex-end;
       gap: 2px; min-height: 62px; padding: 4px 2px;
-      background: #16263a; border: 1px solid #2a4a6b; border-radius: 5px;
+      background: #252F1A; border: 1px solid #4B5A2E; border-radius: 5px;
       color: #e8eaf0; font-size: 10px; line-height: 1.15; cursor: pointer;
       text-align: center; word-break: break-word; -webkit-tap-highlight-color: transparent;
     }
-    .pal-btn:active { border-color: #f5c842; background: #22354d; }
+    .pal-btn:active { border-color: #f5c842; background: #2D3822; }
     .pal-btn svg { display: block; max-width: 100%; height: auto; }
     .pal-btn:disabled { opacity: .5; cursor: default; }
-    .pal-separador { border: 0; border-top: 1px solid #23405e; margin: 14px 0 0; }
+    .pal-separador { border: 0; border-top: 1px solid #2F3B20; margin: 14px 0 0; }
     .pal-separador-txt {
       display: block; width: fit-content; margin: -8px auto 10px; padding: 0 8px;
-      background: #0d1b2a; font-size: 11px; color: #5f7f9f;
+      background: #1E2616; font-size: 11px; color: #7F8D5A;
     }
   `;
   document.head.appendChild(s);

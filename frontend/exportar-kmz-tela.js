@@ -87,7 +87,7 @@ async function desenharIcones(sidcs, formato) {
   return { icones, arquivos, falhas };
 }
 
-const LEIA_ME_SVG = `WartoolC2 — marcações exportadas (ícones SVG)
+const LEIA_ME_SVG = `ELITE C2 — marcações exportadas (ícones SVG)
 
 Este arquivo é um zip: o KML está em doc.kml e os símbolos militares, em icones/.
 
@@ -126,7 +126,7 @@ export function iniciarExportacaoKmz({ obterTurma } = {}) {
   const status = document.getElementById('exportar-kmz-status');
   if (!botao || !seletor || !status) return;
 
-  const dizer = (texto, cor = '#7a9ab8') => { status.textContent = texto; status.style.color = cor; };
+  const dizer = (texto, cor = '#A9A584') => { status.textContent = texto; status.style.color = cor; };
 
   botao.addEventListener('click', async () => {
     const turma = obterTurma?.();

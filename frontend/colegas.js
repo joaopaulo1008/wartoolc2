@@ -107,7 +107,7 @@ function status(texto, cor) {
   const el = document.getElementById('colegas-status');
   if (!el) return;
   el.textContent = `Colegas: ${texto}`;
-  el.style.color = cor || '#7a9ab8';
+  el.style.color = cor || '#A9A584';
 }
 
 // ── Ícone (símbolo NATO via milsymbol) ───────────────────────────────────
@@ -285,7 +285,7 @@ function removerAvatar(usuarioId, { map }) {
   map.removeLayer(estado.marker);
   colegas.delete(usuarioId);
   redistribuirAvatares();
-  status(`${colegas.size} visível${colegas.size === 1 ? '' : 'eis'}`, '#7a9ab8');
+  status(`${colegas.size} visível${colegas.size === 1 ? '' : 'eis'}`, '#A9A584');
 }
 
 // Recalcula, a partir das posições CRUAS de todo mundo ainda no mapa, quem
@@ -328,7 +328,7 @@ async function carregarEstadoInicial(turmaId, userId, { map }) {
     aplicarIdade(row.usuario_id, idadeDaPosicao(row.atualizado_em, row.origem));
   }
 
-  if (colegas.size === 0) status('nenhum colega visível ainda', '#7a9ab8');
+  if (colegas.size === 0) status('nenhum colega visível ainda', '#A9A584');
 }
 
 // ── 2. Canal Realtime ─────────────────────────────────────────────────────

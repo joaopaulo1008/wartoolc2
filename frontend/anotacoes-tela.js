@@ -55,7 +55,7 @@ function injetarEstilos() {
   style.textContent = `
     .anot-caixa {
       display:inline-block; max-width:220px; padding:3px 7px;
-      background:rgba(13,27,42,.86); border-left:3px solid currentColor;
+      background:rgba(30,38,22,.86); border-left:3px solid currentColor;
       border-radius:3px; font:600 12px/1.35 'Segoe UI',Arial,sans-serif;
       white-space:pre-wrap; word-break:break-word;
       text-shadow:0 1px 2px rgba(0,0,0,.9);
@@ -66,45 +66,45 @@ function injetarEstilos() {
     .anot-wrap.anot-somente-leitura .anot-caixa { cursor:default; }
     .anot-wrap.anot-editavel .anot-caixa { cursor:pointer; }
     #card-anotacoes {
-      background:rgba(13,27,42,.92); border:1px solid #2a4a6b;
+      background:rgba(30,38,22,.92); border:1px solid #4B5A2E;
       border-radius:6px; padding:10px 14px; font-size:12px; min-width:170px;
     }
     #card-anotacoes h3 {
       font-size:11px; letter-spacing:.06em; text-transform:uppercase;
-      color:#7a9ab8; margin-bottom:8px;
+      color:#A9A584; margin-bottom:8px;
     }
     #card-anotacoes .anot-btn {
       width:100%; padding:6px 10px; border-radius:4px; font-size:12px;
-      font-family:inherit; cursor:pointer; border:1px solid #2a4a6b;
-      background:#0d1b2a; color:#a8c8e8; margin-bottom:8px;
+      font-family:inherit; cursor:pointer; border:1px solid #4B5A2E;
+      background:#1E2616; color:#F2E8C9; margin-bottom:8px;
     }
-    #card-anotacoes .anot-btn:hover { border-color:#4a7ab0; color:#e8eaf0; }
+    #card-anotacoes .anot-btn:hover { border-color:#B8891F; color:#e8eaf0; }
     #card-anotacoes .anot-item {
       display:flex; align-items:center; gap:6px; padding:4px 0;
-      border-top:1px solid #23405e;
+      border-top:1px solid #2F3B20;
     }
-    #card-anotacoes .anot-texto { flex:1; color:#c8d8e8; overflow:hidden;
+    #card-anotacoes .anot-texto { flex:1; color:#E6DCB8; overflow:hidden;
       text-overflow:ellipsis; white-space:nowrap; }
-    #card-anotacoes .anot-alcance { font-size:10px; color:#5a7a98; }
+    #card-anotacoes .anot-alcance { font-size:10px; color:#7B8A55; }
     #card-anotacoes .anot-mini {
-      background:transparent; border:1px solid #2a4a6b; color:#7a9ab8;
+      background:transparent; border:1px solid #4B5A2E; color:#A9A584;
       border-radius:3px; min-width:18px; height:18px; line-height:1;
       font-size:10px; cursor:pointer; padding:0 4px; flex-shrink:0;
     }
-    #card-anotacoes .anot-mini:hover { color:#c8d8e8; border-color:#4a6a8a; }
-    #card-anotacoes .anot-vazio { color:#5a7a98; font-style:italic; }
+    #card-anotacoes .anot-mini:hover { color:#E6DCB8; border-color:#7A7C5C; }
+    #card-anotacoes .anot-vazio { color:#7B8A55; font-style:italic; }
     .anot-form { margin-top:8px; }
     .anot-form textarea {
       width:100%; min-height:54px; resize:vertical; padding:5px 7px;
-      background:#0d1b2a; color:#e8eaf0; border:1px solid #2a4a6b;
+      background:#1E2616; color:#e8eaf0; border:1px solid #4B5A2E;
       border-radius:4px; font:12px/1.4 'Segoe UI',Arial,sans-serif;
     }
     .anot-form select {
-      width:100%; padding:4px 7px; margin-top:6px; background:#0d1b2a;
-      color:#e8eaf0; border:1px solid #2a4a6b; border-radius:4px;
+      width:100%; padding:4px 7px; margin-top:6px; background:#1E2616;
+      color:#e8eaf0; border:1px solid #4B5A2E; border-radius:4px;
       font-size:12px; font-family:inherit;
     }
-    .anot-form .anot-contador { font-size:10px; color:#5a7a98; margin-top:3px; }
+    .anot-form .anot-contador { font-size:10px; color:#7B8A55; margin-top:3px; }
     .anot-form .anot-contador.estourou { color:#e05252; }
     .anot-form .anot-acoes { display:flex; gap:6px; margin-top:8px; }
     .anot-erro { color:#e05252; font-size:11px; margin-top:5px; }

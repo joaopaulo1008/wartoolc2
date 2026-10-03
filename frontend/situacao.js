@@ -379,7 +379,7 @@ function popupPosicao(usuario, row) {
 // ("sem sinal há 2m05s" aqui, "2m" na etiqueta ao lado do símbolo).
 function estadoDe(usuarioId) {
   const estado = posicoes.get(usuarioId);
-  if (!estado) return { texto: 'sem posição', cor: '#4a6a8a', temPosicao: false };
+  if (!estado) return { texto: 'sem posição', cor: '#7A7C5C', temPosicao: false };
   // Posição manual (simulação) não envelhece — ver idadeDaPosicao().
   const idade = idadeDaPosicao(estado.row.atualizado_em, estado.row.origem);
   if (idade >= SEM_SINAL_MS) {

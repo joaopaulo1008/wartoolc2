@@ -45,7 +45,7 @@ let editandoId = null; // id do preset em edição, ou null (= criando)
 
 const el = (id) => document.getElementById(id);
 
-function aviso(texto, cor = '#7a9ab8') {
+function aviso(texto, cor = '#A9A584') {
   const n = el('paleta-status');
   if (!n) return;
   n.textContent = texto || '';

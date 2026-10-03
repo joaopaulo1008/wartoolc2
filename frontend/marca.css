@@ -1,0 +1,22 @@
+/* Identidade visual ELITE C2 (rebrand de 2026-10-02; antes: WartoolC2).
+
+   Por que um arquivo só: o logotipo aparece em três telas (login, aluno,
+   instrutor). Pela regra de extrair na segunda vez, o CSS dele mora aqui e as
+   telas só trazem o <span class="lb"> com o SVG do "I".
+
+   O desenho: o "I" de ELITE é o eixo vertical de uma mira de tiro (traço
+   quebrado + ponto central), e o "C2" vai numa placa dourada. A paleta é
+   verde-oliva + dourado + creme de PROPÓSITO: azul e vermelho já são as forças
+   amiga e inimiga no mapa, e a cor da interface não pode parecer uma força. */
+:root {
+  --marca-fundo:  #1E2616;   /* barras e painéis */
+  --marca-oliva:  #4B5A2E;   /* bordas */
+  --marca-dourado:#D9A62E;   /* acento */
+  --marca-creme:  #F2E8C9;   /* texto claro */
+}
+.lb { display:inline-flex; align-items:center; font-weight:800; letter-spacing:.14em;
+      color:var(--marca-creme); text-transform:uppercase; white-space:nowrap; }
+.lb .lb-i { height:1em; width:.28em; margin:0 .09em; flex-shrink:0; }
+.lb i { font-style:normal; background:var(--marca-dourado); color:var(--marca-fundo);
+        border-radius:3px; padding:0 .35em; margin-left:.45em; letter-spacing:.06em; }
+.lb-sub { font-weight:500; opacity:.8; margin-left:.7em; letter-spacing:.08em; }

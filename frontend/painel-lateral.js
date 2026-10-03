@@ -46,7 +46,7 @@ function injetarEstilos() {
       display:flex; align-items:center; gap:6px;
       cursor:pointer; user-select:none; margin-bottom:8px;
     }
-    .pl-titulo:hover { color:#c8d8e8; }
+    .pl-titulo:hover { color:#E6DCB8; }
     .pl-seta { font-size:9px; line-height:1; transition:transform .12s ease; }
     .pl-recolhido .pl-seta { transform:rotate(-90deg); }
     .pl-recolhido .pl-titulo { margin-bottom:0; }
@@ -69,12 +69,12 @@ function injetarEstilos() {
        template literal. */
     #pl-botao {
       position:absolute; top:10px; right:10px; z-index:1002;
-      background:rgba(13,27,42,.92); color:#a8c8e8;
-      border:1px solid #2a4a6b; border-radius:6px;
+      background:rgba(30,38,22,.92); color:#F2E8C9;
+      border:1px solid #4B5A2E; border-radius:6px;
       padding:7px 11px; font-size:13px; line-height:1; cursor:pointer;
       font-family:inherit;
     }
-    #pl-botao:hover { color:#e8eaf0; border-color:#3a6a9b; }
+    #pl-botao:hover { color:#e8eaf0; border-color:#6B7F3E; }
     /* Com o painel aberto, o botão encosta nele em vez de flutuar solto. */
     #pl-botao.pl-aberto { border-bottom-right-radius:0; border-bottom-left-radius:0; }
     .pl-oculto { display:none !important; }

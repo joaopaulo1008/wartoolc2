@@ -3,7 +3,13 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>WartoolC2</title>
+  <title>ELITE C2</title>
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="/favicon-32.png" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="manifest" href="/manifest.webmanifest">
+<meta name="theme-color" content="#1E2616">
+<link rel="stylesheet" href="./marca.css">
 
   <!-- Etapa 9a: Leaflet/milsymbol deixaram de vir de CDN como globais `L`/`ms`
        — os módulos importam os dois de verdade (pinados em package.json). O
@@ -16,19 +22,19 @@
     * { margin:0; padding:0; box-sizing:border-box; }
     body {
       font-family:'Segoe UI',Arial,sans-serif;
-      background:#1a1f2e; color:#e8eaf0;
+      background:#151A10; color:#e8eaf0;
       height:100vh; display:flex; flex-direction:column;
     }
 
     /* ── Topbar ─────────────────────────────────────────────── */
     #topbar {
-      background:#0d1b2a; border-bottom:2px solid #2a4a6b;
+      background:#1E2616; border-bottom:2px solid #4B5A2E;
       padding:8px 16px; display:flex; align-items:center;
       justify-content:space-between; flex-shrink:0; gap:12px; z-index:1001;
     }
     #topbar h1 {
       font-size:15px; font-weight:600; letter-spacing:.08em;
-      color:#a8c8e8; text-transform:uppercase; white-space:nowrap;
+      color:#F2E8C9; text-transform:uppercase; white-space:nowrap;
     }
     #status-bar { display:flex; align-items:center; gap:16px; font-size:12px; flex-wrap:wrap; }
     /* Etapa pós-campo: os itens de diagnóstico (os cinco status)
@@ -43,16 +49,16 @@
     #status-detalhes { display:flex; align-items:center; gap:16px; flex-wrap:wrap; }
     #status-detalhes.pl-oculto { display:none; }
     #status-toggle {
-      background:transparent; color:#7a9ab8; border:1px solid #2a4a6b;
+      background:transparent; color:#A9A584; border:1px solid #4B5A2E;
       border-radius:4px; padding:2px 8px; font-size:12px; cursor:pointer;
       font-family:inherit; line-height:1.6;
     }
-    #status-toggle:hover { color:#c8d8e8; border-color:#3a6a9b; }
-    #gps-status { color:#7a9ab8; white-space:nowrap; } /* Etapa 3: status do GPS próprio, atualizado por gps.js */
-    #colegas-status { color:#7a9ab8; white-space:nowrap; } /* Etapa 4: status dos colegas em tempo real, atualizado por colegas.js */
-    #marcacoes-status { color:#7a9ab8; white-space:nowrap; } /* Etapa 5: status das marcações no mapa, atualizado por marcacoes.js */
-    #permissoes-status { color:#7a9ab8; white-space:nowrap; } /* Etapa 6a: o que o instrutor liberou, atualizado por permissoes.js */
-    #camadas-status { color:#7a9ab8; white-space:nowrap; } /* Etapa 7: camadas de arquivo (calcos + KML próprio), atualizado por camadas.js */
+    #status-toggle:hover { color:#E6DCB8; border-color:#6B7F3E; }
+    #gps-status { color:#A9A584; white-space:nowrap; } /* Etapa 3: status do GPS próprio, atualizado por gps.js */
+    #colegas-status { color:#A9A584; white-space:nowrap; } /* Etapa 4: status dos colegas em tempo real, atualizado por colegas.js */
+    #marcacoes-status { color:#A9A584; white-space:nowrap; } /* Etapa 5: status das marcações no mapa, atualizado por marcacoes.js */
+    #permissoes-status { color:#A9A584; white-space:nowrap; } /* Etapa 6a: o que o instrutor liberou, atualizado por permissoes.js */
+    #camadas-status { color:#A9A584; white-space:nowrap; } /* Etapa 7: camadas de arquivo (calcos + KML próprio), atualizado por camadas.js */
 
     /* ── Mapa ───────────────────────────────────────────────── */
     #map { flex:1; width:100%; }
@@ -73,12 +79,12 @@
       display:flex; flex-direction:column; gap:8px;
     }
     .panel-card {
-      background:rgba(13,27,42,.92); border:1px solid #2a4a6b;
+      background:rgba(30,38,22,.92); border:1px solid #4B5A2E;
       border-radius:6px; padding:10px 14px; font-size:12px; min-width:170px;
     }
     .panel-card h3 {
       font-size:11px; letter-spacing:.06em; text-transform:uppercase;
-      color:#7a9ab8; margin-bottom:8px;
+      color:#A9A584; margin-bottom:8px;
     }
     .layer-row {
       display:flex; align-items:center; gap:8px;
@@ -93,9 +99,9 @@
     .basemap-row input[type=radio] { cursor:pointer; }
     .basemap-thumb {
       width:20px; height:14px; border-radius:2px;
-      border:1px solid #3a5a7a; flex-shrink:0;
+      border:1px solid #5A6B3A; flex-shrink:0;
     }
-    .basemap-label { font-size:12px; color:#c8d8e8; }
+    .basemap-label { font-size:12px; color:#E6DCB8; }
 
     /* ── Popup ──────────────────────────────────────────────── */
     .popup-content { font-size:13px; min-width:200px; }
@@ -109,8 +115,8 @@
 
     /* ── Rodapé ─────────────────────────────────────────────── */
     #footer {
-      background:#0d1b2a; border-top:1px solid #2a4a6b;
-      padding:4px 16px; font-size:11px; color:#4a6a8a;
+      background:#1E2616; border-top:1px solid #4B5A2E;
+      padding:4px 16px; font-size:11px; color:#7A7C5C;
       text-align:center; flex-shrink:0;
     }
     /* Selo de SIMULAÇÃO (modo-posicao.js / selo-simulacao.js): aparece só quando
@@ -122,7 +128,7 @@
     }
 
     /* ── Sessão (Etapa 2b) ──────────────────────────────────── */
-    #user-bar { display:flex; align-items:center; gap:10px; color:#c8d8e8; }
+    #user-bar { display:flex; align-items:center; gap:10px; color:#E6DCB8; }
     .btn-sair {
       background:#5c1a1a; color:#f57a7a; border:1px solid #8c2a2a;
       border-radius:4px; padding:3px 10px; font-size:12px; cursor:pointer;
@@ -136,10 +142,10 @@
     }
     #turma-banner input {
       padding:4px 8px; border-radius:4px; border:1px solid #6c5a2a;
-      background:#0d1b2a; color:#e8eaf0; font-size:12px;
+      background:#1E2616; color:#e8eaf0; font-size:12px;
     }
     #turma-banner button {
-      background:#1a3a5c; color:#7ab8f5; border:1px solid #2a5a8c;
+      background:#3A4726; color:#E9BF55; border:1px solid #6B7F3E;
       border-radius:4px; padding:4px 10px; font-size:12px; cursor:pointer;
     }
 
@@ -158,7 +164,7 @@
       font-size:15px; letter-spacing:.05em; text-transform:uppercase;
       color:#f5c842; margin-bottom:10px;
     }
-    #mapa-bloqueado p { font-size:13px; color:#a8c8e8; line-height:1.6; }
+    #mapa-bloqueado p { font-size:13px; color:#F2E8C9; line-height:1.6; }
     #mapa-wrap { flex:1; position:relative; display:flex; min-height:0; }
 
     /* Controle desativado por permissão: continua visível (para o aluno saber
@@ -174,7 +180,7 @@
 <body style="visibility:hidden">
 
 <div id="topbar">
-  <h1>🗺 WartoolC2</h1>
+  <h1><span class="lb" role="img" aria-label="ELITE C2">EL<svg class="lb-i" viewBox="0 0 12 84" aria-hidden="true"><line x1="6" y1="2" x2="6" y2="34" stroke="#D9A62E" stroke-width="6.5"/><line x1="6" y1="50" x2="6" y2="82" stroke="#D9A62E" stroke-width="6.5"/><circle cx="6" cy="42" r="3.2" fill="#D9A62E"/></svg>TE<i>C2</i></span></h1>
   <div id="status-bar">
     <!-- status-detalhes agrupa só o que é diagnóstico (os cinco status).
          Nasce oculto em tela estreita — ver #status-toggle no script
@@ -300,11 +306,11 @@
       <input type="radio" name="formato-coordenada" value="dms">
       Grau, minuto, segundo
     </label>
-    <div id="coordenada-exemplo" style="font-size:11px;color:#5f7f9f;margin-top:6px;font-variant-numeric:tabular-nums"></div>
+    <div id="coordenada-exemplo" style="font-size:11px;color:#7F8D5A;margin-top:6px;font-variant-numeric:tabular-nums"></div>
     <!-- Nota que só aparece em UTM (ver ligarSeletorDeCoordenada no script).
          Relatado em campo em 2026-08-02: "estamos a W e S, e está escrito E e
          N". Não estava errado — mas se confundiu uma vez, confunde de novo. -->
-    <div id="coordenada-nota" style="font-size:10px;color:#4a6a8a;margin-top:5px;line-height:1.4"></div>
+    <div id="coordenada-nota" style="font-size:10px;color:#7A7C5C;margin-top:5px;line-height:1.4"></div>
 
     <!-- ── Grade de quadrículas (2026-10-02) ──────────────────────────────
          Mora NESTE cartão, e não num cartão próprio, porque é a mesma
@@ -312,8 +318,8 @@
          cartões faria a pessoa procurar em dois lugares a mesma decisão.
          É PREFERÊNCIA, não permissão: o instrutor não tem razão para proibir
          alguém de ver a quadrícula (ver o cabeçalho de preferencias.js). -->
-    <hr style="border:0;border-top:1px solid #23405e;margin:12px 0 8px">
-    <div style="font-size:11px;color:#7a9ab8;margin-bottom:6px">Grade de quadrículas</div>
+    <hr style="border:0;border-top:1px solid #2F3B20;margin:12px 0 8px">
+    <div style="font-size:11px;color:#A9A584;margin-bottom:6px">Grade de quadrículas</div>
     <label class="layer-row">
       <input type="radio" name="modo-grade" value="off" checked>
       Sem grade
@@ -326,7 +332,7 @@
       <input type="radio" name="modo-grade" value="geo">
       Grade geográfica
     </label>
-    <div id="grade-nota" style="font-size:10px;color:#4a6a8a;margin-top:5px;line-height:1.4"></div>
+    <div id="grade-nota" style="font-size:10px;color:#7A7C5C;margin-top:5px;line-height:1.4"></div>
   </div>
 
   <!-- Etapa 11: aqui moravam dois cartões do exercício de junho de 2026, que

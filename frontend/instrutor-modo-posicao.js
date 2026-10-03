@@ -64,7 +64,7 @@ async function mostrar(raiz, turmaId) {
   if (turmaMostrada !== turmaId) return;
 
   if (modo === null) {
-    raiz.innerHTML = `<span style="color:#9aa7b4" title="A coluna turmas.modo_posicao não foi lida. Aplique a migration 0016 no Supabase.">
+    raiz.innerHTML = `<span style="color:#B5B096" title="A coluna turmas.modo_posicao não foi lida. Aplique a migration 0016 no Supabase.">
       Posição dos alunos: indisponível (migration 0016 pendente?)</span>`;
     return;
   }
@@ -81,7 +81,7 @@ function desenhar(raiz, turmaId, modo, mensagem = '') {
         ${OPCOES.map((o) => `<option value="${esc(o.valor)}"${o.valor === modo ? ' selected' : ''}${o.indisponivel ? ' disabled' : ''}>${esc(o.rotulo)}</option>`).join('')}
       </select>
     </label>
-    <span id="modo-posicao-msg" style="margin-left:8px;color:#9fc0e0">${esc(mensagem)}</span>`;
+    <span id="modo-posicao-msg" style="margin-left:8px;color:#EADFBE">${esc(mensagem)}</span>`;
   document.getElementById('modo-posicao-select').addEventListener('change', (ev) => {
     aoEscolher(raiz, turmaId, ev.target.value);
   });

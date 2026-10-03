@@ -324,7 +324,7 @@ export function montarKml({
     pastas.push(`<Folder><name>${escaparXml(`Anotações (${anotacoesValidas.length})`)}</name>${itens.join('')}</Folder>`);
   }
 
-  const titulo = turmaNome ? `WartoolC2 — ${turmaNome}` : 'WartoolC2';
+  const titulo = turmaNome ? `ELITE C2 — ${turmaNome}` : 'ELITE C2';
   const legenda = `Gerado em ${formatarData(geradoEm.toISOString())} (horário de Brasília). `
     + 'Cores fixas: azul = força de referência (amigo), vermelho = demais forças beligerantes (hostil), '
     + 'verde = neutro, amarelo = marcação sem força definida.';

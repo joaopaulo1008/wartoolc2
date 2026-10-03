@@ -478,7 +478,7 @@ function redesenharLista() {
     const dot = document.createElement('span');
     dot.className = 'calco-dot';
     // Imagem não tem cor de traço — mesmo neutro usado em camadas.js.
-    dot.style.background = ehImagem ? '#5a7a98' : linha.cor;
+    dot.style.background = ehImagem ? '#7B8A55' : linha.cor;
 
     const nome = document.createElement('span');
     nome.className = 'calco-nome';

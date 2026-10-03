@@ -158,7 +158,7 @@ function status(texto, cor) {
   const el = document.getElementById('permissoes-status');
   if (!el) return;
   el.textContent = `Permissões: ${texto}`;
-  el.style.color = cor || '#7a9ab8';
+  el.style.color = cor || '#A9A584';
 }
 
 // ── Leitura ──────────────────────────────────────────────────────────────

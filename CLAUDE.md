@@ -1,4 +1,4 @@
-# CLAUDE.md — WartoolC2
+# CLAUDE.md — ELITE C2 (antes WartoolC2)
 
 Manual de operação para qualquer sessão (Claude ou humano) trabalhando neste
 projeto. **Curto de propósito.** Até 2026-09-19 este arquivo tinha 1820 linhas
@@ -24,8 +24,8 @@ pergunta nenhuma. Abra quando a tarefa pedir.
 
 ## O que é o projeto
 
-**WartoolC2** — portal WebGIS militar de instrução e C2, para uso em campo com
-rede de dados disponível.
+**ELITE C2** (nome técnico `wartoolc2`: repositório, URL e identificadores) — portal
+WebGIS militar de instrução e C2, para uso em campo com rede de dados disponível.
 
 - Camada de fundo trocável (mapa online ou imagem georreferenciada local).
 - KML/KMZ com controle de visibilidade e opacidade.
@@ -43,6 +43,25 @@ Site: **https://5bdacbldc2.pages.dev** (redireciona para
 
 O trabalho é dividido em etapas, uma por chat, para economizar tokens e
 escolher o modelo certo para cada complexidade.
+
+## Identidade visual: ELITE C2
+
+Rebrand de 2026-10-02 (antes WartoolC2). Mudou o que o usuário **vê**; o que o
+código **chama** continua com o nome antigo, de propósito.
+
+- **Fonte única do logotipo e dos tokens de cor: `frontend/marca.css`.** O "I" de
+  ELITE é o eixo vertical de uma mira de tiro; o "C2" vai numa placa dourada.
+- **Ícones e manifest em `public/`** (o Vite copia para a raiz do `dist/`):
+  `icon.svg` (blindado no retículo) para app/login, `favicon.svg` (retículo
+  grosso) para a aba, PNGs 192/512/maskable/apple-touch e `manifest.webmanifest`.
+- **Paleta: verde-oliva + dourado + creme.** Sem azul nem vermelho na interface:
+  são as forças amiga e inimiga no mapa, e a cor da tela não pode parecer uma
+  força. Por isso `corFallback` (gps/icones/situacao), a opção "Azul" do KML, a
+  paleta de séries do debriefing e as miniaturas de mapa base **continuam
+  azuis**: ali a cor tem significado, não é decoração.
+- **Não renomear** `wartoolc2` (repo, `base` do Vite, URL), `wartool-bdgex-tiles`
+  (cache), `wartool-camadas` e `wartool-offline` (IndexedDB): renomear os três
+  últimos faz cada celular perder o que já baixou para uso offline.
 
 ## Arquitetura, em uma página
 

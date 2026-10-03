@@ -237,7 +237,7 @@ function status(texto, cor) {
   const el = document.getElementById('gps-status');
   if (!el) return;
   el.textContent = `${usaGps(modoAtual) ? 'GPS' : 'Posição'}: ${texto}`;
-  el.style.color = cor || '#7a9ab8';
+  el.style.color = cor || '#A9A584';
 }
 
 // ── Ícone (símbolo NATO via milsymbol) ───────────────────────────────────
