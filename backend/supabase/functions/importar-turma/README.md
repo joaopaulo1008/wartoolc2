@@ -8,7 +8,7 @@ instrutor exige a `service_role`, que nunca pode ir para o navegador.
 
 - `index.ts` — ambiente (Deno): CORS, valida o JWT de quem chamou, monta o cliente.
 - `logica.js` — toda a regra, sem Deno. Testada em Node.
-- `logica.teste.mjs` — 44 casos com um cliente Supabase de mentira.
+- `logica.teste.mjs` — 51 casos com um cliente Supabase de mentira.
 
 Do lado do navegador: `frontend/importar-turma.js` (CSV → validação),
 `frontend/instrutor-importar.js` (tela). Modelo em Excel: `backend/seed/modelo-importacao-turma.xlsx`.
@@ -27,6 +27,10 @@ A `service_role` é injetada pelo próprio Supabase (`SUPABASE_SERVICE_ROLE_KEY`
 não se digita nem se commita. Mantenha a verificação de JWT ligada (padrão).
 
 Pré-requisito do modo "Simulação": migration `0016` aplicada.
+Pré-requisito das colunas `numero_esq`, `numero_dir` e `nome_fracao` da planilha
+(numeração do símbolo no mapa): migration `0018` aplicada. Sem ela, a importação
+continua funcionando enquanto essas colunas ficam vazias; com valores, a conta é
+criada mas o perfil falha com uma mensagem que cita a 0018.
 
 ## O que a função garante
 
@@ -40,7 +44,7 @@ Pré-requisito do modo "Simulação": migration `0016` aplicada.
 
 ## O que foi e o que NÃO foi testado
 
-Testado: a regra (44 casos, dublê em memória); a função sob Deno 2.9 contra um
+Testado: a regra (51 casos, dublê em memória); a função sob Deno 2.9 contra um
 Supabase de mentira (15 verificações HTTP: CORS, 401, 403, 400, 409, caminho
 feliz); a tela num Chromium (40 verificações, com a função simulada).
 

@@ -41,6 +41,10 @@ export const MAX_PESSOAS = 300;
 export const DOMINIO_EMAIL = '@wartool.local';   // o mesmo de frontend/auth.js
 export const MODOS_NA_CRIACAO = ['gps', 'manual'];
 
+// Iguais aos CHECKs da migration 0018 e a frontend/designacao.js (teste confere).
+export const NUMERO_MAXIMO = 4;
+export const FRACAO_MAXIMA = 20;
+
 const PAPEIS = ['instrutor', 'usuario'];
 
 export class ErroDePedido extends Error {
@@ -52,6 +56,15 @@ export class ErroDePedido extends Error {
 }
 
 const texto = (v) => (typeof v === 'string' ? v.trim() : '');
+// Campo opcional: ausente/vazio → null; texto acima do limite → erro 400.
+function opcional(v, maximo, onde, rotulo) {
+  if (v == null) return null;
+  if (typeof v !== 'string') throw new ErroDePedido(400, `${onde}: ${rotulo} inválido.`);
+  const t = v.trim();
+  if (t === '') return null;
+  if (t.length > maximo) throw new ErroDePedido(400, `${onde}: ${rotulo} com mais de ${maximo} caracteres.`);
+  return t;
+}
 
 // Revalida o pedido inteiro. Devolve o pedido normalizado ou lança ErroDePedido(400).
 export function validarPedido(pedido) {
@@ -97,6 +110,9 @@ export function validarPedido(pedido) {
       papel: p.papel,
       partido,
       sidc: p.sidc,
+      numero_esq: opcional(p.numero_esq, NUMERO_MAXIMO, `${onde} (${usuario})`, 'número à esquerda'),
+      numero_dir: opcional(p.numero_dir, NUMERO_MAXIMO, `${onde} (${usuario})`, 'número à direita'),
+      nome_fracao: opcional(p.nome_fracao, FRACAO_MAXIMA, `${onde} (${usuario})`, 'nome da fração'),
     };
   });
   return { turma, pessoas };
@@ -106,9 +122,9 @@ const jaExiste = (msg) => /already (been )?registered|already exists|duplicate/i
 
 /**
  * @param {object} args
- * @param {object} args.admin       cliente supabase-js com service_role
+ * @param {any} args.admin          cliente supabase-js com service_role
  * @param {string} args.chamadorId  id de quem chamou (já autenticado pelo JWT)
- * @param {object} args.pedido      corpo do pedido (será revalidado)
+ * @param {unknown} args.pedido     corpo do pedido (será revalidado)
  */
 export async function importarTurma({ admin, chamadorId, pedido }) {
   // 1) Quem chamou é instrutor? (a service_role ignora RLS, então a checagem é nossa.)
@@ -181,7 +197,7 @@ export async function importarTurma({ admin, chamadorId, pedido }) {
 
     // service_role não tem auth.uid(): fn_proteger_campos_do_perfil deixa passar
     // a troca de papel e de turma (0002), sem precisar de entrar_na_turma().
-    const { error: erroPerfil } = await admin.from('perfis').update({
+    const linhaPerfil = {
       papel: p.papel,
       turma_id: nova.id,
       nome_completo: p.nome_completo,
@@ -189,9 +205,19 @@ export async function importarTurma({ admin, chamadorId, pedido }) {
       posto_graduacao: p.posto_graduacao,
       partido_id: partidoId ?? null,
       sidc: p.sidc,
-    }).eq('id', criado.user.id);
+    };
+    // As colunas da 0018 só vão no UPDATE quando há valor: assim a importação
+    // continua funcionando num banco sem a 0018 enquanto a planilha não usa a
+    // designação (mesma ideia do modo_posicao da turma, acima).
+    for (const campo of ['numero_esq', 'numero_dir', 'nome_fracao']) {
+      if (p[campo] != null) linhaPerfil[campo] = p[campo];
+    }
+    const { error: erroPerfil } = await admin.from('perfis').update(linhaPerfil).eq('id', criado.user.id);
     if (erroPerfil) {
-      erros.push({ ordem, usuario: p.usuario, motivo: `conta criada, mas o perfil falhou: ${erroPerfil.message}` });
+      const semColuna = erroPerfil.code === '42703'
+        ? ' (o banco ainda não tem a migration 0018 — aplique-a ou deixe as colunas de designação vazias)'
+        : '';
+      erros.push({ ordem, usuario: p.usuario, motivo: `conta criada, mas o perfil falhou: ${erroPerfil.message}${semColuna}` });
       continue;
     }
     criados.push(p.usuario);

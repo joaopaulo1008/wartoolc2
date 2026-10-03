@@ -29,7 +29,7 @@ async function lanca(nome, fn, status) {
 }
 
 // ── Dublê do cliente admin ──────────────────────────────────────────────────
-function criarAdmin({ papelDoChamador = 'instrutor', contasExistentes = [], falhaPerfilPara = [], falhaCriarPara = [], semPartidos = false, falhaTurma = null } = {}) {
+function criarAdmin({ papelDoChamador = 'instrutor', contasExistentes = [], falhaPerfilPara = [], falhaCriarPara = [], semPartidos = false, falhaTurma = null, semMigration0018 = false } = {}) {
   const bd = {
     perfis: new Map([['chamador-1', { papel: papelDoChamador }]]),
     turmas: [],
@@ -63,6 +63,9 @@ function criarAdmin({ papelDoChamador = 'instrutor', contasExistentes = [], falh
         if (operacao === 'update') {
           const id = filtros.find(([c]) => c === 'id')[1];
           if (falhaPerfilPara.includes(id)) return { data: null, error: { message: 'perfil quebrou' } };
+          if (semMigration0018 && ('numero_esq' in dados || 'numero_dir' in dados || 'nome_fracao' in dados)) {
+            return { data: null, error: { code: '42703', message: 'column "numero_esq" of relation "perfis" does not exist' } };
+          }
           bd.perfis.set(id, { ...(bd.perfis.get(id) || {}), ...dados });
           return { data: null, error: null };
         }
@@ -234,6 +237,29 @@ await lanca('D10 banco sem a migration 0016 → mensagem clara', () => importarT
   admin: criarAdmin({ falhaTurma: { code: '42703', message: 'column "modo_posicao" does not exist' } }),
   chamadorId: 'chamador-1', pedido: pedidoBase([pessoa('aluno01')]),
 }), 409);
+
+// ── E: designação do símbolo (0018) ─────────────────────────────────────────
+console.log('E designação');
+{
+  const admin = criarAdmin();
+  await importarTurma({ admin, chamadorId: 'chamador-1', pedido: pedidoBase([
+    pessoa('aluno01', { numero_esq: ' 1 ', numero_dir: '2', nome_fracao: '1º Pel / 2º Esqd' }),
+    pessoa('aluno02'),
+    pessoa('aluno03', { numero_esq: '', numero_dir: '  ', nome_fracao: '' }),
+  ]) });
+  const perfil = (u) => admin.bd.perfis.get(admin.bd.usuarios.get(u));
+  ok('E1 números e nome da fração gravados (e aparados)', [perfil('aluno01').numero_esq, perfil('aluno01').numero_dir, perfil('aluno01').nome_fracao], ['1', '2', '1º Pel / 2º Esqd']);
+  ok('E2 sem designação, o UPDATE nem menciona as colunas (banco sem 0018 continua servindo)', ['numero_esq', 'numero_dir', 'nome_fracao'].some((c) => c in perfil('aluno02')), false);
+  ok('E3 vazio/espaços viram "não mandar", nunca string vazia', ['numero_esq', 'numero_dir', 'nome_fracao'].some((c) => c in perfil('aluno03')), false);
+}
+await recusa('E4 número com 5 caracteres', pedidoBase([pessoa('aluno01', { numero_esq: '12345' })]));
+await recusa('E5 número que não é texto', pedidoBase([pessoa('aluno01', { numero_dir: 7 })]));
+await recusa('E6 nome da fração com 21 caracteres', pedidoBase([pessoa('aluno01', { nome_fracao: 'x'.repeat(21) })]));
+{
+  const admin = criarAdmin({ semMigration0018: true });
+  const r = await importarTurma({ admin, chamadorId: 'chamador-1', pedido: pedidoBase([pessoa('aluno01', { numero_esq: '1' }), pessoa('aluno02')]) });
+  ok('E7 banco sem 0018: quem usa designação falha com mensagem clara, quem não usa passa', [r.criados, r.erros.length, /0018/.test(r.erros[0]?.motivo ?? '')], [['aluno02'], 1, true]);
+}
 
 const total = passou + falhas.length;
 console.log(`\n${passou} passaram, ${falhas.length} falharam, ${total} total`);

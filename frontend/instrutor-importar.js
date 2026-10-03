@@ -19,6 +19,7 @@ import {
   COLUNAS, MAX_PESSOAS, PARTIDOS_PADRAO,
   validarPessoas, validarTurma, montarPedido, resumirResultado, pareceCodificacaoErrada,
 } from './importar-turma.js';
+import { resumoDosNumeros } from './designacao.js';
 
 const $ = (id) => document.getElementById(id);
 
@@ -37,9 +38,9 @@ function el(tag, texto, atributos = {}) {
 function baixarExemplo() {
   const linhas = [
     COLUNAS.join(';'),
-    'prof01;TrocarDepois01;Joao Paulo;Paulo;Maj;instrutor;;UNIDADES;BN;',
-    'aluno01;Exerc2026-01;Fulano de Tal;Fulano;1 Ten;aluno;Azul;UNIDADES;PEL;',
-    'aluno02;Exerc2026-02;Beltrano da Silva;Beltrano;2 Sgt;aluno;Vermelho;UNIDADES;SEC;',
+    'prof01;TrocarDepois01;Joao Paulo;Paulo;Maj;instrutor;;UNIDADES;BN;;;;',
+    'aluno01;Exerc2026-01;Fulano de Tal;Fulano;1 Ten;aluno;Azul;UNIDADES;PEL;;1;2;1º Pel / 2º Esqd',
+    'aluno02;Exerc2026-02;Beltrano da Silva;Beltrano;2 Sgt;aluno;Vermelho;UNIDADES;PEL;;2;2;2º Pel / 2º Esqd',
   ];
   const blob = new Blob(['﻿' + linhas.join('\r\n') + '\r\n'], { type: 'text/csv;charset=utf-8' });
   const a = el('a', null, { href: URL.createObjectURL(blob), download: 'turma-exemplo.csv' });
@@ -82,11 +83,11 @@ function mostrarPrevia(caixa, pessoas) {
 
   const tabela = el('table', null, { class: 'tabela-resumo' });
   const cab = el('tr');
-  for (const t of ['Linha', 'Usuário', 'Nome de guerra', 'Posto', 'Papel', 'Partido']) cab.append(el('th', t));
+  for (const t of ['Linha', 'Usuário', 'Nome de guerra', 'Posto', 'Papel', 'Partido', 'Esq. | Dir.', 'Fração']) cab.append(el('th', t));
   tabela.append(cab);
   for (const p of pessoas.slice(0, 12)) {
     const tr = el('tr');
-    for (const v of [p.linha, p.usuario, p.nome_guerra, p.posto_graduacao || '—', p.papel === 'usuario' ? 'aluno' : 'instrutor', p.partido || '—']) {
+    for (const v of [p.linha, p.usuario, p.nome_guerra, p.posto_graduacao || '—', p.papel === 'usuario' ? 'aluno' : 'instrutor', p.partido || '—', resumoDosNumeros(p) || '—', p.nome_fracao || '—']) {
       tr.append(el('td', String(v)));
     }
     tabela.append(tr);

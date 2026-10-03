@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import * as M from './importar-turma.js';
 import * as S from '../backend/supabase/functions/importar-turma/logica.js';
+import * as D from './designacao.js';
 
 const aqui = dirname(fileURLToPath(import.meta.url));
 let passou = 0;
@@ -151,6 +152,36 @@ const mig = readFileSync(join(aqui, '..', 'backend', 'supabase', '0016_modo_posi
 ok('modos da criação existem no check do banco (0016)', M.MODOS_NA_CRIACAO.every((m) => mig.includes(`'${m}'`)), true);
 const trig = readFileSync(join(aqui, '..', 'backend', 'supabase', '0003_partidos.sql'), 'utf8');
 ok('partidos padrão iguais aos que a trigger cria (0003)', M.PARTIDOS_PADRAO.every((p) => trig.includes(`'${p}'`)), true);
+
+// ── designação do símbolo (0018) ────────────────────────────────────────────
+console.log('designação');
+const CAB2 = `${CAB};numero_esq;numero_dir;nome_fracao`;
+{
+  const r = M.validarPessoas(`${CAB2}\naluno01;123456;A;A;Cap;aluno;Azul;UNIDADES;PEL;;1;2;1º Pel / 2º Esqd\naluno02;123456;B;B;Cap;aluno;Azul;;;;;;`);
+  ok('colunas novas lidas', r.erros, []);
+  ok('números e fração chegam à pessoa', [r.pessoas[0].numero_esq, r.pessoas[0].numero_dir, r.pessoas[0].nome_fracao], ['1', '2', '1º Pel / 2º Esqd']);
+  ok('vazio vira null (nunca string vazia)', [r.pessoas[1].numero_esq, r.pessoas[1].numero_dir, r.pessoas[1].nome_fracao], [null, null, null]);
+}
+{
+  const r = M.validarPessoas('usuario;senha;nome_guerra;papel;partido\nabc;123456;A;aluno;Azul');
+  ok('planilha antiga (sem as colunas novas) continua valendo', [r.erros.length, r.pessoas[0].numero_esq, r.pessoas[0].nome_fracao], [0, null, null]);
+}
+ok('aliases das colunas novas', ['Número esquerda', 'numero dir', 'Nome da fração', 'Fração'].map(M.nomeCanonicoDaColuna), ['numero_esq', 'numero_dir', 'nome_fracao', 'nome_fracao']);
+{
+  const err = (campo, v) => M.validarPessoas(`${CAB2}\nabc;123456;A;A;Cap;aluno;Azul;;;;${campo === 'numero_esq' ? v : ''};${campo === 'numero_dir' ? v : ''};${campo === 'nome_fracao' ? v : ''}`).erros.find((e) => e.campo === campo);
+  ok('número esquerdo com 5 caracteres é erro (linha 2)', err('numero_esq', '12345')?.linha, 2);
+  ok('número direito com 5 caracteres é erro', !!err('numero_dir', '12345'), true);
+  ok('número com 4 caracteres passa', !!err('numero_esq', '1234'), false);
+  ok('fração com 21 caracteres é erro', !!err('nome_fracao', 'x'.repeat(21)), true);
+  ok('fração com 20 caracteres passa', !!err('nome_fracao', 'x'.repeat(20)), false);
+}
+ok('montarPedido leva a designação ao servidor', M.montarPedido({}, [{ linha: 2, usuario: 'abc', numero_esq: '1', numero_dir: '2', nome_fracao: 'X' }]).pessoas[0], { usuario: 'abc', numero_esq: '1', numero_dir: '2', nome_fracao: 'X' });
+// Os limites têm que ser os do banco (0018) e os do servidor.
+const mig18 = readFileSync(join(aqui, '..', 'backend', 'supabase', '0018_designacao_do_calunga.sql'), 'utf8');
+ok('limite do número = CHECK da 0018', mig18.includes(`between 1 and ${D.NUMERO_MAXIMO}`) || /char_length\(numero_esq\) between 1 and 4/.test(mig18), true);
+ok('limite da fração = CHECK da 0018', /char_length\(nome_fracao\) between 1 and 20/.test(mig18), true);
+ok('limites iguais aos do servidor', [D.NUMERO_MAXIMO, D.FRACAO_MAXIMA], [S.NUMERO_MAXIMO, S.FRACAO_MAXIMA]);
+ok('colunas da planilha existem em perfis (0018)', ['numero_esq', 'numero_dir', 'nome_fracao'].every((c) => mig18.includes(c) && M.COLUNAS.includes(c)), true);
 
 const total = passou + falhas.length;
 console.log(`\n${passou} passaram, ${falhas.length} falharam, ${total} total`);

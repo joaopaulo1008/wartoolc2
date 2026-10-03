@@ -31,6 +31,7 @@ import { supabase, buscarPerfisDaTurma, buscarPerfilBasico } from './auth.js';
 // daqui e de gps.js para frontend/icones.js — a marcação de elemento no mapa
 // virou o terceiro consumidor previsto no comentário original deste arquivo.
 import { criarIconeSimbolo, definirEtiquetaIdade } from './icones.js';
+import { opcoesDeDesignacao, chaveDeDesenho, nomeDaFracao, escaparTexto } from './designacao.js';
 // Etapa 6a: `ver_posicao_outros` liga e desliga este módulo inteiro. Quando
 // desligada, não basta esconder os avatares: o canal Realtime também é
 // fechado, porque não faz sentido continuar recebendo posição que não vai
@@ -121,12 +122,14 @@ function status(texto, cor) {
 // dele) — criarIconeSimbolo() resolve isso internamente via
 // sidcParaObservador(). Se algum dos dois ainda não tem partido, o SIDC
 // original passa sem mexer — comportamento das Etapas 3 e 4, preservado.
-function criarIconeColega(sidc, nomeGuerra, partidoDoColega) {
-  return criarIconeSimbolo(sidc, {
+function criarIconeColega(perfil) {
+  return criarIconeSimbolo(perfil.sidc, {
     partidoObservador: meuPartido,
-    partidoElemento: partidoDoColega,
+    partidoElemento: perfil.partido,
     tamanho: 28,
-    designacao: nomeGuerra,
+    // Números à esquerda/direita quando o instrutor os definiu; senão o nome
+    // de guerra, como sempre foi (ver designacao.js).
+    ...opcoesDeDesignacao(perfil),
     corFallback: '#f5a623',
     tamanhoFallback: 20,
   });
@@ -147,6 +150,7 @@ function popupColega(perfil, row) {
   // import lá em cima.
   return (
     `<b>${perfil.nome_guerra || 'Sem nome de guerra'}</b><br>` +
+    (nomeDaFracao(perfil) ? `${escaparTexto(nomeDaFracao(perfil))}<br>` : '') +
     `${formatarCoordenada(row.latitude, row.longitude)}<br>` +
     `${linhaPrecisao}<br>` +
     `Atualizado: ${atualizado}` +
@@ -241,7 +245,7 @@ async function upsertAvatar(row, { map }) {
   let estado = colegas.get(row.usuario_id);
   if (!estado) {
     const marker = L.marker([row.latitude, row.longitude], {
-      icon: criarIconeColega(perfil.sidc, perfil.nome_guerra, perfil.partido),
+      icon: criarIconeColega(perfil),
       // Abaixo do próprio avatar (gps.js usa zIndexOffset 1000) e acima das
       // marcações (sem offset): na dúvida de quem tapa quem, a ordem é eu,
       // meus colegas, o resto.
@@ -400,11 +404,12 @@ function assinarCanal(turmaId, userId, { map }) {
         perfisCache.set(row.id, perfil);
         if (!estado) return; // ainda sem posição na tela — o cache já basta
         estado.perfil = perfil;
-        const mudouDesenho = !antigo
-          || antigo.sidc !== row.sidc
-          || antigo.nome_guerra !== row.nome_guerra;
-        if (!mudouDesenho) return;
-        estado.marker.setIcon(criarIconeColega(perfil.sidc, perfil.nome_guerra, perfil.partido));
+        const mudouDesenho = !antigo || chaveDeDesenho(antigo) !== chaveDeDesenho(row);
+        // O nome da fração só aparece no popup: se mudou, o popup é refeito
+        // mesmo sem redesenhar o símbolo.
+        const mudouFracao = !antigo || nomeDaFracao(antigo) !== nomeDaFracao(row);
+        if (!mudouDesenho && !mudouFracao) return;
+        if (mudouDesenho) estado.marker.setIcon(criarIconeColega(perfil));
         // setIcon() troca o elemento do marcador no DOM e leva junto a
         // etiqueta de idade que estava escrita nele. Sem reescrever, um colega
         // sem sinal há 10 minutos voltaria a parecer recente só porque o

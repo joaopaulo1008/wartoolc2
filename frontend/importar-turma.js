@@ -30,10 +30,12 @@
 // pode checar `pareceCodificacaoErrada()` para tentar de novo em 1252.
 
 import { getSIDC, DIMENSAO, ESCALAO } from './simbolos.js';
+import { NUMERO_MAXIMO, FRACAO_MAXIMA, validarNumero, validarFracao } from './designacao.js';
 
 export const COLUNAS = Object.freeze([
   'usuario', 'senha', 'nome_completo', 'nome_guerra', 'posto_graduacao',
   'papel', 'partido', 'dimensao', 'escalao', 'natureza_code',
+  'numero_esq', 'numero_dir', 'nome_fracao',
 ]);
 export const COLUNAS_OBRIGATORIAS = Object.freeze(['usuario', 'senha', 'nome_guerra', 'papel']);
 
@@ -67,6 +69,9 @@ const ALIAS_COLUNA = {
   dimensao: 'dimensao',
   escalao: 'escalao',
   natureza_code: 'natureza_code', natureza: 'natureza_code', 'codigo natureza': 'natureza_code',
+  numero_esq: 'numero_esq', 'numero esq': 'numero_esq', 'numero esquerda': 'numero_esq', esquerda: 'numero_esq',
+  numero_dir: 'numero_dir', 'numero dir': 'numero_dir', 'numero direita': 'numero_dir', direita: 'numero_dir',
+  nome_fracao: 'nome_fracao', 'nome da fracao': 'nome_fracao', fracao: 'nome_fracao',
 };
 export function nomeCanonicoDaColuna(texto) {
   return ALIAS_COLUNA[chave(texto)] ?? ALIAS_COLUNA[chave(texto).replace(/\s+/g, '_')] ?? null;
@@ -218,6 +223,15 @@ export function validarPessoas(texto, { partidosValidos = PARTIDOS_PADRAO } = {}
       erro(n, 'natureza_code', `Natureza "${natureza}" inválida: use 6 ou 10 dígitos, ou deixe vazio. (O Excel apaga zeros à esquerda — formate a coluna como Texto.)`);
     }
 
+    // Designação do símbolo (0018): números à esquerda/direita e nome da fração.
+    // Vazio = sem número (o mapa continua escrevendo o nome de guerra).
+    const numEsq = validarNumero(valor(l, 'numero_esq'), 'Número à esquerda');
+    if (!numEsq.ok) erro(n, 'numero_esq', `${numEsq.erro} (Excel: formate a coluna como Texto.)`);
+    const numDir = validarNumero(valor(l, 'numero_dir'), 'Número à direita');
+    if (!numDir.ok) erro(n, 'numero_dir', numDir.erro);
+    const fracao = validarFracao(valor(l, 'nome_fracao'));
+    if (!fracao.ok) erro(n, 'nome_fracao', fracao.erro);
+
     if (erros.length === antes) {
       pessoas.push({
         linha: n,
@@ -232,6 +246,9 @@ export function validarPessoas(texto, { partidosValidos = PARTIDOS_PADRAO } = {}
         // pela hostilidade RELATIVA ao observador (aplicarHostilidade), então
         // este valor só importa como "o padrão do cadastro".
         sidc: getSIDC({ hostilidade: 'AMIGO', dimensao: dimensaoTexto, escalao: escalaoTexto, natureza_code: natureza }),
+        numero_esq: numEsq.valor,
+        numero_dir: numDir.valor,
+        nome_fracao: fracao.valor,
       });
     }
   });

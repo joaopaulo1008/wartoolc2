@@ -181,6 +181,21 @@ export async function sair() {
   window.location.href = 'login.html';
 }
 
+// ── Designação do símbolo (migration 0018) ───────────────────────────────
+// numero_esq / numero_dir / nome_fracao: ver designacao.js. As consultas que
+// desenham símbolos pedem as três colunas JUNTO com as de sempre; se o banco
+// ainda não tem a 0018 (Postgres 42703 "coluna não existe"), repetem SEM elas —
+// o app novo não pode quebrar o mapa só porque o deploy do front veio antes do
+// SQL. Sem as colunas o símbolo volta a mostrar o nome de guerra, como antes.
+const COLUNAS_DESIGNACAO = 'numero_esq, numero_dir, nome_fracao';
+const faltaColunaDeDesignacao = (erro) => erro?.code === '42703' && /numero_esq|numero_dir|nome_fracao/.test(erro.message || '');
+
+async function consultarComDesignacao(montar) {
+  let r = await montar(`, ${COLUNAS_DESIGNACAO}`);
+  if (faltaColunaDeDesignacao(r.error)) r = await montar('');
+  return r;
+}
+
 // ── Perfil ───────────────────────────────────────────────────────────────
 // Traz papel, nome_guerra, turma_id e (se houver turma) nome/código da turma,
 // num só round-trip usando o embed de relação do PostgREST.
@@ -206,15 +221,15 @@ export async function buscarPerfil(userId) {
   // (o que ele escolhe ver). Não confundir com permissão, que é o que o
   // instrutor deixa ver e mora na RLS. A interface de filtros em si é etapa
   // posterior; aqui só garantimos que o dado chega junto do perfil.
-  const { data, error } = await supabase
+  const { data, error } = await consultarComDesignacao((extra) => supabase
     .from('perfis')
     .select(
-      'papel, nome_guerra, turma_id, sidc, partido_id, preferencias_visualizacao,' +
+      `papel, nome_guerra, turma_id, sidc, partido_id, preferencias_visualizacao${extra},` +
       ' turma:turmas!perfis_turma_id_fkey(nome, codigo_acesso),' +
       ' partido:partidos(id, nome, tipo, cor, ordem)'
     )
     .eq('id', userId)
-    .maybeSingle();
+    .maybeSingle());
   if (error) {
     // Antes isso era engolido em silêncio — agora fica no console (F12) pra
     // dar pra diagnosticar (RLS, coluna errada, sem linha em perfis etc.).
@@ -240,13 +255,14 @@ export async function buscarPerfil(userId) {
 // hostilidade com que desenha o avatar. Vem embutido no mesmo round-trip em
 // vez de virar uma segunda consulta por partido.
 export async function buscarPerfisDaTurma(turmaId, { excluirId } = {}) {
-  let query = supabase
-    .from('perfis')
-    .select('id, nome_guerra, sidc, partido_id, partido:partidos(id, tipo, ordem)')
-    .eq('turma_id', turmaId);
-  if (excluirId) query = query.neq('id', excluirId);
-
-  const { data, error } = await query;
+  const { data, error } = await consultarComDesignacao((extra) => {
+    let query = supabase
+      .from('perfis')
+      .select(`id, nome_guerra, sidc${extra}, partido_id, partido:partidos(id, tipo, ordem)`)
+      .eq('turma_id', turmaId);
+    if (excluirId) query = query.neq('id', excluirId);
+    return query;
+  });
   if (error) {
     console.error('buscarPerfisDaTurma falhou:', error);
     return [];
@@ -262,11 +278,11 @@ export async function buscarPerfisDaTurma(turmaId, { excluirId } = {}) {
 // busca só aquele perfil, uma vez, e quem chamar deve guardar o resultado
 // para não repetir a consulta a cada posição nova da mesma pessoa.
 export async function buscarPerfilBasico(usuarioId) {
-  const { data, error } = await supabase
+  const { data, error } = await consultarComDesignacao((extra) => supabase
     .from('perfis')
-    .select('id, nome_guerra, sidc, partido_id, partido:partidos(id, tipo, ordem)')
+    .select(`id, nome_guerra, sidc${extra}, partido_id, partido:partidos(id, tipo, ordem)`)
     .eq('id', usuarioId)
-    .maybeSingle();
+    .maybeSingle());
   if (error) {
     console.error('buscarPerfilBasico falhou:', error);
     return null;
@@ -301,10 +317,10 @@ export async function buscarPerfilBasico(usuarioId) {
 // partido — sem essa coluna, o observer-sem-partido cai no fallback seguro
 // (não mexe no SIDC) e volta a mostrar todo mundo com o placeholder AMIGO.
 export async function buscarUsuariosDaTurma(turmaId) {
-  const { data, error } = await supabase
+  const { data, error } = await consultarComDesignacao((extra) => supabase
     .from('perfis')
-    .select('id, nome_guerra, nome_completo, papel, posto_graduacao, ativo, sidc, partido:partidos(id, nome, cor, tipo, ordem)')
-    .eq('turma_id', turmaId);
+    .select(`id, nome_guerra, nome_completo, papel, posto_graduacao, ativo, sidc${extra}, partido:partidos(id, nome, cor, tipo, ordem)`)
+    .eq('turma_id', turmaId));
   if (error) {
     console.error('buscarUsuariosDaTurma falhou:', error);
     return [];
@@ -368,6 +384,23 @@ export async function definirPartidoDoUsuario(usuarioId, partidoId) {
 // O `check (sidc ~ '^[0-9]{20}$')` da 0001 é a barreira final; quem chama deve
 // passar por validarSidcDePerfil() antes, para o instrutor ver uma frase em
 // português em vez do erro cru do Postgres.
+// Designação do símbolo (migration 0018): número à esquerda, à direita e nome da
+// fração. Só o instrutor da turma escreve (a trigger recusa o resto, 42501).
+// `.select('id')` porque a RLS de UPDATE FILTRA em silêncio: sem ele, um aluno
+// de outra turma voltaria "sem erro" tendo gravado zero linhas.
+export async function definirDesignacaoDoUsuario(usuarioId, { numero_esq, numero_dir, nome_fracao }) {
+  const { data, error } = await supabase
+    .from('perfis')
+    .update({ numero_esq, numero_dir, nome_fracao })
+    .eq('id', usuarioId)
+    .select('id');
+  if (error) return { error };
+  if (!data || data.length === 0) {
+    return { error: { message: 'Nenhuma linha foi alterada — este aluno não é da sua turma, ou você não é instrutor dela.' } };
+  }
+  return { error: null };
+}
+
 export async function definirSidcDoUsuario(usuarioId, sidc) {
   const { error } = await supabase
     .from('perfis')

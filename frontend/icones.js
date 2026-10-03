@@ -55,6 +55,7 @@ import { sidcParaObservador } from './simbolos.js';
 // booleano já decididos, para não virar uma segunda fonte dos números.
 const CLASSE_ENVOLTORIO = 'wt-simbolo';
 const CLASSE_ETIQUETA = 'wt-idade';
+const CLASSE_NUMERO = 'wt-numero';
 let estilosInjetados = false;
 
 function injetarEstilos() {
@@ -72,14 +73,35 @@ function injetarEstilos() {
   box-shadow: 0 1px 3px rgba(0,0,0,.7);
 }
 .${CLASSE_ENVOLTORIO} > .${CLASSE_ETIQUETA}.sem-sinal { color: #ff7b7b; }
+/* Números da designação (esquerda) e da subordinação (direita): ficam FORA do
+   quadro do símbolo, na altura do centro dele (top vem do âncora, em linha). */
+.${CLASSE_ENVOLTORIO} > .${CLASSE_NUMERO} {
+  position: absolute; transform: translateY(-50%);
+  font: 800 12px/1 system-ui, -apple-system, sans-serif; color: #fff;
+  white-space: nowrap; pointer-events: none;
+  text-shadow: -1px 0 #000, 1px 0 #000, 0 -1px #000, 0 1px #000, 0 0 3px #000;
+}
+.${CLASSE_ENVOLTORIO} > .${CLASSE_NUMERO}.esq { right: 100%; margin-right: 3px; }
+.${CLASSE_ENVOLTORIO} > .${CLASSE_NUMERO}.dir { left: 100%; margin-left: 3px; }
 .${CLASSE_ENVOLTORIO} > .${CLASSE_ETIQUETA}[hidden] { display: none; }
 `;
   document.head.appendChild(estilo);
 }
 
-function envolver(html, largura, altura) {
+function escaparHtml(t) {
+  return String(t).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+
+// numeroEsq/numeroDir: texto curto (já validado a ≤4 caracteres no banco; aqui só
+// é escapado). `centroY` é a altura, dentro do envoltório, do centro do quadro.
+function envolver(html, largura, altura, { numeroEsq = '', numeroDir = '', centroY = null } = {}) {
   const dimensao = largura && altura ? `width:${largura}px;height:${altura}px` : '';
+  const top = `top:${centroY ?? (altura ? altura / 2 : 0)}px`;
+  const numero = (lado, t) => (t
+    ? `<span class="${CLASSE_NUMERO} ${lado}" style="${top}">${escaparHtml(t)}</span>`
+    : '');
   return `<div class="${CLASSE_ENVOLTORIO}" style="${dimensao}">${html}` +
+    numero('esq', numeroEsq) + numero('dir', numeroDir) +
     `<span class="${CLASSE_ETIQUETA}" hidden></span></div>`;
 }
 
@@ -106,6 +128,8 @@ export function definirEtiquetaIdade(marker, texto, { semSinal = false } = {}) {
 //     quando não houver relação a derivar (ex.: o próprio avatar).
 //   tamanho            — px do símbolo milsymbol (padrão 28).
 //   designacao         — rótulo (uniqueDesignation) mostrado junto ao símbolo.
+//   numeroEsq/numeroDir — números fora do quadro, à esquerda (designação) e à
+//                         direita (subordinação). Ver designacao.js.
 //   corFallback        — cor do círculo genérico se o SIDC for inválido.
 //   tamanhoFallback    — px do círculo genérico.
 // O SVG do símbolo, cru, para desenhar FORA do mapa: o botão da paleta de
@@ -150,6 +174,8 @@ export function criarIconeSimbolo(sidc, {
   partidoElemento   = null,
   tamanho           = 28,
   designacao        = '',
+  numeroEsq         = '',
+  numeroDir         = '',
   corFallback       = '#4a90d9',
   tamanhoFallback   = 22,
 } = {}) {
@@ -168,7 +194,7 @@ export function criarIconeSimbolo(sidc, {
     // no fluxo, justamente para não deslocar o símbolo em relação ao ponto
     // geográfico que ele marca.
     return L.divIcon({
-      html: envolver(sym.asSVG(), size.width, size.height),
+      html: envolver(sym.asSVG(), size.width, size.height, { numeroEsq, numeroDir, centroY: anchor.y }),
       className: '',
       iconSize: [size.width, size.height],
       iconAnchor: [anchor.x, anchor.y],
@@ -177,7 +203,7 @@ export function criarIconeSimbolo(sidc, {
     console.warn('SIDC inválido, usando ícone genérico:', sidcFinal, e);
     const circulo = `<div style="background:${corFallback};width:${tamanhoFallback}px;height:${tamanhoFallback}px;border-radius:50%;border:3px solid #fff;box-shadow:0 0 4px #000"></div>`;
     return L.divIcon({
-      html: envolver(circulo, tamanhoFallback, tamanhoFallback),
+      html: envolver(circulo, tamanhoFallback, tamanhoFallback, { numeroEsq, numeroDir }),
       className: '',
       iconSize: [tamanhoFallback, tamanhoFallback],
       iconAnchor: [tamanhoFallback / 2, tamanhoFallback / 2],

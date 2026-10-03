@@ -73,6 +73,7 @@ import { supabase, buscarUsuariosDaTurma } from './auth.js';
 // marcacoes.js desde a Etapa 5. Redefinir o desenho do símbolo aqui seria a
 // quarta cópia que icones.js existe para impedir.
 import { criarIconeSimbolo, definirEtiquetaIdade } from './icones.js';
+import { opcoesDeDesignacao, nomeDaFracao } from './designacao.js';
 // A etiqueta de idade do replay usa a MESMA função de rótulo do mapa ao vivo
 // (colegas.js/situacao.js) — é o que mantém a simetria "o que eu vi em campo
 // é o que eu revejo na sala" prometida desde a Etapa 6b. Só a origem da idade
@@ -652,6 +653,7 @@ function popupTrilha(perfil, trilha) {
   const distancia = distanciaTrilhaM(trilha.pontos);
   return (
     `<b>${esc(perfil ? nomeDoAluno(perfil) : 'Usuário desconhecido')}</b><br>`
+    + (nomeDaFracao(perfil) ? `${esc(nomeDaFracao(perfil))}<br>` : '')
     + `${nf.format(trilha.pontos.length)} pontos `
     + `(${nf.format(trilha.leiturasBrutas)} leituras)<br>`
     + `Percurso: ${distanciaCurta(distancia)}<br>`
@@ -697,7 +699,7 @@ function desenharInstante(t) {
           partidoObservador: contexto?.perfil?.partido || null,
           partidoElemento: camada.perfil?.partido || null,
           tamanho: 26,
-          designacao: camada.perfil?.nome_guerra || '',
+          ...opcoesDeDesignacao(camada.perfil),
           corFallback: camada.cor,
           tamanhoFallback: 18,
         }),

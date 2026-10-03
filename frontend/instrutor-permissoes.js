@@ -34,8 +34,12 @@ import {
   buscarPartidosDaTurma,
   definirPartidoDoUsuario,
   definirSidcDoUsuario,
+  definirDesignacaoDoUsuario,
   removerDaTurma,
 } from './auth.js';
+import {
+  NUMERO_MAXIMO, FRACAO_MAXIMA, validarNumero, validarFracao,
+} from './designacao.js';
 import {
   getSIDC, decomporSidc, descreverSidc, categoriaPorId, CATEGORIAS,
   validarSidcDePerfil,
@@ -455,6 +459,28 @@ function blocoSimbolo(usuario) {
     </div>`;
 }
 
+// ── Designação do símbolo (migration 0018) ───────────────────────────────
+// Número à esquerda (designação), à direita (subordinação) e nome da fração
+// (só no popup). Ex.: 1º Pelotão do 2º Esquadrão → esquerda "1", direita "2".
+// Os pontos do escalão vêm do símbolo, não daqui. Vazio apaga: sem número, o
+// mapa volta a escrever o nome de guerra ao lado do símbolo.
+function blocoDesignacao(usuario) {
+  if (usuario.papel === 'instrutor') return '';
+  const off = podeEscrever ? '' : ' disabled';
+  return `
+    <div class="simbolo-linha" id="designacao-linha">
+      <span class="forca-rotulo">Designação</span>
+      <label class="designacao-campo">esq.
+        <input type="text" id="des-esq" maxlength="${NUMERO_MAXIMO}" size="4" value="${esc(usuario.numero_esq ?? '')}"${off}></label>
+      <label class="designacao-campo">dir.
+        <input type="text" id="des-dir" maxlength="${NUMERO_MAXIMO}" size="4" value="${esc(usuario.numero_dir ?? '')}"${off}></label>
+      <label class="designacao-campo">fração
+        <input type="text" id="des-fracao" maxlength="${FRACAO_MAXIMA}" size="20" value="${esc(usuario.nome_fracao ?? '')}"${off}></label>
+      <button type="button" class="btn-simbolo" id="btn-salvar-designacao"${off}>Salvar</button>
+      <span class="grade-sub">Números ao lado do símbolo no mapa (esquerda: qual é; direita: de quem é). O nome da fração aparece só no popup. Vazio apaga.</span>
+    </div>`;
+}
+
 // ── Tirar o aluno da turma ───────────────────────────────────────────────
 // O rótulo diz "Remover da turma" e NÃO "Excluir" porque nada é excluído — e
 // o texto ao lado repete isso, porque a palavra que a pessoa tem na cabeça ao
@@ -516,6 +542,7 @@ function renderizarGradeUsuario(usuario) {
       <h2>${esc(nomeDoUsuario(usuario))}</h2>
       ${blocoForca(usuario)}
       ${blocoSimbolo(usuario)}
+      ${blocoDesignacao(usuario)}
       ${blocoRemover(usuario)}
       ${nota}
     </div>
@@ -673,6 +700,18 @@ function ligarEventosPerfil(grade, usuarioId) {
     });
   }
 
+  grade.querySelector('#btn-salvar-designacao')?.addEventListener('click', () => {
+    const esq = validarNumero(grade.querySelector('#des-esq')?.value, 'Número à esquerda');
+    const dir = validarNumero(grade.querySelector('#des-dir')?.value, 'Número à direita');
+    const fracao = validarFracao(grade.querySelector('#des-fracao')?.value);
+    const ruim = [esq, dir, fracao].find((v) => !v.ok);
+    if (ruim) { aviso(ruim.erro, 'erro'); return; }
+    gravar(
+      () => definirDesignacaoDoUsuario(usuarioId, { numero_esq: esq.valor, numero_dir: dir.valor, nome_fracao: fracao.valor }),
+      { aoFalhar: erroDeDesignacao },
+    );
+  });
+
   const btnRemover = grade.querySelector('#btn-remover-turma');
   if (btnRemover) {
     btnRemover.addEventListener('click', () => {
@@ -689,6 +728,15 @@ function ligarEventosPerfil(grade, usuarioId) {
       gravar(() => removerDaTurma(usuarioId), { aoFalhar: erroDeRemocao });
     });
   }
+}
+
+// Banco sem a migration 0018: o sintoma cru é "column ... does not exist".
+function erroDeDesignacao(error) {
+  if (error.code === '42703' || /numero_esq|numero_dir|nome_fracao/.test(error.message || '')) {
+    return 'A designação depende da migration 0018, que ainda não foi aplicada neste banco. '
+      + 'Rode backend/supabase/0018_designacao_do_calunga.sql no SQL Editor do Supabase e tente de novo.';
+  }
+  return null;
 }
 
 // `fn_remover_da_turma` (0012) já levanta mensagens em português explicando

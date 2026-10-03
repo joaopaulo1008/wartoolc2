@@ -67,6 +67,7 @@
 import * as L from 'leaflet';
 import { supabase, traduzirErro, buscarUsuariosDaTurma } from './auth.js';
 import { criarIconeSimbolo, definirEtiquetaIdade } from './icones.js';
+import { opcoesDeDesignacao, nomeDaFracao } from './designacao.js';
 import { iniciarMarcacoes, pararMarcacoes } from './marcacoes.js';
 // Menu de toque longo (2026-10-02). Entrou AQUI porque o toque curto deixou
 // de criar marcação (ver o comentário de `ativarCliqueNoMapa` em
@@ -319,7 +320,7 @@ function iconePosicao(usuario) {
     partidoObservador: contexto?.perfil?.partido || null,
     partidoElemento: usuario?.partido || null,
     tamanho: 28,
-    designacao: usuario?.nome_guerra || '',
+    ...opcoesDeDesignacao(usuario),
     corFallback: '#7ab8f5',
     tamanhoFallback: 20,
   });
@@ -340,6 +341,7 @@ function popupPosicao(usuario, row) {
   // instrutor que confere posição contra a carta impressa.
   return (
     `<b>${esc(usuario ? nomeDoUsuario(usuario) : 'Usuário desconhecido')}</b>${papel}<br>` +
+    (nomeDaFracao(usuario) ? `${esc(nomeDaFracao(usuario))}<br>` : '') +
     `Força: ${esc(usuario?.partido?.nome || 'sem força')}<br>` +
     `${esc(formatarCoordenada(row.latitude, row.longitude))}<br>` +
     `${linhaPrecisao}<br>` +

@@ -16,6 +16,7 @@ import { supabase, traduzirErro } from './auth.js';
 // — a marcação de elemento no mapa virou o terceiro consumidor previsto no
 // comentário de colegas.js. Ver o cabeçalho de icones.js para o raciocínio.
 import { criarIconeSimbolo } from './icones.js';
+import { opcoesDeDesignacao, nomeDaFracao, escaparTexto } from './designacao.js';
 // Etapa 6a: as duas chaves de permissão que mandam neste módulo.
 //   enviar_posicao_gps  -> pode GRAVAR a própria posição no banco
 //   ver_propria_posicao -> pode VER o próprio avatar desenhado no mapa
@@ -198,6 +199,7 @@ function aoArrastarMeuPosto() {
 function popupProprio(perfil, pos) {
   return (
     `<b>${perfil.nome_guerra || 'Você'}</b><br>` +
+    (nomeDaFracao(perfil) ? `${escaparTexto(nomeDaFracao(perfil))}<br>` : '') +
     `${formatarCoordenada(pos.lat, pos.lon)}<br>` +
     // Posição manual não tem precisão medida: dizer "±0m" seria afirmar o que ninguém mediu.
     (pos.origem === 'manual'
@@ -249,10 +251,10 @@ function status(texto, cor) {
 // partidoObservador/partidoElemento ficam de fora de propósito: o próprio
 // avatar não tem hostilidade relativa a resolver (a pessoa é sempre "amigo"
 // de si mesma), então o SIDC gravado passa intacto.
-function criarIconeProprio(sidc, nomeGuerra) {
-  return criarIconeSimbolo(sidc, {
+function criarIconeProprio(perfil) {
+  return criarIconeSimbolo(perfil.sidc, {
     tamanho: 30,
-    designacao: nomeGuerra,
+    ...opcoesDeDesignacao(perfil),
     corFallback: '#4a90d9',
     tamanhoFallback: 22,
   });
@@ -274,7 +276,7 @@ export function atualizarMeuSimbolo(sidc) {
   if (perfil.sidc === sidc) return;
   perfil.sidc = sidc;
   if (marcadorProprio) {
-    marcadorProprio.setIcon(criarIconeProprio(perfil.sidc, perfil.nome_guerra));
+    marcadorProprio.setIcon(criarIconeProprio(perfil));
   }
 }
 
@@ -573,7 +575,7 @@ function aoReceberLeitura(leitura, { map, userId, perfil }) {
   if (podeVerAvatar()) {
     if (!marcadorProprio) {
       marcadorProprio = L.marker([latitude, longitude], {
-        icon: criarIconeProprio(perfil.sidc, perfil.nome_guerra),
+        icon: criarIconeProprio(perfil),
         zIndexOffset: 1000, // o próprio avatar fica por cima de todo o resto
         // Em simulação o aluno ARRASTA o próprio posto até onde ele está. Fora
         // dela o marcador não se mexe: o GPS é quem manda, e um símbolo que se
