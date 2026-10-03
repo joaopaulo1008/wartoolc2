@@ -63,6 +63,7 @@ import {
 // ── Estado do módulo ─────────────────────────────────────────────────────
 let meuUserId = null;
 let minhaTurmaId = null;   // perfis.turma_id do próprio instrutor
+let souAdmin = false;      // perfis.administrador (0019): comanda todas as turmas
 let turmas = [];
 let turmaAtual = null;
 let podeEscrever = false;
@@ -861,12 +862,12 @@ async function trocarTurma(turma) {
 }
 
 // Espelha no cliente a mesma condição de fn_sou_instrutor_da_turma() (0002):
-// "está lotado nela OU é o responsável dela". Não é uma checagem de
+// "está lotado nela OU é o responsável dela OU é administrador (0019)". Não é uma checagem de
 // segurança — o banco decide de qualquer jeito — mas evita o instrutor
 // clicar em tudo e só descobrir pelo erro do PostgREST que não tinha direito.
 function avaliarPermissaoDeEscrita() {
   podeEscrever = !!turmaAtual && (
-    turmaAtual.instrutor_id === meuUserId || turmaAtual.id === minhaTurmaId
+    souAdmin || turmaAtual.instrutor_id === meuUserId || turmaAtual.id === minhaTurmaId
   );
   if (!podeEscrever && turmaAtual) {
     aviso(
@@ -889,6 +890,7 @@ function pararCanais() {
 export async function iniciarPainelPermissoes({ session, perfil }) {
   meuUserId = session.user.id;
   minhaTurmaId = perfil.turma_id || null;
+  souAdmin = perfil.administrador === true;
 
   catalogo = await buscarCatalogo();
   if (catalogo.length === 0) {

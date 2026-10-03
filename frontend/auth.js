@@ -188,10 +188,11 @@ export async function sair() {
 // o app novo não pode quebrar o mapa só porque o deploy do front veio antes do
 // SQL. Sem as colunas o símbolo volta a mostrar o nome de guerra, como antes.
 const COLUNAS_DESIGNACAO = 'numero_esq, numero_dir, nome_fracao';
-const faltaColunaDeDesignacao = (erro) => erro?.code === '42703' && /numero_esq|numero_dir|nome_fracao/.test(erro.message || '');
+const faltaColunaDeDesignacao = (erro) => erro?.code === '42703' && /numero_esq|numero_dir|nome_fracao|administrador/.test(erro.message || '');
 
-async function consultarComDesignacao(montar) {
-  let r = await montar(`, ${COLUNAS_DESIGNACAO}`);
+// `maisColunas` (ex.: ', administrador', da 0019) vai junto na primeira tentativa e some na segunda.
+async function consultarComDesignacao(montar, maisColunas = '') {
+  let r = await montar(`, ${COLUNAS_DESIGNACAO}${maisColunas}`);
   if (faltaColunaDeDesignacao(r.error)) r = await montar('');
   return r;
 }
@@ -229,7 +230,7 @@ export async function buscarPerfil(userId) {
       ' partido:partidos(id, nome, tipo, cor, ordem)'
     )
     .eq('id', userId)
-    .maybeSingle());
+    .maybeSingle(), ', administrador');
   if (error) {
     // Antes isso era engolido em silêncio — agora fica no console (F12) pra
     // dar pra diagnosticar (RLS, coluna errada, sem linha em perfis etc.).
