@@ -18,14 +18,36 @@
 // jeito que já está deixa a estrutura de pastas (frontend/, data/, docs/)
 // idêntica ao que já existe, só que com um passo de build no meio.
 //
-// `base: '/wartoolc2/'` é o detalhe mais fácil de esquecer e o mais caro de
-// esquecer: o site é servido em `https://joaopaulo1008.github.io/wartoolc2/`
-// (subpasta do domínio do GitHub Pages, não a raiz dele) — sem isso, todo
-// asset com hash que o Vite gera (`/assets/index-xxxx.js`) apontaria para a
-// raiz ERRADA em produção e o site abriria em branco, sem erro óbvio no
-// console além de uma cascata de 404. Em desenvolvimento local (`vite dev`)
-// isso não aparece — é só em produção que o `base` importa, o que o torna um
-// erro fácil de não notar até depois do deploy.
+// ── `base` é RELATIVO desde 2026-10-03, e era '/wartoolc2/' ───────────────
+// `base` decide o prefixo de todo asset com hash que o Vite gera. Errado, o
+// site abre em branco em produção: uma cascata de 404 e nada de óbvio no
+// console. Em `vite dev` isso nunca aparece — é erro que só existe depois do
+// deploy, o que o torna fácil de não notar.
+//
+// Era `'/wartoolc2/'` porque o único destino era
+// `https://<usuario>.github.io/wartoolc2/`, uma SUBPASTA do domínio do Pages.
+// O motivo de mudar não é técnico, é de endereço: o endereço curto
+// (5bdacbldc2.pages.dev) era um 302 para o github.io, então o nome de usuário
+// acabava na barra de endereços do aluno. Servindo direto no Cloudflare Pages
+// o site mora na RAIZ do domínio — e aí um `base` de subpasta quebraria tudo.
+//
+// `'./'` serve aos dois: os caminhos saem relativos ao documento, então o
+// MESMO `dist/` funciona montado na raiz e montado em `/wartoolc2/`. É o que
+// permite trocar de hospedagem sem build diferente, e manter o GitHub Pages
+// como reserva enquanto a troca não se confirma em campo.
+//
+// Isto é verificado, não suposto: o mesmo `dist/` foi servido em dois montes
+// ISOLADOS (um na raiz, outro só em /wartoolc2/) e carregado no Chromium
+// anotando todo 404 — zero nos dois. Conferido por mutação: voltando para
+// `'/wartoolc2/'`, o monte da raiz acusa 15 arquivos faltando. A primeira
+// versão desse teste servia os dois caminhos da MESMA pasta e aprovava o
+// `base` absoluto por engano; se for refazer, mantenha os montes separados.
+//
+// O que já era relativo e por isso não precisou mudar: o registro do service
+// worker (`./sw-bdgex.js`), o `start_url`/`scope`/`icons` do
+// manifest.webmanifest e os `<link>` de `marca.css`. Os `<link rel=icon>` e o
+// `<link rel=manifest>` das três páginas são escritos com `/` na frente e o
+// próprio Vite os reescreve conforme o `base` — não os transforme à mão.
 import { defineConfig } from 'vite';
 import { resolve } from 'node:path';
 
@@ -61,7 +83,7 @@ const CARIMBO_VERSAO = carimboSha ? `${carimboData} · ${carimboSha}` : carimboD
 
 export default defineConfig({
   root: '.',
-  base: '/wartoolc2/',
+  base: './',
 
   // Substituição em tempo de build. `__VERSAO_BUILD__` não existe em tempo de
   // execução — o Vite troca o identificador pelo literal antes de empacotar —,

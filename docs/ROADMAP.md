@@ -851,6 +851,51 @@ Vale nas duas telas: `instrutor.html` tem a mesma nota de grade, na coluna que �
 a mais apertada das duas. Bateria: **1290 casos em 21 suítes, 0 falhas**;
 `npm run build` verde, com o `hidden` preservado no HTML gerado.
 
+### 2026-10-03 (h) — o nome de usuário sai da barra de endereços
+
+Pergunta: *"a barra de endereços está com meu nome por causa do repositório do
+GitHub. Como posso ocultar isso?"*
+
+A causa: `5bdacbldc2.pages.dev` era só um **302** para
+`<usuario>.github.io/wartoolc2/`. O endereço curto durava um segundo e o
+navegador ficava mostrando o endereço longo, com o nome dentro.
+
+**Decisão:** o Cloudflare Pages deixa de redirecionar e passa a **hospedar**. O
+endereço não muda mais depois de abrir, e some de quebra o salto 302 — que já
+estava anotado como risco de cache (302, nunca 301, justamente por isso).
+
+**O que isso exigiu no código: uma linha.** `base` do Vite, de `'/wartoolc2/'`
+para `'./'`. No Cloudflare o site mora na RAIZ do domínio; no GitHub Pages, numa
+subpasta. Com `base` relativo o MESMO `dist/` serve nos dois — o que permite
+manter o GitHub Pages como reserva enquanto a troca não se confirma em campo.
+
+**Já era relativo e por isso não precisou mudar:** o registro do service worker
+(`./sw-bdgex.js`), o `start_url`/`scope`/`icons` do `manifest.webmanifest` e o
+`<link>` de `marca.css`. Os `<link rel=icon>`/`rel=manifest` são escritos com
+`/` na frente e o próprio Vite os reescreve conforme o `base`.
+
+**Medido:** o mesmo `dist/` servido em dois montes **isolados** (um na raiz,
+outro só em `/wartoolc2/`) e carregado no Chromium anotando todo 404 — **zero
+nos dois**, em `/`, `/frontend/login.html` e `/frontend/index.html`. Conferido
+por mutação: voltando para `'/wartoolc2/'`, o monte da raiz acusa **15 arquivos
+faltando**.
+
+**Erro cometido e corrigido no caminho:** a primeira versão desse teste servia
+os dois caminhos da MESMA pasta, então o caminho absoluto resolvia nos dois e o
+teste aprovou o `base` errado. Só a mutação revelou. Se for refazer, os montes
+precisam ser pastas separadas.
+
+**Falta fazer, e é fora do código** — ver o bloco **26** do roteiro: o projeto
+pages.dev de hoje é de *upload direto* (serve o `_redirects` de uma linha) e um
+projeto não troca de modo. Para ligar ao repositório é preciso apagar o projeto
+atual e criar um novo com o MESMO nome (`5bdacbldc2`), conectado ao GitHub, com
+`npm run build` e saída `dist`. O `_redirects` não pode ir junto, senão o site
+redireciona para si mesmo.
+
+**O que isto NÃO resolve:** o repositório é público, então nome e e-mail
+continuam visíveis nos commits para quem achar o repositório. Esconder a URL e
+esconder a autoria são dois problemas diferentes.
+
 **Se algum aparelho não conhecer `dvh`**, a saída registrada é tirar a
 coordenada do rodapé e pô-la dentro do mapa, como a legenda da grade — onde ela
 não depende da barra do navegador.

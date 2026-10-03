@@ -40,8 +40,14 @@ WebGIS militar de instrução e C2, para uso em campo com rede de dados disponí
 
 Orçamento alvo: até R$ 200/mês. Repositório:
 `github.com/joaopaulo1008/wartoolc2`, branch `main`.
-Site: **https://5bdacbldc2.pages.dev** (redireciona para
-`joaopaulo1008.github.io/wartoolc2/`).
+Site: **https://5bdacbldc2.pages.dev**. Até 2026-10-03 esse endereço era um
+**302 para `<usuario>.github.io/wartoolc2/`** — e o nome de usuário acabava na
+barra de endereços do aluno. Agora o Cloudflare Pages **hospeda** o site; o
+endereço não muda mais depois de abrir. Por isso `base` do Vite é `'./'` e não
+mais `'/wartoolc2/'`: o mesmo `dist/` tem que servir montado na raiz (Cloudflare)
+e numa subpasta (GitHub Pages, mantido como reserva). **Caminho novo em qualquer
+HTML se escreve relativo** — um `/` na frente passa a apontar para a raiz do
+domínio, que deixou de ser a mesma coisa nos dois lugares.
 
 O trabalho é dividido em etapas, uma por chat, para economizar tokens e
 escolher o modelo certo para cada complexidade.

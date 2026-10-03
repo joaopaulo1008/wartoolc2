@@ -48,7 +48,13 @@ usa bússola?).
 
 Sem isto pronto, nenhum item abaixo funciona:
 
-1. **GitHub Pages publicando via Actions.** ~~Deploy from branch → `main` / `/ (root)`~~ — **isto mudou na Etapa 9a**: com o Vite, o que precisa ser publicado é `dist/`, não a raiz do repo. Settings → Pages → Source = **"GitHub Actions"**. Confirmado funcionando em 2026-08-02 (o workflow roda em ~35 s por push). URL: `https://joaopaulo1008.github.io/wartoolc2/`.
+1. **GitHub Pages publicando via Actions.** ~~Deploy from branch → `main` / `/ (root)`~~ — **isto mudou na Etapa 9a**: com o Vite, o que precisa ser publicado é `dist/`, não a raiz do repo. Settings → Pages → Source = **"GitHub Actions"**. Confirmado funcionando em 2026-08-02 (o workflow roda em ~35 s por push). URL: `https://<usuario>.github.io/wartoolc2/`.
+
+   **Desde 2026-10-03 esse não é mais o endereço que o aluno usa.** O site passou a
+   ser hospedado no Cloudflare Pages, em `https://5bdacbldc2.pages.dev`, para o nome
+   de usuário não aparecer na barra de endereços. O GitHub Pages continua publicando
+   pelo Actions como **reserva** — e é por isso que `base` do Vite é `'./'`: o mesmo
+   `dist/` serve nos dois. **Confira os dois** quando mexer em caminho de arquivo.
 
    **Confira que o site no ar é o build atual antes de sair**: desde 2026-09-14 isso ficou trivial — **o rodapé do app mostra a data/hora do build**. Se ela não mudar depois de uma correção, o navegador está servindo a versão antiga (recarregue segurando Shift, ou abra numa aba anônima). O jeito antigo (F12 → Network, comparar o hash dos arquivos em `/wartoolc2/assets/` com o do último `npm run build` local) continua valendo como segunda opinião. Um push que falhou no Actions deixa o site anterior no ar, sem erro visível.
 2. **Migrations aplicadas** no SQL Editor do Supabase: `0001`-`0003` (desde etapas anteriores), `0004_perfis_realtime.sql`, `0005_rastro_historico.sql`, `0006_calcos.sql`, `0007_codigo_turma_valido.sql`, `0008_imagem_geo.sql`, **`0009_auditoria_edicao_e_preferencias.sql`** (Etapa 9b), **`0010_icones_rapidos.sql`**, **`0011_alvo_altitude_dimensoes.sql`**, **`0012_remover_da_turma.sql`** e **`0013_anotacoes.sql`** (2026-09-14), **`0014_situacao_e_apoio.sql`** e **`0015_resposta_ao_apoio.sql`** (2026-09-15).
@@ -1200,5 +1206,47 @@ encontrar, trocamos altura por utilidade e o conserto foi ruim.
   coordenada. Se a pessoa achar a resposta sozinha, o dobramento está bom. Se
   ela não achar, a nota precisa voltar a ficar visível em UTM — e aí o certo é
   encurtar o texto, não desdobrá-lo inteiro.
+
+## 26. O site hospedado no Cloudflare Pages (2026-10-03)
+
+O código já está pronto (`base: './'`, conferido no Chromium). **O que falta é
+no painel da Cloudflare, e é manual.**
+
+### Por que não é só trocar uma configuração
+Um projeto do Cloudflare Pages nasce "upload direto" **ou** "conectado ao Git" e
+**não troca de modo**. O projeto `5bdacbldc2` de hoje é upload direto, servindo
+o `_redirects` de uma linha. Para o endereço continuar o mesmo, o projeto antigo
+tem que ser apagado antes de criar o novo com o mesmo nome.
+
+- [ ] 26a. **Antes de apagar nada:** guarde o arquivo `_redirects` (ele mora em
+  `...\WartoolC2\redirecionamento\`, fora do repo). Se der errado, repor o
+  redirecionamento devolve o estado de hoje em dois minutos.
+- [ ] 26b. Apague o projeto `5bdacbldc2` no painel do Cloudflare Pages.
+- [ ] 26c. Crie um projeto novo, **conectado ao GitHub**, no repositório
+  `wartoolc2`, branch `main`, com o **mesmo nome `5bdacbldc2`** (é o nome que
+  decide o endereço). Build: `npm run build`. Saída: `dist`.
+- [ ] 26d. **O `_redirects` NÃO vai para o `dist/`.** Se ele for junto, o site
+  redireciona para si mesmo e nada abre. Confira a lista de arquivos publicados
+  depois do primeiro build.
+- [ ] 26e. Abra `https://5bdacbldc2.pages.dev` **no celular**: a tela de login
+  aparece e **a barra de endereços continua mostrando `5bdacbldc2.pages.dev`**,
+  sem trocar para outro domínio. É o item inteiro deste bloco.
+- [ ] 26f. **Entre de verdade** (login, mapa, marcar um ponto, abrir o painel do
+  instrutor). Nenhuma tela em branco, nenhum ícone quebrado — se o `base`
+  estivesse errado, o sintoma seria exatamente esse.
+- [ ] 26g. **Instale como app** (Adicionar à tela de início): o ícone e o nome
+  "ELITE C2" aparecem, e abrir pelo ícone cai no login. O `manifest.webmanifest`
+  é relativo, mas isso só se confirma no aparelho.
+- [ ] 26h. **Mapa offline:** salve uma área e recarregue sem rede. O service
+  worker tem escopo por caminho — mudar de domínio é o teste real disso, e é o
+  item com mais chance de surpresa.
+- [ ] 26i. **O endereço antigo continua funcionando?** Abra
+  `https://<usuario>.github.io/wartoolc2/`. Deve abrir normalmente (o GitHub
+  Pages fica como reserva). Se abrir em branco, o `base` relativo quebrou a
+  reserva e isso é falha.
+- [ ] 26j. **Um push novo republica sozinho** nos dois? Faça um commit qualquer
+  e confira o carimbo de build no rodapé das duas URLs.
+- [ ] 26k. **Avise a turma do endereço** só depois de 26e a 26h passarem. E
+  lembre: `turmas.codigo_acesso` da turma de teste ainda é `TESTE`.
 
 Qualquer item marcado como falha vira a prioridade do próximo chat — cole este checklist preenchido para retomar com contexto completo.
