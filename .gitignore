@@ -16,6 +16,21 @@ __pycache__/
 .DS_Store
 Thumbs.db
 
+# Rascunho das sessões do Claude. A pasta existe no disco do João e viaja pelo
+# OneDrive entre os PCs dele, mas não é código do projeto: são SQL de
+# conferência, mensagens de commit em rascunho, capturas de tela e PNG de
+# prancha. Três arquivos dela estavam COMMITADOS por engano desde setembro
+# (registrado como pendência no próprio CLAUDE.md); saíram do índice em
+# 2026-10-03, sem sair do disco.
+Claude outputs/
+
+# Backup do .git corrompido em 2026-09-19, caso ele reapareça. O conserto é
+# trocar o .git inteiro (ver docs); o backup não é código.
+.git-corrompido-*/
+
+# Saída de comando que escapou para um arquivo.
+/h
+
 # Editores
 .vscode/
 .idea/
