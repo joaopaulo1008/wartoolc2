@@ -70,6 +70,73 @@ function normalizar(alvo, nomePadrao) {
 
 const no = (x) => (typeof x === 'string' ? document.getElementById(x) : (x || null));
 
+// ── A nota explicativa vive dobrada (2026-10-03) ───────────────────────────
+// Medido no Chromium, com o painel na largura de celular (190–220px): as duas
+// notas desta tela somavam **11 linhas quebradas, ~150px — 42% da altura do
+// cartão "Coordenada"**. Ficou evidente quando a grade passou a nascer em UTM,
+// porque aí as duas aparecem juntas por padrão.
+//
+// Apagar o texto não era opção: cada nota existe por um relato de campo (a do
+// UTM por "estamos a W e S, e está escrito E e N", 2026-08-02; a da grade para
+// responder "por que a quadrícula não fica menor que isso"). Então o texto fica
+// inteiro e só nasce DOBRADO, num <details> nativo — uma linha "Como ler"
+// fechada, o texto ao clicar.
+//
+// Nativo de propósito: nada para gravar (o que fica aberto nesta sessão volta
+// ao padrão na próxima, mesma regra do painel-lateral.js), funciona por
+// teclado sem uma linha de código, e some junto com o <details> se um dia o
+// texto mudar de dono.
+//
+// O elemento nasce `hidden` no HTML e é este módulo que o revela quando há
+// texto. É a mesma disciplina do `pl-nasce-recolhido`: o estado da primeira
+// pintura se declara no HTML, senão um "Como ler" solto pisca na tela em que a
+// nota nem se aplica (grau decimal, "Sem grade").
+//
+// Aceita também um elemento comum, sem <details>, e aí se comporta como antes
+// — o módulo serve duas telas e não exige que as duas usem a mesma marcação.
+function escreverNota(el, texto) {
+  if (!el) return;
+  const dobravel = el.tagName === 'DETAILS';
+  const corpo = dobravel ? (el.querySelector('.nota-corpo') || el) : el;
+  if (dobravel && corpo === el) return;  // <details> sem corpo: não há onde escrever
+
+  corpo.textContent = texto || '';
+  // `hidden` em vez de classe: é o atributo que o HTML já usa para nascer
+  // escondido, e assim há um jeito só de esconder isto, não dois.
+  el.hidden = !texto;
+  if (!texto && dobravel) el.open = false;
+}
+
+// O CSS da nota dobrável. Injetado daqui — e não no <style> de cada página —
+// porque o elemento nasce `hidden`: nada dele é pintado antes do JavaScript,
+// então chegar junto com o módulo não custa nada. (A regra oposta vale para o
+// `pl-nasce-recolhido` do painel, que PRECISA estar na página justamente
+// porque pinta antes.)
+let estilosInjetados = false;
+function injetarEstilos() {
+  if (estilosInjetados || typeof document === 'undefined') return;
+  estilosInjetados = true;
+  const style = document.createElement('style');
+  style.textContent = `
+    details.nota-dobravel { margin-top:5px; }
+    /* O resumo é mais claro que o corpo DE PROPÓSITO: ele é a única parte
+       sempre visível, e precisa se ler como algo em que se toca, não como
+       legenda apagada — a tela é usada ao ar livre, no sol. O corpo fica no
+       cinza discreto de antes, porque aí já se está lendo.
+       'padding' de 3px: o alvo de toque de um texto de 10px é pequeno demais
+       para um polegar; isto o engorda sem mudar o desenho. */
+    details.nota-dobravel > summary {
+      font-size:10px; color:#A9A584; cursor:pointer; user-select:none;
+      list-style-position:outside; padding:3px 0 3px 2px;
+    }
+    details.nota-dobravel > summary:hover { color:#E6DCB8; }
+    details.nota-dobravel > .nota-corpo {
+      font-size:10px; color:#7A7C5C; line-height:1.4; margin-top:4px;
+    }
+  `;
+  document.head.appendChild(style);
+}
+
 // Só em UTM, porque só lá `E`/`N` significam outra coisa que não hemisfério.
 // Em grau decimal e GMS, S e W SÃO hemisfério — explicar ali seria criar a
 // dúvida em vez de tirá-la. Relatado em campo em 2026-08-02: "estamos a W e S,
@@ -98,6 +165,7 @@ const NOTA_GRADE = {
 //
 // Devolve a função que desliga tudo.
 export function ligarSeletorDeCoordenada({ alvo, exemplo, nota, map } = {}) {
+  injetarEstilos();
   const ctrl = normalizar(alvo, 'formato-coordenada');
   if (!ctrl) return () => {};
   const elExemplo = no(exemplo);
@@ -117,7 +185,7 @@ export function ligarSeletorDeCoordenada({ alvo, exemplo, nota, map } = {}) {
   // hora com o valor atual — daí ele nascer no formato gravado.
   const desligarObs = observarFormatoCoordenada((formato) => {
     ctrl.refletir(formato);
-    if (elNota) elNota.textContent = (formato === 'utm') ? NOTA_UTM : '';
+    escreverNota(elNota, (formato === 'utm') ? NOTA_UTM : '');
     atualizarExemplo();
   });
 
@@ -134,6 +202,7 @@ export function ligarSeletorDeCoordenada({ alvo, exemplo, nota, map } = {}) {
 // Espelha a função acima de propósito: mesma forma, mesmo observador, mesma
 // razão para ser observador e não atribuição direta.
 export function ligarSeletorDeGrade({ alvo, nota } = {}) {
+  injetarEstilos();
   const ctrl = normalizar(alvo, 'modo-grade');
   if (!ctrl) return () => {};
   const elNota = no(nota);
@@ -141,7 +210,7 @@ export function ligarSeletorDeGrade({ alvo, nota } = {}) {
   const desligarControle = ctrl.aoMudar((valor) => definirModoGrade(valor));
   const desligarObs = observarModoGrade((modo) => {
     ctrl.refletir(modo);
-    if (elNota) elNota.textContent = NOTA_GRADE[modo] || '';
+    escreverNota(elNota, NOTA_GRADE[modo] || '');
   });
 
   return () => { desligarControle(); desligarObs(); };

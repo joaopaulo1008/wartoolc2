@@ -809,6 +809,48 @@ sem linha nenhuma e `'geo'` continua geográfica.
 **Não medido daqui:** uma conta nova de verdade, contra o Supabase. Bloco **24**
 do roteiro.
 
+### 2026-10-03 (g) — a nota explicativa passou a viver dobrada
+
+Relato, logo depois da entrega (f): *"o card de coordenada está ficando muito
+grande por causa da mensagem de rodapé do card"*. Ficou evidente agora porque,
+com a grade nascendo em UTM, **as duas notas aparecem juntas por padrão**.
+
+**Medido antes de mexer**, no Chromium, com o painel na largura de celular
+(190–220px): as duas notas somavam **11 linhas quebradas, ~150px — 42% da
+altura do cartão**. Não era impressão.
+
+Apagar o texto não era opção: cada nota existe por um relato de campo (a do UTM
+por *"estamos a W e S, e está escrito E e N"*, 02/08; a da grade para responder
+"por que a quadrícula não fica menor que isso"). Então o texto fica **inteiro** e
+só nasce **dobrado**, num `<details>` nativo — uma linha "Como ler" fechada, o
+texto ao clicar.
+
+Nativo de propósito: nada para gravar (o que fica aberto nesta sessão volta ao
+padrão na próxima, mesma regra do `painel-lateral.js`), teclado funciona sem uma
+linha de código, e o CSS é injetado pelo módulo porque o elemento **nasce
+`hidden` no HTML** — nada dele é pintado antes do JavaScript, então chegar junto
+com o módulo não custa nada. (É o inverso do `pl-nasce-recolhido` da entrada
+(e), que PRECISA estar na página justamente porque pinta antes; os dois casos
+seguem a mesma regra, lida nas duas direções.)
+
+O `hidden` declarado no HTML é o que impede um "Como ler" solto de piscar nos
+formatos em que a nota não se aplica — conferido com o **JavaScript desligado**:
+os dois `<details>` nascem `hidden`, nenhum resumo é pintado.
+
+O resumo é mais claro que o corpo de propósito (`#A9A584` contra `#7A7C5C`) e
+tem 3px de folga vertical: ele é a única parte sempre visível, a tela é usada ao
+ar livre, e um texto de 10px é alvo pequeno para um polegar.
+
+**Resultado medido:** cartão de **355px para 235px** a 190px de largura (**34%
+menor**); as notas, de 154px para 34px. Aberta, a nota do UTM ocupa os mesmos
+71px de antes — ninguém perdeu informação. Comportamento conferido no
+navegador: nasce fechada com o texto já dentro, o clique abre o texto certo,
+some em "Grau decimal" e em "Sem grade", e **volta fechada** ao reentrar em UTM.
+
+Vale nas duas telas: `instrutor.html` tem a mesma nota de grade, na coluna que é
+a mais apertada das duas. Bateria: **1290 casos em 21 suítes, 0 falhas**;
+`npm run build` verde, com o `hidden` preservado no HTML gerado.
+
 **Se algum aparelho não conhecer `dvh`**, a saída registrada é tirar a
 coordenada do rodapé e pô-la dentro do mapa, como a legenda da grade — onde ela
 não depende da barra do navegador.

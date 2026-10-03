@@ -540,8 +540,14 @@
             <option value="geo">Grade geográfica</option>
           </select>
         </div>
-        <div id="situacao-grade-nota"
-             style="font-size:10px;color:#7A7C5C;margin:-4px 4px 10px;line-height:1.4"></div>
+        <!-- Dobrada (2026-10-03) e `hidden` de saída: a coluna do instrutor é
+             estreita e tem a lista da turma disputando a altura. Quem revela,
+             preenche e estiliza é preferencias-tela.js. -->
+        <details class="nota-dobravel" id="situacao-grade-nota"
+                 style="margin:-4px 4px 10px" hidden>
+          <summary>Como ler</summary>
+          <div class="nota-corpo"></div>
+        </details>
 
         <div class="lista-titulo">Mapa base</div>
         <div class="campo">

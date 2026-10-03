@@ -332,6 +332,19 @@ empurrado" até 2026-09-19). Duas coisas distintas:
    que este arquivo descreve no topo como se já estivesse no repositório. Um
    `git clone` **não** traz nada disso.
 
+**Nota explicativa longa mora dobrada, e o CSS dela vem do módulo
+(2026-10-03).** As duas notas do cartão "Coordenada" somavam **42% da altura
+dele** num painel de celular (medido: 11 linhas quebradas, ~150px a 190–220px
+de largura) — e ficaram visíveis juntas quando a grade passou a nascer em UTM.
+Cada nota existe por um relato de campo, então o texto fica **inteiro** e nasce
+**dobrado**, num `<details>` nativo com resumo "Como ler": nada para gravar,
+teclado de graça. **Cartão de 355px para 235px.** O elemento nasce `hidden` no
+HTML (mesma disciplina do `pl-nasce-recolhido`: o estado da primeira pintura se
+declara na página) e `preferencias-tela.js` o revela quando há texto — e é por
+isso que, aqui, o CSS PODE ser injetado pelo módulo: nada é pintado antes do
+JavaScript. A regra geral é essa, lida nas duas direções: **o que pinta antes do
+JS vai no `<style>` da página; o que não pinta pode vir do módulo.**
+
 **A quadrícula nasce LIGADA, e o padrão não apaga escolha de ninguém
 (2026-10-03).** `MODO_PADRAO` de `grade.js` passou de `'off'` para `'utm'`:
 para quem lê carta, a quadrícula é a referência pela qual a coordenada é dita

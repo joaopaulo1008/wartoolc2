@@ -1171,4 +1171,34 @@ seletor.
   se as linhas poluírem a tela pequena a ponto de atrapalhar, isso é um dado
   real e vale rediscutir o padrão em vez de insistir nele.
 
+## 25. A nota "Como ler" (2026-10-03)
+
+As notas explicativas do cartão "Coordenada" passaram a nascer dobradas. O texto
+continua inteiro — o que mudou é que ele só aparece ao tocar em "Como ler".
+Medido: o cartão caiu de 355px para 235px num painel de celular.
+
+**O que este bloco procura descobrir:** se "Como ler" é achável por quem tem a
+dúvida. A nota existe por causa de uma pergunta real de campo; se ninguém a
+encontrar, trocamos altura por utilidade e o conserto foi ruim.
+
+- [ ] 25a. **No celular, app do aluno:** abra o cartão "Coordenada". Ele cabe
+  melhor na tela do que cabia, e sobra mapa.
+- [ ] 25b. **Toque em "Como ler"** (há um abaixo dos formatos e outro abaixo da
+  grade): o texto aparece. Toque de novo: fecha.
+- [ ] 25c. **O alvo de toque é suficiente com o dedo**, sem precisar mirar. Se
+  você errar o toque mais de uma vez, é falha — anote.
+- [ ] 25d. **"Como ler" é legível no sol**, não some no fundo do cartão. Esse
+  item só vale ao ar livre, de verdade.
+- [ ] 25e. **Troque para "Grau decimal":** a nota do UTM **desaparece inteira**,
+  incluindo o "Como ler" (ela não se aplica fora do UTM). Volte para UTM: ela
+  reaparece **fechada**, não aberta.
+- [ ] 25f. **Marque "Sem grade":** o "Como ler" da grade some. Marque "Grade
+  geográfica": volta, com o texto curto da grade geográfica.
+- [ ] 25g. **Painel do instrutor, aba "Situação atual":** mesma coisa na nota da
+  grade, que é a coluna mais apertada das duas.
+- [ ] 25h. **Pergunte a alguém que nunca viu o app** o que significa o "mN" da
+  coordenada. Se a pessoa achar a resposta sozinha, o dobramento está bom. Se
+  ela não achar, a nota precisa voltar a ficar visível em UTM — e aí o certo é
+  encurtar o texto, não desdobrá-lo inteiro.
+
 Qualquer item marcado como falha vira a prioridade do próximo chat — cole este checklist preenchido para retomar com contexto completo.

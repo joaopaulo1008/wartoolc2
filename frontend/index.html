@@ -353,8 +353,18 @@
     <div id="coordenada-exemplo" style="font-size:11px;color:#7F8D5A;margin-top:6px;font-variant-numeric:tabular-nums"></div>
     <!-- Nota que só aparece em UTM (ver ligarSeletorDeCoordenada no script).
          Relatado em campo em 2026-08-02: "estamos a W e S, e está escrito E e
-         N". Não estava errado — mas se confundiu uma vez, confunde de novo. -->
-    <div id="coordenada-nota" style="font-size:10px;color:#7A7C5C;margin-top:5px;line-height:1.4"></div>
+         N". Não estava errado — mas se confundiu uma vez, confunde de novo.
+
+         DOBRADA desde 2026-10-03: o texto inteiro é longo e, somado ao da
+         grade, ocupava 42% da altura deste cartão num painel de celular.
+         Nasce `hidden` e sem estilo próprio: quem revela, preenche e estiliza
+         é preferencias-tela.js — ver o comentário de `escreverNota` lá. O
+         `hidden` no HTML é o que impede um "Como ler" solto de piscar nos
+         formatos em que a nota não se aplica. -->
+    <details class="nota-dobravel" id="coordenada-nota" hidden>
+      <summary>Como ler</summary>
+      <div class="nota-corpo"></div>
+    </details>
 
     <!-- ── Grade de quadrículas (2026-10-02) ──────────────────────────────
          Mora NESTE cartão, e não num cartão próprio, porque é a mesma
@@ -376,7 +386,12 @@
       <input type="radio" name="modo-grade" value="geo">
       Grade geográfica
     </label>
-    <div id="grade-nota" style="font-size:10px;color:#7A7C5C;margin-top:5px;line-height:1.4"></div>
+    <!-- Dobrada pelo mesmo motivo da nota acima; nasce `hidden` porque em
+         "Sem grade" não há nota nenhuma. -->
+    <details class="nota-dobravel" id="grade-nota" hidden>
+      <summary>Como ler</summary>
+      <div class="nota-corpo"></div>
+    </details>
   </div>
 
   <!-- Etapa 11: aqui moravam dois cartões do exercício de junho de 2026, que
