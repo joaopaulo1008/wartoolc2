@@ -331,6 +331,13 @@
     border-radius:4px; padding:6px 10px; font-size:12px; cursor:pointer; margin-bottom:10px;
   }
   .botao-secundario:hover { background:#16263a; color:#c8d8e8; }
+  /* Aba "Nova turma (CSV)" */
+  #importar-corpo { flex:1; overflow:auto; padding:16px 20px; max-width:880px; }
+  #importar-corpo .campo input[type=text], #importar-corpo .campo input[type=file], #importar-corpo .campo select { max-width:420px; }
+  .importar-erro-titulo { color:#f5a0a0; font-size:12px; margin:8px 0 4px; }
+  .importar-resumo { color:#a8d8b0; font-size:12px; margin:8px 0; }
+  #importar-problemas ul, #importar-resultado ul { margin:4px 0 8px 18px; padding:0; font-size:12px; color:#c8d8e8; line-height:1.6; }
+  #importar-problemas ul.importar-avisos { color:#e0c070; }
   .campo select, .campo input[type=datetime-local] {
     padding:5px 7px; background:#16263a; color:#e8eaf0;
     border:1px solid #2a4a6b; border-radius:4px; font-size:12px; font-family:inherit;
@@ -438,6 +445,7 @@
   <button type="button" id="aba-debriefing" class="aba">Debriefing — rastro</button>
   <button type="button" id="aba-calcos" class="aba">Calcos</button>
   <button type="button" id="aba-paleta" class="aba">Marcação rápida</button>
+  <button type="button" id="aba-importar" class="aba">Nova turma (CSV)</button>
 </div>
 
 <div id="contexto">
@@ -781,6 +789,60 @@
       </div>
     </div>
   </div>
+
+  <!-- Aba "Nova turma (CSV)": cria uma turma NOVA, com as contas das pessoas, a
+       partir de uma planilha. Nunca mexe na turma atual nem no histórico dela.
+       Lógica em instrutor-importar.js; regra pura em importar-turma.js; quem
+       cria as contas é a Edge Function importar-turma (service_role). -->
+  <div id="painel-importar" class="painel" hidden>
+    <div id="importar-corpo">
+      <h2 class="grade-titulo">Criar uma turma nova a partir de uma planilha</h2>
+      <p class="grade-sub">
+        Use para separar um exercício do outro: a turma atual, com o histórico
+        dela, <b>não é tocada</b>. A turma nova nasce com os partidos Azul e
+        Vermelho, e você fica como responsável por ela. Cada linha da planilha
+        vira uma conta (usuário + senha) já na turma, com papel, partido e
+        símbolo definidos. O modelo em Excel tem as colunas, as listas de
+        valores e as instruções; salve-o como <b>CSV UTF-8</b> antes de subir.
+        Contas que já existem <b>não são movidas</b> — use usuários novos.
+      </p>
+
+      <div class="campo">
+        <label for="importar-nome">Nome da turma</label>
+        <input type="text" id="importar-nome" maxlength="80" placeholder="ex.: Simulação construtiva — Arandu">
+      </div>
+      <div class="campo">
+        <label for="importar-codigo">Código de acesso</label>
+        <input type="text" id="importar-codigo" maxlength="30" placeholder="ex.: ARANDU-26" autocomplete="off">
+        <span class="campo-dica">É o que quem se cadastrar sozinho digita para entrar. Use algo difícil de adivinhar.</span>
+      </div>
+      <div class="campo">
+        <label for="importar-modo">Posição dos alunos</label>
+        <select id="importar-modo">
+          <option value="gps">GPS do aparelho</option>
+          <option value="manual">Simulação — o aluno posiciona o posto no mapa</option>
+        </select>
+        <span class="campo-dica">Dá para trocar depois, no seletor "Posição dos alunos" da barra de contexto.</span>
+      </div>
+      <div class="campo">
+        <label for="importar-descricao">Descrição (opcional)</label>
+        <input type="text" id="importar-descricao" maxlength="200">
+      </div>
+      <div class="campo">
+        <label for="importar-arquivo">Planilha de pessoas (CSV, até <span id="importar-limite"></span> linhas)</label>
+        <input type="file" id="importar-arquivo" accept=".csv,.txt,text/csv">
+        <span class="campo-dica">Não tem o modelo à mão? <a href="#" id="importar-exemplo" style="color:#7ab0e8">Baixar um CSV de exemplo</a>.</span>
+      </div>
+
+      <div id="importar-problemas"></div>
+      <div id="importar-previa"></div>
+      <div class="campo" style="margin-top:12px">
+        <button type="button" id="importar-criar" class="botao-principal" disabled>Criar turma e contas</button>
+        <span id="importar-turma-dica" class="campo-dica"></span>
+      </div>
+      <div id="importar-resultado"></div>
+    </div>
+  </div>
 </div>
 
 <div id="footer">
@@ -803,6 +865,7 @@ import { iniciarPermissoes } from './permissoes.js';
 import { iniciarPreferencias } from './preferencias.js';
 import { iniciarPainelPermissoes, observarTurma } from './instrutor-permissoes.js';
 import { iniciarModoPosicaoInstrutor } from './instrutor-modo-posicao.js';
+import { iniciarImportarTurma } from './instrutor-importar.js';
 import { iniciarDebriefing, aoAbrirDebriefing, definirTurmaDebriefing, abrirRastroDoAluno } from './debriefing.js';
 import { iniciarSituacao, aoAbrirSituacao, definirTurmaSituacao } from './situacao.js';
 import { iniciarPainelCalcos, definirTurmaCalcos } from './instrutor-calcos.js';
@@ -886,6 +949,9 @@ if (resultado) {
   await iniciarPaletaInstrutor({ userId: session.user.id });
   observarTurma(definirTurmaPaleta);
 
+  // Aba "Nova turma (CSV)": não depende da turma escolhida no seletor (cria outra).
+  iniciarImportarTurma();
+
   // ── Abas ────────────────────────────────────────────────────────────────
   // O mapa do debriefing só é montado quando a aba é aberta pela primeira vez
   // (aoAbrirDebriefing): um Leaflet criado dentro de um container com
@@ -897,6 +963,7 @@ if (resultado) {
     { botao: 'aba-debriefing', painel: 'painel-debriefing' },
     { botao: 'aba-calcos',     painel: 'painel-calcos' },
     { botao: 'aba-paleta',     painel: 'painel-paleta' },
+    { botao: 'aba-importar',   painel: 'painel-importar' },
   ];
 
   function trocarAba(alvo) {
